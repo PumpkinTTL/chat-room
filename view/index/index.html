@@ -7,121 +7,119 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/index.css?v=5">
+    <link rel="stylesheet" href="/static/css/index.css?v=6">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
     <div id="app" :class="{ 'dark-mode': isDarkMode }">
-        <!-- 动态背景 -->
-        <div class="app-background">
-            <div class="blob blob-1"></div>
-            <div class="blob blob-2"></div>
-            <div class="blob blob-3"></div>
-        </div>
-
-        <div class="app-container">
-            <!-- 侧边栏 (桌面端显示，移动端抽屉) -->
-            <aside class="sidebar" :class="{ 'sidebar-mobile-active': sidebarOpen }">
+        
+        <div class="layout-container">
+            <!-- 侧边栏 -->
+            <aside class="sidebar" :class="{ 'sidebar-open': sidebarOpen }">
                 <div class="sidebar-header">
-                    <div class="logo-area">
-                        <div class="logo-icon">
-                            <i class="fas fa-comments"></i>
+                    <div class="app-brand">
+                        <div class="brand-logo">
+                            <i class="fas fa-comment-dots"></i>
                         </div>
-                        <span class="app-title">Chat Space</span>
+                        <span class="brand-name">ChatSpace</span>
                     </div>
-                    <button class="icon-btn mobile-only close-sidebar-btn" @click="toggleSidebar">
+                    <button class="icon-btn mobile-only" @click="toggleSidebar">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
 
                 <div class="sidebar-search">
-                    <div class="search-box">
+                    <div class="search-input-wrapper">
                         <i class="fas fa-search"></i>
-                        <input type="text" placeholder="搜索成员...">
+                        <input type="text" placeholder="搜索用户...">
                     </div>
                 </div>
 
-                <div class="sidebar-content">
-                    <div class="section-title">在线成员 ({{ onlineUsers }})</div>
+                <div class="sidebar-nav">
+                    <div class="nav-section-label">在线用户 ({{ onlineUsers }})</div>
                     <div class="user-list">
-                        <div v-for="user in onlineUsersList" :key="user.id" class="user-card">
-                            <div class="user-avatar-wrapper">
-                                <div class="user-avatar gradient-avatar">
-                                    {{ user.name.charAt(0) }}
-                                </div>
-                                <div class="status-dot" :class="{ 'online': user.online }"></div>
+                        <div v-for="user in onlineUsersList" :key="user.id" class="user-item">
+                            <div class="avatar-wrapper">
+                                <div class="avatar">{{ user.name.charAt(0) }}</div>
+                                <div class="status-indicator" :class="{ 'online': user.online }"></div>
                             </div>
-                            <div class="user-info">
-                                <div class="user-name">{{ user.name }}</div>
-                                <div class="user-status-text">{{ user.online ? '在线' : '离线' }}</div>
+                            <div class="user-details">
+                                <div class="name">{{ user.name }}</div>
+                                <div class="status">{{ user.online ? '在线' : '离线' }}</div>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <div class="sidebar-footer">
-                    <button class="theme-toggle-btn" @click="toggleTheme">
+                    <button class="footer-btn theme-toggle" @click="toggleTheme">
                         <i class="fas" :class="isDarkMode ? 'fa-sun' : 'fa-moon'"></i>
-                        <span>{{ isDarkMode ? '浅色模式' : '深色模式' }}</span>
                     </button>
+                    <div class="footer-info">
+                        <span>当前版本 v1.0</span>
+                    </div>
                 </div>
             </aside>
 
             <!-- 移动端遮罩 -->
-            <div class="sidebar-overlay" v-if="sidebarOpen" @click="toggleSidebar"></div>
+            <div class="mobile-overlay" v-if="sidebarOpen" @click="toggleSidebar"></div>
 
             <!-- 主聊天区域 -->
-            <main class="main-chat-area">
-                <!-- 顶部栏 -->
-                <header class="chat-header">
-                    <div class="header-left">
-                        <button class="icon-btn mobile-menu-btn" @click="toggleSidebar">
+            <main class="main-content">
+                <!-- 顶部导航 -->
+                <header class="chat-navbar">
+                    <div class="nav-left">
+                        <button class="menu-btn mobile-only" @click="toggleSidebar">
                             <i class="fas fa-bars"></i>
                         </button>
-                        <div class="chat-room-info">
-                            <h2 class="room-title">{{ roomName }}</h2>
-                            <span class="room-status">
-                                <span class="status-indicator"></span> {{ onlineUsers }} 人在线
+                        <div class="chat-info">
+                            <h2 class="chat-title">{{ roomName }}</h2>
+                            <span class="chat-status">
+                                <span class="dot"></span> {{ onlineUsers }} 人在线
                             </span>
                         </div>
                     </div>
-                    <div class="header-right">
-                        <button class="icon-btn" title="更多设置">
-                            <i class="fas fa-ellipsis-h"></i>
+                    <div class="nav-right">
+                        <button class="nav-icon-btn">
+                            <i class="fas fa-phone"></i>
+                        </button>
+                        <button class="nav-icon-btn">
+                            <i class="fas fa-video"></i>
+                        </button>
+                        <button class="nav-icon-btn">
+                            <i class="fas fa-info-circle"></i>
                         </button>
                     </div>
                 </header>
 
-                <!-- 消息列表 -->
-                <div class="messages-scroll-area" ref="messagesContainer">
-                    <div class="messages-wrapper">
-                        <div v-for="message in messages" :key="message.id" class="message-row" :class="{ 'message-own': message.isOwn }">
+                <!-- 消息区域 -->
+                <div class="messages-container" ref="messagesContainer">
+                    <div class="messages-list">
+                        <div v-for="message in messages" :key="message.id" class="msg-row" :class="{ 'msg-own': message.isOwn }">
                             
-                            <div v-if="message.type === 'system'" class="system-message">
-                                <span>{{ message.text }}</span>
+                            <div v-if="message.type === 'system'" class="msg-system">
+                                <span class="system-badge">{{ message.text }}</span>
                             </div>
 
-                            <div v-else class="message-group">
-                                <div v-if="!message.isOwn" class="avatar-container">
-                                    <div class="message-avatar gradient-avatar">{{ message.username.charAt(0) }}</div>
+                            <div v-else class="msg-content-group">
+                                <div v-if="!message.isOwn" class="msg-avatar">
+                                    {{ message.username.charAt(0) }}
                                 </div>
 
-                                <div class="message-content-wrapper">
-                                    <div v-if="!message.isOwn" class="message-meta">
-                                        <span class="sender-name">{{ message.username }}</span>
-                                        <span class="send-time">{{ formatTime(message.time) }}</span>
+                                <div class="msg-bubble-wrapper">
+                                    <div v-if="!message.isOwn" class="msg-sender">
+                                        {{ message.username }} 
+                                        <span class="msg-time">{{ formatTime(message.time) }}</span>
                                     </div>
 
-                                    <div class="message-bubble" :class="{ 'image-bubble': message.type === 'image' }">
-                                        <div v-if="message.type === 'image'" class="image-content" @click="handleImageClick(message.imageUrl)">
-                                            <img :src="message.imageUrl" loading="lazy" alt="图片">
+                                    <div class="msg-bubble" :class="{ 'msg-image': message.type === 'image' }">
+                                        <div v-if="message.type === 'image'" class="image-wrapper" @click="handleImageClick(message.imageUrl)">
+                                            <img :src="message.imageUrl" loading="lazy" alt="Image">
                                         </div>
-                                        <div v-else class="text-content">{{ message.text }}</div>
+                                        <div v-else class="text-wrapper">{{ message.text }}</div>
                                     </div>
                                     
-                                    <div v-if="message.isOwn" class="message-meta own-meta">
-                                        <span class="send-time">{{ formatTime(message.time) }}</span>
-                                    </div>
+                                    <div v-if="message.isOwn" class="msg-time-own">{{ formatTime(message.time) }}</div>
                                 </div>
                             </div>
                         </div>
@@ -129,55 +127,53 @@
                 </div>
 
                 <!-- 输入区域 -->
-                <div class="input-area-wrapper">
-                    <div class="input-panel">
-                        <!-- 图片预览 -->
-                        <div v-if="imagePreview" class="preview-bar">
-                            <div class="preview-item">
-                                <img :src="imagePreview" alt="预览">
-                                <div class="preview-details">
-                                    <span class="file-name">{{ selectedImageFile?.name }}</span>
-                                    <span class="file-size">{{ selectedImageFile ? formatFileSize(selectedImageFile.size) : '' }}</span>
-                                </div>
-                                <button class="close-preview-btn" @click="clearImagePreview">
-                                    <i class="fas fa-times"></i>
-                                </button>
+                <div class="input-section">
+                    <!-- 图片预览 -->
+                    <div v-if="imagePreview" class="upload-preview">
+                        <div class="preview-card">
+                            <img :src="imagePreview" alt="Preview">
+                            <div class="file-info">
+                                <span class="fname">{{ selectedImageFile?.name }}</span>
+                                <span class="fsize">{{ selectedImageFile ? formatFileSize(selectedImageFile.size) : '' }}</span>
                             </div>
+                            <button class="remove-btn" @click="clearImagePreview">
+                                <i class="fas fa-times"></i>
+                            </button>
                         </div>
+                    </div>
 
-                        <div class="input-toolbar">
-                            <button class="tool-btn" @click="triggerImageUpload" title="发送图片">
-                                <i class="far fa-image"></i>
-                            </button>
-                            <!-- 可以添加更多工具按钮: 表情、文件等 -->
-                            <div class="input-box">
-                                <input 
-                                    v-model="newMessage" 
-                                    type="text" 
-                                    placeholder="输入消息..." 
-                                    @keyup.enter="sendMessage"
-                                    class="main-input"
-                                >
-                            </div>
-                            <button class="send-message-btn" @click="sendMessage" :disabled="!newMessage.trim() && !selectedImageFile">
-                                <i class="fas fa-paper-plane"></i>
+                    <div class="input-bar">
+                        <button class="attach-btn" @click="triggerImageUpload">
+                            <i class="fas fa-plus-circle"></i>
+                        </button>
+                        <div class="text-input-wrapper">
+                            <input 
+                                v-model="newMessage" 
+                                type="text" 
+                                placeholder="发送消息..." 
+                                @keyup.enter="sendMessage"
+                                class="text-input"
+                            >
+                            <button class="emoji-btn">
+                                <i class="far fa-smile"></i>
                             </button>
                         </div>
+                        <button class="send-btn" @click="sendMessage" :disabled="!newMessage.trim() && !selectedImageFile">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
                     </div>
                     <input type="file" ref="imageInput" @change="handleImageSelect" accept="image/*" hidden>
                 </div>
             </main>
         </div>
 
-        <!-- 图片查看模态框 -->
+        <!-- 图片查看器 -->
         <transition name="fade">
-            <div v-if="isImageModalOpen" class="lightbox" @click="closeImageModal">
-                <button class="lightbox-close">
+            <div v-if="isImageModalOpen" class="image-viewer" @click="closeImageModal">
+                <button class="close-viewer">
                     <i class="fas fa-times"></i>
                 </button>
-                <div class="lightbox-content" @click.stop>
-                    <img :src="currentImageUrl" alt="查看大图">
-                </div>
+                <img :src="currentImageUrl" @click.stop alt="Full View">
             </div>
         </transition>
     </div>
