@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(composer:*)",
+      "Bash(curl:*)",
+      "Bash(tree:*)",
+      "Bash(dir:*)",
+      "Bash(cat:*)"
+    ]
+  }
+}

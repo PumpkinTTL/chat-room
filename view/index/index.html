@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>聊天室</title>
+    <link rel="stylesheet" href="/static/css/index.css?v=3">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div id="app">
+        <!-- 顶部栏 -->
+        <header class="chat-header">
+            <button class="icon-btn mobile-only" @click="toggleSidebar">
+                <i class="fas fa-bars"></i>
+            </button>
+            <div class="room-info">
+                <div class="room-name">{{ roomName }}</div>
+                <div class="room-meta">{{ onlineUsers }} 在线</div>
+            </div>
+            <div class="header-actions">
+                <button class="icon-btn" title="更多">
+                    <i class="fas fa-ellipsis-v"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- 主布局 -->
+        <div class="chat-layout">
+            <!-- 侧边栏 -->
+            <aside class="chat-sidebar" :class="{ 'sidebar-open': sidebarOpen }">
+                <div class="sidebar-header">
+                    <div class="sidebar-title">成员</div>
+                    <button class="icon-btn mobile-only" @click="toggleSidebar">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="user-list">
+                    <div v-for="user in onlineUsersList" :key="user.id" class="user-item">
+                        <div class="user-avatar" :class="{ 'user-online': user.online }">
+                            {{ user.name.charAt(0) }}
+                        </div>
+                        <div class="user-item-name">{{ user.name }}</div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- 遮罩 -->
+            <div class="sidebar-overlay mobile-only" v-if="sidebarOpen" @click="toggleSidebar"></div>
+
+            <!-- 聊天区 -->
+            <main class="chat-main">
+                <!-- 消息区 -->
+                <div class="messages-container" ref="messagesContainer">
+                    <div v-for="message in messages" :key="message.id" class="message-wrapper" :class="{ 'message-own': message.isOwn }">
+                        
+                        <!-- 系统消息 -->
+                        <div v-if="message.type === 'system'" class="message-system">
+                            {{ message.text }}
+                        </div>
+
+                        <!-- 用户消息 -->
+                        <div v-else class="message-bubble">
+                            <!-- 头像 -->
+                            <div v-if="!message.isOwn" class="message-avatar">
+                                <div class="avatar">{{ message.username.charAt(0) }}</div>
+                            </div>
+
+                            <div class="message-content">
+                                <!-- 发送者信息 -->
+                                <div v-if="!message.isOwn" class="message-header">
+                                    <span class="message-sender">{{ message.username }}</span>
+                                    <span class="message-time">{{ formatTime(message.time) }}</span>
+                                </div>
+
+                                <!-- 图片 -->
+                                <div v-if="message.type === 'image'" class="message-image" @click="handleImageClick(message.imageUrl)">
+                                    <img :src="message.imageUrl" alt="图片">
+                                </div>
+                                <!-- 文本 -->
+                                <div v-else class="message-text">{{ message.text }}</div>
+
+                                <!-- 自己的时间 -->
+                                <div v-if="message.isOwn" class="message-footer">
+                                    <span class="message-time">{{ formatTime(message.time) }}</span>
+                                </div>
+                            </div>
+
+                            <!-- 自己的头像 -->
+                            <div v-if="message.isOwn" class="message-avatar">
+                                <div class="avatar">{{ username.charAt(0) }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 输入区 -->
+                <div class="input-area">
+                    <div class="input-container">
+                        <!-- 图片预览 -->
+                        <div v-if="imagePreview" class="image-preview-row">
+                            <div class="image-preview-content">
+                                <img :src="imagePreview" alt="预览">
+                                <div class="image-preview-info">
+                                    <div class="image-preview-name">{{ selectedImageFile?.name || '图片' }}</div>
+                                    <div class="image-preview-size">{{ selectedImageFile ? formatFileSize(selectedImageFile.size) : '' }}</div>
+                                </div>
+                                <button class="image-preview-close" @click="clearImagePreview">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 输入框 -->
+                        <div class="input-row">
+                            <button class="icon-btn" @click="triggerImageUpload" title="发送图片">
+                                <i class="fas fa-image"></i>
+                            </button>
+                            <input
+                                v-model="newMessage"
+                                type="text"
+                                class="message-input"
+                                placeholder="输入消息..."
+                                @keyup.enter="sendMessage"
+                            >
+                            <button class="send-btn" @click="sendMessage" :disabled="!newMessage.trim() && !selectedImageFile">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 文件选择 -->
+                    <input type="file" ref="imageInput" @change="handleImageSelect" accept="image/*" style="display: none;">
+                </div>
+            </main>
+        </div>
+
+        <!-- 图片查看器 -->
+        <div v-show="isImageModalOpen" class="image-preview-modal" @click="closeImageModal">
+            <div class="image-preview-modal-content" @click.stop>
+                <img :src="currentImageUrl" alt="图片">
+                <button class="image-preview-modal-close" @click="closeImageModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/vue.global.js"></script>
+    <script src="/static/js/index.js?v=4"></script>
+</body>
+</html>
