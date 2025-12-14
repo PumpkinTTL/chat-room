@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Chat Room</title>
+    <title>端对端匿名聊天室</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/index.css?v=6">
+    <link rel="stylesheet" href="/static/css/index.css?v=8">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
@@ -19,9 +19,9 @@
                 <div class="sidebar-header">
                     <div class="app-brand">
                         <div class="brand-logo">
-                            <i class="fas fa-comment-dots"></i>
+                            <i class="fas fa-shield-alt"></i>
                         </div>
-                        <span class="brand-name">ChatSpace</span>
+                        <span class="brand-name">端对端匿名聊天室</span>
                     </div>
                     <button class="icon-btn mobile-only" @click="toggleSidebar">
                         <i class="fas fa-times"></i>
@@ -31,12 +31,12 @@
                 <div class="sidebar-search">
                     <div class="search-input-wrapper">
                         <i class="fas fa-search"></i>
-                        <input type="text" placeholder="搜索用户...">
+                        <input type="text" placeholder="搜索...">
                     </div>
                 </div>
 
                 <div class="sidebar-nav">
-                    <div class="nav-section-label">在线用户 ({{ onlineUsers }})</div>
+                    <div class="nav-section-label">在线 ({{ onlineUsers }})</div>
                     <div class="user-list">
                         <div v-for="user in onlineUsersList" :key="user.id" class="user-item">
                             <div class="avatar-wrapper">
@@ -52,11 +52,12 @@
                 </div>
 
                 <div class="sidebar-footer">
-                    <button class="footer-btn theme-toggle" @click="toggleTheme">
+                    <button class="footer-btn theme-toggle" @click="toggleTheme" title="切换主题">
                         <i class="fas" :class="isDarkMode ? 'fa-sun' : 'fa-moon'"></i>
                     </button>
                     <div class="footer-info">
-                        <span>当前版本 v1.0</span>
+                        <span>加密连接</span>
+                        <i class="fas fa-lock" style="font-size: 10px; margin-left: 4px;"></i>
                     </div>
                 </div>
             </aside>
