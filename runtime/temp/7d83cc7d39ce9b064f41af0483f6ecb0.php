@@ -1,4 +1,4 @@
-<?php /*a:1:{s:57:"D:\DevelopmentProject\PHP\chat-room\view\index\index.html";i:1766346103;}*/ ?>
+<?php /*a:1:{s:57:"D:\DevelopmentProject\PHP\chat-room\view\index\index.html";i:1766346826;}*/ ?>
 <!DOCTYPE html>
 <html lang="zh-CN">
 
@@ -47,11 +47,14 @@
 
                 <!-- 用户信息卡片 -->
                 <div class="user-info-card" v-if="currentUser.id">
+                    <div class="user-avatar-wrapper">
+                        <div class="user-avatar" v-text="currentUser.nick_name.charAt(0)"></div>
+                        <div class="status-dot"></div>
+                    </div>
                     <div class="user-details">
                         <div class="user-name" v-text="currentUser.nick_name"></div>
                         <div class="user-id">ID: <span v-text="currentUser.id"></span></div>
                         <div class="user-status">
-                            <div class="status-dot"></div>
                             <span>在线</span>
                         </div>
                     </div>
