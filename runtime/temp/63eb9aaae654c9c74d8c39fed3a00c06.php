@@ -1,0 +1,90 @@
+<?php /*a:1:{s:57:"D:\DevelopmentProject\PHP\chat-room\view\login\index.html";i:1766329313;}*/ ?>
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>轻量聊天室 - 登录</title>
+    <link rel="stylesheet" href="/static/css/login.css?v=20241216">
+    <!-- iOS Safari 兼容性修复 -->
+    <link rel="stylesheet" href="/static/css/ios-compatibility.css?v=4" media="screen and (-webkit-min-device-pixel-ratio: 1)">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div id="app">
+        <div class="login-background">
+            <div class="shape shape-1"></div>
+            <div class="shape shape-2"></div>
+        </div>
+        
+        <div class="login-wrapper">
+            <div class="login-card">
+                <div class="login-header">
+                    <div class="logo-container">
+                        <div class="logo">
+                            <i class="fas fa-comments"></i>
+                        </div>
+                        <div class="logo-ring"></div>
+                    </div>
+                    <h1>欢迎使用</h1>
+                    <p class="subtitle">轻量聊天室 <span class="badge">Secure</span></p>
+                </div>
+
+                <form @submit.prevent="handleLogin">
+                    <div class="input-group">
+                        <label>用户ID</label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-user input-icon"></i>
+                            <input
+                                v-model="form.username"
+                                type="text"
+                                placeholder="输入用户ID或昵称"
+                                @input="clearError('username')"
+                                :class="{ 'has-error': errors.username }"
+                            >
+                        </div>
+                        <span v-if="errors.username" class="error-message" v-text="errors.username"></span>
+                    </div>
+
+                    <div class="input-group">
+                        <label>密码</label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-lock input-icon"></i>
+                            <input
+                                v-model="form.password"
+                                type="password"
+                                placeholder="输入密码"
+                                @input="clearError('password')"
+                                :class="{ 'has-error': errors.password }"
+                            >
+                        </div>
+                        <span v-if="errors.password" class="error-message" v-text="errors.password"></span>
+                    </div>
+
+                    <div class="form-options">
+                        <label class="checkbox-label">
+                            <input type="checkbox" v-model="form.rememberMe">
+                            <span>记住我</span>
+                        </label>
+                    </div>
+
+                    <button type="submit" :disabled="loading" class="btn-primary">
+                        <span v-if="loading" class="spinner"></span>
+                        <span v-text="loading ? '登录中...' : '立即登录'"></span>
+                        <i v-if="!loading" class="fas fa-arrow-right btn-icon"></i>
+                    </button>
+                </form>
+
+                <div class="login-footer">
+                    <p><i class="fas fa-shield-alt"></i> 轻量聊天室</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/toast.js?v=2"></script>
+    <script src="/static/js/ios-compatibility.js?v=2"></script>
+    <script src="/static/js/vue.global.js"></script>
+    <script src="/static/js/login.js?v=10"></script>
+</body>
+</html>

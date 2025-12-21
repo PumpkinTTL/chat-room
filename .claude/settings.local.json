@@ -5,7 +5,10 @@
       "Bash(curl:*)",
       "Bash(tree:*)",
       "Bash(dir:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(mysql:*)",
+      "Bash(node -c:*)",
+      "Bash(rm:*)"
     ]
   }
 }

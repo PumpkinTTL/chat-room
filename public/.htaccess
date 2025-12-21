@@ -1,0 +1,14 @@
+RewriteEngine On
+
+# 处理静态文件（图片、CSS、JS等）- 包括storage目录
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule ^(.*)$ - [L]
+
+# 处理目录访问
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^(.*)$ - [L]
+
+# 其他请求转发到ThinkPHP
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ index.php [QSA,PT,L]

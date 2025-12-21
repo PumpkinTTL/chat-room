@@ -1,0 +1,2520 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>再见eer小耳朵</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
+            background: linear-gradient(135deg, #fff5fa 0%, #ffeef6 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            color: #666;
+            position: relative;
+            overflow-x: hidden;
+        }
+        
+        /* 背景装饰 - 增强版 */
+        .bg-decoration {
+            position: fixed;
+            pointer-events: none;
+            z-index: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .bg-circle {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0.2;
+            animation: float-bg 25s infinite ease-in-out;
+        }
+        
+        .bg-circle-1 {
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, #f472b6 0%, #ec4899 50%, transparent 70%);
+            top: -50px;
+            left: -50px;
+            animation-delay: 0s;
+        }
+        
+        .bg-circle-2 {
+            width: 250px;
+            height: 250px;
+            background: radial-gradient(circle, #f9a8d4 0%, #f472b6 50%, transparent 70%);
+            bottom: -80px;
+            right: -80px;
+            animation-delay: 8s;
+        }
+        
+        .bg-circle-3 {
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, #fbcfe8 0%, #f9a8d4 50%, transparent 70%);
+            top: 50%;
+            left: 10%;
+            transform: translateY(-50%);
+            animation-delay: 15s;
+        }
+        
+        .bg-circle-4 {
+            width: 180px;
+            height: 180px;
+            background: radial-gradient(circle, #fce7f3 0%, #fbcfe8 50%, transparent 70%);
+            top: 20%;
+            right: 15%;
+            animation-delay: 20s;
+        }
+        
+        .bg-dots {
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            background-image: 
+                radial-gradient(circle, rgba(244, 114, 182, 0.15) 2px, transparent 2px),
+                radial-gradient(circle, rgba(244, 114, 182, 0.1) 1px, transparent 1px);
+            background-size: 30px 30px, 15px 15px;
+            background-position: 0 0, 15px 15px;
+            top: 50%;
+            right: -100px;
+            transform: translateY(-50%);
+            opacity: 0.4;
+            animation: rotate 80s linear infinite;
+        }
+        
+        .bg-waves {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(ellipse at top left, rgba(244, 114, 182, 0.1) 0%, transparent 50%),
+                radial-gradient(ellipse at bottom right, rgba(236, 72, 153, 0.1) 0%, transparent 50%);
+            animation: pulse 10s ease-in-out infinite;
+        }
+        
+        /* 卡片和按钮容器 */
+        .card-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            max-width: 450px;
+            width: 100%;
+        }
+        
+        .container {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 20px;
+            overflow: hidden;
+            padding: 20px 24px;
+            position: relative;
+            z-index: 10;
+            box-shadow: 0 15px 40px rgba(244, 114, 182, 0.15);
+            border: 1px solid rgba(255, 209, 220, 0.5);
+            backdrop-filter: blur(10px);
+        }
+        
+        /* 装饰背景 */
+        .decoration {
+            position: absolute;
+            z-index: 0;
+            opacity: 0.25;
+        }
+        
+        .circle-1 {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%);
+            top: -25px;
+            right: -25px;
+            filter: blur(2px);
+        }
+        
+        .circle-2 {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #fdf2f8 0%, #fbcfe8 100%);
+            bottom: -12px;
+            left: -12px;
+            filter: blur(1px);
+        }
+        
+        .content {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 16px;
+        }
+        
+        .icon-container {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, #f472b6 0%, #ec4899 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 8px;
+            color: white;
+            font-size: 1rem;
+            box-shadow: 0 6px 18px rgba(244, 114, 182, 0.25);
+            position: relative;
+        }
+        
+        .heart-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            width: 16px;
+            height: 16px;
+            background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.55rem;
+            box-shadow: 0 3px 8px rgba(219, 39, 119, 0.3);
+            animation: heartbeat 2s infinite;
+        }
+        
+        h1 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #db2777;
+            margin-bottom: 2px;
+            letter-spacing: 0.5px;
+            text-shadow: 0 1px 2px rgba(219, 39, 119, 0.1);
+        }
+        
+        .subtitle {
+            font-size: 0.65rem;
+            color: #be185d;
+            font-weight: 400;
+            opacity: 0.85;
+            letter-spacing: 0.3px;
+        }
+        
+        /* 美化后的消息框 */
+        .message-box {
+            background: linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%);
+            border-radius: 14px;
+            padding: 12px;
+            margin-bottom: 12px;
+            font-size: 0.7rem;
+            box-shadow: 0 3px 10px rgba(244, 114, 182, 0.08);
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(252, 231, 243, 0.5);
+        }
+        
+        .message-box::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(244, 114, 182, 0.2), transparent);
+        }
+        
+        .message {
+            color: #666;
+            margin-bottom: 6px;
+            line-height: 1.4;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .message:last-child {
+            margin-bottom: 0;
+        }
+        
+        .message-icon {
+            color: #f472b6;
+            margin-right: 5px;
+            font-size: 0.7rem;
+            vertical-align: middle;
+        }
+        
+        .closing-section {
+            background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%);
+            border-radius: 14px;
+            padding: 12px;
+            margin-bottom: 12px;
+            text-align: center;
+            box-shadow: 0 3px 10px rgba(244, 114, 182, 0.08);
+        }
+        
+        .closing-title {
+            font-size: 0.65rem;
+            color: #be185d;
+            margin-bottom: 10px;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+        
+        .ac-status {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+        
+        .ac-status-item {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 10px;
+            padding: 8px;
+            box-shadow: 0 2px 6px rgba(244, 114, 182, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .ac-status-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(244, 114, 182, 0.15);
+        }
+        
+        .ac-icon {
+            width: 28px;
+            height: 28px;
+            background: linear-gradient(135deg, #f472b6 0%, #ec4899 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 5px;
+            color: white;
+            font-size: 0.75rem;
+            box-shadow: 0 3px 8px rgba(244, 114, 182, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .ac-icon.off {
+            background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%);
+            box-shadow: 0 3px 8px rgba(107, 114, 128, 0.2);
+        }
+        
+        .ac-label {
+            font-size: 0.55rem;
+            color: #be185d;
+            margin-bottom: 3px;
+            opacity: 0.85;
+        }
+        
+        .ac-value {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #db2777;
+        }
+        
+        .heart-section {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin: 10px 0 12px;
+        }
+        
+        .heart-icon {
+            color: #f472b6;
+            font-size: 0.9rem;
+            animation: heartbeat 1.8s infinite;
+            filter: drop-shadow(0 2px 4px rgba(244, 114, 182, 0.3));
+        }
+        
+        .heart-line {
+            height: 1px;
+            flex-grow: 1;
+            background: linear-gradient(90deg, transparent, #fbcfe8, transparent);
+            position: relative;
+        }
+        
+        .heart-line::after {
+            content: '';
+            position: absolute;
+            top: -1px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 3px;
+            height: 3px;
+            background: #fbcfe8;
+            border-radius: 50%;
+        }
+        
+        .icons-row {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin: 10px 0 12px;
+        }
+        
+        .icon-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+        }
+        
+        .icon {
+            width: 26px;
+            height: 26px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #f472b6;
+            font-size: 0.75rem;
+            box-shadow: 0 3px 8px rgba(244, 114, 182, 0.15);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .icon::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: radial-gradient(circle, rgba(244, 114, 182, 0.2) 0%, transparent 70%);
+            transition: width 0.3s ease, height 0.3s ease;
+            transform: translate(-50%, -50%);
+        }
+        
+        .icon:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 5px 12px rgba(244, 114, 182, 0.25);
+            color: #db2777;
+        }
+        
+        .icon:hover::before {
+            width: 32px;
+            height: 32px;
+        }
+        
+        .icon-text {
+            font-size: 0.5rem;
+            color: #9d174d;
+            opacity: 0.75;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+        }
+        
+        .farewell {
+            text-align: center;
+            padding-top: 10px;
+            border-top: 1px solid rgba(252, 231, 243, 0.8);
+        }
+        
+        .farewell-text {
+            font-size: 0.7rem;
+            color: #666;
+            margin-bottom: 3px;
+            line-height: 1.4;
+        }
+        
+        .wish {
+            font-size: 0.65rem;
+            color: #be185d;
+            margin-top: 6px;
+            font-weight: 500;
+            background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%);
+            padding: 5px 8px;
+            border-radius: 18px;
+            display: inline-block;
+            box-shadow: 0 2px 6px rgba(244, 114, 182, 0.1);
+        }
+        
+        .signature {
+            color: #db2777;
+            font-size: 0.7rem;
+            font-weight: 500;
+            margin-top: 8px;
+        }
+        
+        .signature-line {
+            margin-top: 3px;
+            font-size: 0.65rem;
+            opacity: 0.9;
+        }
+        
+        /* 优化后的灵动按钮 - 放在卡片上方 */
+        .guide-btn {
+            background: linear-gradient(135deg, #f472b6 0%, #ec4899 100%);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            box-shadow: 0 8px 25px rgba(244, 114, 182, 0.4);
+            z-index: 1000;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            animation: float-btn 3s ease-in-out infinite;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border: none;
+            outline: none;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        /* 按钮内部光效 */
+        .guide-btn::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(
+                45deg,
+                transparent 30%,
+                rgba(255, 255, 255, 0.3) 50%,
+                transparent 70%
+            );
+            transform: rotate(45deg);
+            transition: all 0.5s ease;
+            opacity: 0;
+        }
+        
+        .guide-btn:hover::before {
+            opacity: 1;
+            animation: shine 0.5s ease-in-out;
+        }
+        
+        /* 按钮边框动画 */
+        .guide-btn::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-radius: 50px;
+            border: 2px solid transparent;
+            background: linear-gradient(135deg, #f472b6 0%, #ec4899 100%) border-box;
+            -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: destination-out;
+            mask-composite: exclude;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .guide-btn:hover::after {
+            opacity: 1;
+        }
+        
+        .guide-btn:hover {
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 0 12px 30px rgba(244, 114, 182, 0.5);
+        }
+        
+        .guide-btn:active {
+            transform: translateY(-2px) scale(1.02);
+        }
+        
+        .guide-btn i {
+            font-size: 1rem;
+            animation: wave 1.5s ease-in-out infinite;
+            transition: all 0.3s ease;
+        }
+        
+        .guide-btn:hover i {
+            animation: wave-fast 0.8s ease-in-out infinite;
+            transform: scale(1.1);
+        }
+        
+        .guide-btn-text {
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        
+        .guide-btn-text::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: white;
+            transition: width 0.3s ease;
+        }
+        
+        .guide-btn:hover .guide-btn-text::after {
+            width: 100%;
+        }
+        
+        /* 祝福文字特效容器 */
+        #blessing-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 999;
+            overflow: hidden;
+            will-change: transform;
+        }
+        
+        .blessing-text {
+            position: absolute;
+            font-size: 1.2rem;
+            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            opacity: 0;
+            pointer-events: none;
+            z-index: 999;
+            white-space: nowrap;
+            transform-origin: center;
+            will-change: transform, opacity;
+            backface-visibility: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        /* 帘子关闭效果 */
+        .curtain {
+            position: fixed;
+            top: 0;
+            width: 0;
+            height: 100%;
+            background: linear-gradient(135deg, #f472b6 0%, #ec4899 100%);
+            z-index: 9999;
+            transition: width 2s ease-in-out;
+        }
+        
+        .curtain-left {
+            left: 0;
+            background: linear-gradient(90deg, #f472b6 0%, #ec4899 100%);
+        }
+        
+        .curtain-right {
+            right: 0;
+            background: linear-gradient(270deg, #f472b6 0%, #ec4899 100%);
+        }
+        
+        .curtain-left.closing {
+            width: 50%;
+        }
+        
+        .curtain-right.closing {
+            width: 50%;
+        }
+        
+        /* 谢幕特效容器 */
+        #finale-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 1s ease;
+            background: rgba(255, 255, 255, 0.95);
+        }
+        
+        #finale-container.show {
+            pointer-events: auto;
+        }
+        
+        .finale-content {
+            text-align: center;
+            max-width: 580px;
+            padding: 0;
+            background: #ffffff;
+            border-radius: 28px;
+            box-shadow: 
+                0 30px 70px rgba(0, 0, 0, 0.15),
+                0 0 0 1px rgba(244, 114, 182, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        /* 顶部粉色渐变区域 */
+        .finale-content::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 140px;
+            background: linear-gradient(135deg, #f472b6 0%, #ec4899 50%, #db2777 100%);
+            z-index: 0;
+        }
+        
+        /* 顶部装饰波浪 */
+        .finale-content::after {
+            content: '';
+            position: absolute;
+            top: 128px;
+            left: 0;
+            right: 0;
+            height: 35px;
+            background: #ffffff;
+            border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+            z-index: 1;
+        }
+        
+        /* 内部装饰星星 - 在顶部区域 */
+        .finale-stars {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 140px;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: 1;
+        }
+        
+        .finale-star {
+            position: absolute;
+            color: rgba(255, 255, 255, 0.7);
+            animation: twinkle 4s ease-in-out infinite;
+            filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.5));
+        }
+        
+        .finale-star:nth-child(1) {
+            top: 18%;
+            left: 12%;
+            font-size: 0.9rem;
+            animation-delay: 0s;
+        }
+        
+        .finale-star:nth-child(2) {
+            top: 32%;
+            right: 18%;
+            font-size: 0.75rem;
+            animation-delay: 1s;
+        }
+        
+        .finale-star:nth-child(3) {
+            top: 58%;
+            left: 22%;
+            font-size: 0.8rem;
+            animation-delay: 2s;
+        }
+        
+        .finale-star:nth-child(4) {
+            top: 48%;
+            right: 14%;
+            font-size: 0.75rem;
+            animation-delay: 3s;
+        }
+        
+        .finale-header {
+            position: relative;
+            z-index: 2;
+            padding: 35px 50px 20px;
+        }
+        
+        .finale-emoji {
+            font-size: 3.2rem;
+            display: inline-block;
+            margin-right: 12px;
+            vertical-align: middle;
+            animation: float 3s ease-in-out infinite;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.15));
+        }
+        
+        .finale-title {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: #ffffff;
+            display: inline-block;
+            vertical-align: middle;
+            letter-spacing: 2px;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+        }
+        
+        .finale-subtitle {
+            font-size: 0.95rem;
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 400;
+            margin-top: 8px;
+            letter-spacing: 0.5px;
+        }
+        
+        .finale-body {
+            position: relative;
+            z-index: 2;
+            padding: 25px 50px 30px;
+        }
+        
+        .finale-message {
+            font-size: 1.05rem;
+            color: #4b5563;
+            line-height: 1.75;
+            margin-bottom: 20px;
+        }
+        
+        .finale-highlight {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #ec4899;
+            margin: 20px auto;
+            padding: 14px 28px;
+            background: linear-gradient(135deg, #fef3f8 0%, #fce7f3 100%);
+            border-radius: 16px;
+            display: inline-block;
+            border: 2px solid #fbcfe8;
+            line-height: 1.6;
+            box-shadow: 0 5px 18px rgba(244, 114, 182, 0.12);
+        }
+        
+        .finale-footer {
+            padding: 0 50px 28px;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .finale-divider {
+            width: 70px;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #e5e7eb, transparent);
+            margin: 18px auto;
+            border-radius: 1px;
+        }
+        
+        .finale-signature {
+            font-size: 0.95rem;
+            color: #9ca3af;
+            font-weight: 400;
+            font-style: italic;
+            margin-bottom: 20px;
+        }
+        
+        .finale-close-btn {
+            background: linear-gradient(135deg, #f472b6 0%, #ec4899 100%);
+            color: white;
+            border: none;
+            padding: 12px 28px;
+            border-radius: 25px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(244, 114, 182, 0.3);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .finale-close-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(244, 114, 182, 0.4);
+        }
+        
+        .finale-close-btn i {
+            font-size: 1rem;
+        }
+        
+        /* 密码弹窗 */
+        #password-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 10001;
+            backdrop-filter: blur(5px);
+        }
+        
+        #password-modal.show {
+            display: flex;
+        }
+        
+        .password-modal-content {
+            background: #ffffff;
+            border-radius: 20px;
+            padding: 35px 40px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            position: relative;
+            animation: modalFadeIn 0.3s ease;
+        }
+        
+        @keyframes modalFadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9) translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+        
+        .password-modal-header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        
+        .password-modal-icon {
+            font-size: 3.5rem;
+            margin-bottom: 15px;
+            animation: float 3s ease-in-out infinite;
+            color: #f472b6;
+        }
+        
+        .password-modal-icon i {
+            filter: drop-shadow(0 4px 8px rgba(244, 114, 182, 0.3));
+        }
+        
+        .password-modal-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+        
+        .password-modal-hint {
+            font-size: 0.85rem;
+            color: #9ca3af;
+            line-height: 1.5;
+        }
+        
+        .password-input-group {
+            margin-bottom: 20px;
+        }
+        
+        .password-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #fce7f3;
+            border-radius: 12px;
+            font-size: 1.2rem;
+            text-align: center;
+            letter-spacing: 12px;
+            font-weight: 600;
+            color: #ec4899;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+        
+        .password-input::placeholder {
+            letter-spacing: normal;
+            color: #d1d5db;
+        }
+        
+        .password-input:focus {
+            border-color: #f472b6;
+            box-shadow: 0 0 0 3px rgba(244, 114, 182, 0.1);
+        }
+        
+        .password-error {
+            color: #ef4444;
+            font-size: 0.8rem;
+            margin-top: 8px;
+            display: none;
+        }
+        
+        .password-error.show {
+            display: block;
+            animation: shake 0.5s ease;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+        
+        .password-modal-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .password-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .password-btn-confirm {
+            background: linear-gradient(135deg, #f472b6 0%, #ec4899 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(244, 114, 182, 0.3);
+        }
+        
+        .password-btn-confirm:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(244, 114, 182, 0.4);
+        }
+        
+        .password-btn-cancel {
+            background: #f3f4f6;
+            color: #6b7280;
+        }
+        
+        .password-btn-cancel:hover {
+            background: #e5e7eb;
+        }
+        
+        /* 成功提示弹窗 */
+        #success-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 10002;
+            backdrop-filter: blur(8px);
+        }
+        
+        #success-modal.show {
+            display: flex;
+        }
+        
+        .success-modal-content {
+            background: #ffffff;
+            border-radius: 24px;
+            padding: 50px 45px;
+            max-width: 420px;
+            width: 90%;
+            box-shadow: 0 25px 70px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            animation: successFadeIn 0.5s ease;
+        }
+        
+        @keyframes successFadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.8) translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+        
+        .success-icon {
+            font-size: 5rem;
+            margin-bottom: 25px;
+            animation: successPulse 1s ease-in-out;
+        }
+        
+        @keyframes successPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        .success-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 15px;
+        }
+        
+        .success-message {
+            font-size: 1.1rem;
+            color: #6b7280;
+            line-height: 1.8;
+        }
+        
+        /* 可爱灵动的进度条容器 */
+        #progress-container {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 350px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 25px;
+            padding: 20px;
+            box-shadow: 0 12px 35px rgba(244, 114, 182, 0.3);
+            z-index: 9998;
+            opacity: 0;
+            transition: opacity 1s ease;
+            text-align: center;
+            border: 2px solid rgba(255, 209, 220, 0.6);
+            backdrop-filter: blur(10px);
+        }
+        
+        .progress-title {
+            font-size: 1.1rem;
+            color: #db2777;
+            margin-bottom: 15px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .progress-title i {
+            animation: pulse-icon 2s ease-in-out infinite;
+        }
+        
+        .progress-info {
+            font-size: 0.9rem;
+            color: #be185d;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .progress-info i {
+            color: #f472b6;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 14px;
+            background: rgba(252, 231, 243, 0.8);
+            border-radius: 14px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: inset 0 3px 6px rgba(244, 114, 182, 0.1);
+            cursor: pointer;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #f472b6 0%, #ec4899 100%);
+            border-radius: 14px;
+            width: 0%;
+            transition: width 0.1s linear;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(
+                90deg,
+                transparent 0%,
+                rgba(255, 255, 255, 0.4) 50%,
+                transparent 100%
+            );
+            animation: progress-shine 2s linear infinite;
+        }
+        
+        .progress-text {
+            font-size: 1rem;
+            color: #be185d;
+            margin-top: 12px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .progress-text i {
+            animation: bounce-icon 1.5s ease-in-out infinite;
+            color: #f472b6;
+        }
+        
+        /* 动画 */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(15px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+        
+        .delay-1 { animation-delay: 0.2s; }
+        .delay-2 { animation-delay: 0.4s; }
+        .delay-3 { animation-delay: 0.6s; }
+        .delay-4 { animation-delay: 0.8s; }
+        
+        .init-hidden {
+            opacity: 0;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-3px); }
+        }
+        
+        .floating {
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        @keyframes heartbeat {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+        }
+        
+        @keyframes float-bg {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            33% { transform: translateY(-30px) rotate(120deg); }
+            66% { transform: translateY(20px) rotate(240deg); }
+        }
+        
+        @keyframes rotate {
+            from { transform: translateY(-50%) rotate(0deg); }
+            to { transform: translateY(-50%) rotate(360deg); }
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.6; }
+        }
+        
+        @keyframes float-btn {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        @keyframes wave {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(15deg); }
+            75% { transform: rotate(-15deg); }
+        }
+        
+        @keyframes wave-fast {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(20deg); }
+            75% { transform: rotate(-20deg); }
+        }
+        
+        @keyframes shine {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+        
+        @keyframes progress-shine {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        @keyframes pulse-icon {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+        
+        @keyframes bounce-icon {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-3px); }
+        }
+        
+        @keyframes float-glow {
+            0%, 100% { transform: translate(0, 0); }
+            50% { transform: translate(20px, -20px); }
+        }
+        
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+        
+        /* 祝福文字动画 - 优化性能版本 */
+        @keyframes blessing-float {
+            0% {
+                opacity: 0;
+                transform: translate3d(0, 0, 0) scale(0.8);
+            }
+            10% {
+                opacity: 1;
+                transform: translate3d(0, -20px, 0) scale(1);
+            }
+            90% {
+                opacity: 1;
+                transform: translate3d(0, -200px, 0) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translate3d(0, -250px, 0) scale(0.8);
+            }
+        }
+        
+        @keyframes blessing-spiral {
+            0% {
+                opacity: 0;
+                transform: translate3d(0, 0, 0) scale(0.8) rotate(0deg);
+            }
+            10% {
+                opacity: 1;
+                transform: translate3d(20px, -20px, 0) scale(1) rotate(90deg);
+            }
+            25% {
+                transform: translate3d(0, -50px, 0) scale(1) rotate(180deg);
+            }
+            50% {
+                transform: translate3d(-20px, -100px, 0) scale(1) rotate(270deg);
+            }
+            75% {
+                opacity: 1;
+                transform: translate3d(0, -150px, 0) scale(1) rotate(360deg);
+            }
+            100% {
+                opacity: 0;
+                transform: translate3d(0, -200px, 0) scale(0.8) rotate(450deg);
+            }
+        }
+        
+        @keyframes blessing-wave {
+            0% {
+                opacity: 0;
+                transform: translate3d(-100px, 0, 0) scale(0.8);
+            }
+            10% {
+                opacity: 1;
+                transform: translate3d(0, 0, 0) scale(1);
+            }
+            90% {
+                opacity: 1;
+                transform: translate3d(100px, 0, 0) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translate3d(200px, 0, 0) scale(0.8);
+            }
+        }
+        
+        @keyframes blessing-pulse {
+            0% {
+                opacity: 0;
+                transform: translate3d(0, 0, 0) scale(0.5);
+            }
+            20% {
+                opacity: 1;
+                transform: translate3d(0, 0, 0) scale(1.15);
+            }
+            40% {
+                transform: translate3d(0, 0, 0) scale(0.95);
+            }
+            60% {
+                transform: translate3d(0, 0, 0) scale(1.05);
+            }
+            80% {
+                opacity: 1;
+                transform: translate3d(0, 0, 0) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translate3d(0, 0, 0) scale(0.8);
+            }
+        }
+        
+        /* 适配15.6寸PC屏幕 */
+        @media (min-width: 1366px) and (max-width: 1920px) {
+            body {
+                padding: 20px;
+            }
+            
+            .card-wrapper {
+                max-width: 420px;
+            }
+            
+            .container {
+                padding: 18px 22px;
+            }
+            
+            .header {
+                margin-bottom: 14px;
+            }
+            
+            .message-box {
+                margin-bottom: 10px;
+                padding: 10px;
+            }
+            
+            .closing-section {
+                margin-bottom: 10px;
+                padding: 10px;
+            }
+            
+            .heart-section {
+                margin: 8px 0 10px;
+            }
+            
+            .icons-row {
+                margin: 8px 0 10px;
+            }
+            
+            .farewell {
+                padding-top: 8px;
+            }
+        }
+        
+        @media (max-width: 550px) {
+            body {
+                padding: 10px;
+            }
+            
+            .card-wrapper {
+                max-width: 100%;
+            }
+            
+            .container {
+                padding: 14px 18px;
+            }
+            
+            h1 {
+                font-size: 0.95rem;
+            }
+            
+            .subtitle {
+                font-size: 0.6rem;
+            }
+            
+            .message-box {
+                padding: 10px;
+                font-size: 0.65rem;
+                margin-bottom: 10px;
+            }
+            
+            .closing-section {
+                padding: 10px;
+                margin-bottom: 10px;
+            }
+            
+            .ac-status {
+                gap: 6px;
+            }
+            
+            .ac-status-item {
+                padding: 6px;
+            }
+            
+            .ac-icon {
+                width: 24px;
+                height: 24px;
+                font-size: 0.7rem;
+            }
+            
+            .ac-label {
+                font-size: 0.5rem;
+            }
+            
+            .ac-value {
+                font-size: 0.65rem;
+            }
+            
+            .farewell-text {
+                font-size: 0.65rem;
+            }
+            
+            .icons-row {
+                gap: 10px;
+            }
+            
+            .icon {
+                width: 24px;
+                height: 24px;
+                font-size: 0.7rem;
+            }
+            
+            .icon-text {
+                font-size: 0.45rem;
+            }
+            
+            .wish {
+                font-size: 0.6rem;
+                padding: 4px 6px;
+            }
+            
+            .signature {
+                font-size: 0.65rem;
+            }
+            
+            .signature-line {
+                font-size: 0.6rem;
+            }
+            
+            .guide-btn {
+                padding: 10px 20px;
+                font-size: 0.8rem;
+            }
+            
+            .blessing-text {
+                font-size: 1rem;
+                padding: 6px 12px;
+            }
+            
+            .finale-content {
+                max-width: 92%;
+            }
+            
+            .finale-content::before {
+                height: 120px;
+            }
+            
+            .finale-content::after {
+                top: 110px;
+                height: 30px;
+            }
+            
+            .finale-header {
+                padding: 28px 32px 18px;
+            }
+            
+            .finale-emoji {
+                font-size: 2.6rem;
+                margin-right: 10px;
+            }
+            
+            .finale-title {
+                font-size: 1.8rem;
+                letter-spacing: 1.5px;
+            }
+            
+            .finale-subtitle {
+                font-size: 0.85rem;
+                margin-top: 6px;
+            }
+            
+            .finale-body {
+                padding: 20px 32px 26px;
+            }
+            
+            .finale-message {
+                font-size: 0.95rem;
+                line-height: 1.7;
+                margin-bottom: 18px;
+            }
+            
+            .finale-highlight {
+                font-size: 0.9rem;
+                padding: 12px 22px;
+                margin: 18px auto;
+            }
+            
+            .finale-footer {
+                padding: 0 32px 24px;
+            }
+            
+            .finale-divider {
+                width: 60px;
+                margin: 15px auto;
+            }
+            
+            .finale-signature {
+                font-size: 0.85rem;
+                margin-bottom: 16px;
+            }
+            
+            .finale-close-btn {
+                padding: 10px 22px;
+                font-size: 0.85rem;
+            }
+            
+            .finale-close-btn i {
+                font-size: 0.9rem;
+            }
+            
+            .password-modal-content {
+                padding: 28px 30px;
+            }
+            
+            .password-modal-icon {
+                font-size: 2.5rem;
+                margin-bottom: 12px;
+            }
+            
+            .password-modal-title {
+                font-size: 1.3rem;
+            }
+            
+            .password-modal-hint {
+                font-size: 0.8rem;
+            }
+            
+            .password-input {
+                padding: 10px 14px;
+                font-size: 0.95rem;
+            }
+            
+            .password-btn {
+                padding: 10px;
+                font-size: 0.9rem;
+            }
+            
+            .success-modal-content {
+                padding: 40px 35px;
+            }
+            
+            .success-icon {
+                font-size: 4rem;
+                margin-bottom: 20px;
+            }
+            
+            .success-title {
+                font-size: 1.5rem;
+                margin-bottom: 12px;
+            }
+            
+            .success-message {
+                font-size: 1rem;
+            }
+            
+            #progress-container {
+                width: 300px;
+                top: 15px;
+                padding: 15px;
+            }
+            
+            .progress-title {
+                font-size: 1rem;
+            }
+            
+            .progress-info {
+                font-size: 0.8rem;
+            }
+            
+            .progress-bar {
+                height: 12px;
+            }
+            
+            .progress-text {
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 背景装饰 - 增强版 -->
+    <div class="bg-decoration">
+        <div class="bg-waves"></div>
+        <div class="bg-circle bg-circle-1"></div>
+        <div class="bg-circle bg-circle-2"></div>
+        <div class="bg-circle bg-circle-3"></div>
+        <div class="bg-circle bg-circle-4"></div>
+        <div class="bg-dots"></div>
+    </div>
+    
+    <!-- 祝福文字特效容器 -->
+    <div id="blessing-container"></div>
+    
+    <!-- 帘子关闭效果 -->
+    <div class="curtain curtain-left" id="curtain-left"></div>
+    <div class="curtain curtain-right" id="curtain-right"></div>
+    
+    <!-- 可爱灵动的进度条容器 -->
+    <div id="progress-container">
+        <div class="progress-title">
+            <i class="fas fa-heart"></i>
+            <span>空调能量即将耗尽</span>
+            <i class="fas fa-heart"></i>
+        </div>
+        <div class="progress-info">
+            <i class="fas fa-temperature-high"></i>
+            <span>当前温度: 26°C</span>
+            <i class="fas fa-temperature-high"></i>
+        </div>
+        <div class="progress-bar" id="progress-bar">
+            <div class="progress-fill" id="progress-fill"></div>
+        </div>
+        <div class="progress-text">
+            <i class="fas fa-bolt"></i>
+            <span id="progress-text">耗能中...</span>
+            <i class="fas fa-bolt"></i>
+        </div>
+    </div>
+    
+    <!-- 谢幕特效容器 -->
+    <div id="finale-container">
+        <div class="finale-content">
+            <!-- 内部装饰星星 -->
+            <div class="finale-stars">
+                <i class="fas fa-star finale-star"></i>
+                <i class="fas fa-star finale-star"></i>
+                <i class="fas fa-star finale-star"></i>
+                <i class="fas fa-star finale-star"></i>
+            </div>
+            
+            <div class="finale-header">
+                <div>
+                    <span class="finale-emoji">🌸</span>
+                    <span class="finale-title">再见啦</span>
+                </div>
+                <div class="finale-subtitle">eer小耳朵</div>
+            </div>
+            
+            <div class="finale-body">
+                <div class="finale-message">
+                    抱歉在兼容的过程中让你很受累<br>
+                    祝愿你会找到真正对待你的温柔<br>
+                    谢谢你曾在这里停留
+                </div>
+                
+                <div class="finale-highlight">
+                    数据将会永久封存<br>
+                    空调不限期停运
+                </div>
+                
+                <div class="finale-message" style="margin-top: 25px; margin-bottom: 0;">
+                    再见啦小耳朵 👋
+                </div>
+            </div>
+            
+            <div class="finale-footer">
+                <div class="finale-divider"></div>
+                <div class="finale-signature">—— dev</div>
+                <button class="finale-close-btn" id="finalCloseBtn">
+                    <i class="fas fa-power-off"></i>
+                    <span>最后一次永久关闭空调吧</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 密码弹窗 -->
+    <div id="password-modal">
+        <div class="password-modal-content">
+            <div class="password-modal-header">
+                <div class="password-modal-icon">
+                    <i class="fas fa-lock"></i>
+                </div>
+                <div class="password-modal-title">永久关闭确认</div>
+                <div class="password-modal-hint">
+                    关闭密码是你认为3个最喜欢的字符哦
+                </div>
+            </div>
+            <div class="password-input-group">
+                <input type="text" class="password-input" id="passwordInput" maxlength="3" placeholder="">
+                <div class="password-error" id="passwordError">
+                    <i class="fas fa-times-circle"></i> 密码错误，请重试
+                </div>
+            </div>
+            <div class="password-modal-buttons">
+                <button class="password-btn password-btn-cancel" id="passwordCancel">取消</button>
+                <button class="password-btn password-btn-confirm" id="passwordConfirm">确认关闭</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 成功提示弹窗 -->
+    <div id="success-modal">
+        <div class="success-modal-content">
+            <div class="success-icon">❄️</div>
+            <div class="success-title">空调已被永久关闭</div>
+            <div class="success-message">再见啦！👋</div>
+        </div>
+    </div>
+    
+    <!-- 卡片和按钮容器 -->
+    <div class="card-wrapper">
+        <!-- 优化后的灵动按钮 - 放在卡片上方 -->
+        <button class="guide-btn" id="guideBtn">
+            <i class="fas fa-snowflake"></i>
+            <span class="guide-btn-text">请最后再开启一次空调吧</span>
+        </button>
+        
+        <div class="container">
+            <!-- 装饰背景 -->
+            <div class="decoration circle-1"></div>
+            <div class="decoration circle-2"></div>
+            
+            <div class="content">
+                <div class="header fade-in">
+                    <div class="icon-container floating">
+                        <i class="fas fa-ear-listen"></i>
+                        <div class="heart-badge">
+                            <i class="fas fa-heart"></i>
+                        </div>
+                    </div>
+                    <h1>再见eer小耳朵</h1>
+                    <div class="subtitle">好久不见，很高兴你再次回来,关闭前还能再次相遇！</div>
+                </div>
+                
+                <div class="message-box fade-in delay-1 init-hidden">
+                    <p class="message"><i class="fas fa-heart message-icon"></i>很荣幸一起走过的那个夏天，曾为你吹风驱蚊。也曾一起猜过数字打过地鼠.....</p>
+                    <p class="message"><i class="fas fa-heart message-icon"></i>抱歉，我们未达预期，也只走到了这。</p>
+                    <p class="message"><i class="fas fa-heart message-icon"></i>空调电量即将耗尽，进度迎来终章。</p>
+                    <p class="message"><i class="fas fa-heart message-icon"></i>最后的彩蛋:祝愿在往后新的时间里你都会被温柔善待</p>
+                </div>
+                
+                <div class="closing-section fade-in delay-2 init-hidden">
+                    <div class="closing-title">空调运行状态</div>
+                    
+                    <div class="ac-status">
+                        <div class="ac-status-item">
+                            <div class="ac-icon" id="ac-power-icon">
+                                <i class="fas fa-power-off"></i>
+                            </div>
+                            <div class="ac-label">开关</div>
+                            <div class="ac-value" id="ac-power-status">已关闭</div>
+                        </div>
+                        <div class="ac-status-item">
+                            <div class="ac-icon">
+                                <i class="fas fa-temperature-low"></i>
+                            </div>
+                            <div class="ac-label">温度</div>
+                            <div class="ac-value">26°C</div>
+                        </div>
+                        <div class="ac-status-item">
+                            <div class="ac-icon">
+                                <i class="fas fa-wind"></i>
+                            </div>
+                            <div class="ac-label">模式</div>
+                            <div class="ac-value" id="ac-mode">待机</div>
+                        </div>
+                        <div class="ac-status-item">
+                            <div class="ac-icon">
+                                <i class="fas fa-fan"></i>
+                            </div>
+                            <div class="ac-label">风速</div>
+                            <div class="ac-value" id="ac-fan-speed">--</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="heart-section fade-in delay-3 init-hidden">
+                    <div class="heart-line"></div>
+                    <div class="heart-icon">
+                        <i class="fas fa-heart"></i>
+                    </div>
+                    <div class="heart-line"></div>
+                </div>
+                
+                <div class="icons-row fade-in delay-3 init-hidden">
+                    <div class="icon-item">
+                        <div class="icon">
+                            <i class="fas fa-wind"></i>
+                        </div>
+                        <div class="icon-text">微风</div>
+                    </div>
+                    <div class="icon-item">
+                        <div class="icon">
+                            <i class="fas fa-mosquito"></i>
+                        </div>
+                        <div class="icon-text">夏夜</div>
+                    </div>
+                    <div class="icon-item">
+                        <div class="icon">
+                            <i class="fas fa-gamepad"></i>
+                        </div>
+                        <div class="icon-text">游戏</div>
+                    </div>
+                    <div class="icon-item">
+                        <div class="icon">
+                            <i class="fas fa-sun"></i>
+                        </div>
+                        <div class="icon-text">夏天</div>
+                    </div>
+                </div>
+                
+                <div class="farewell fade-in delay-4 init-hidden">
+                    <p class="farewell-text">感谢你曾在这里停留的每一刻</p>
+                    <p class="farewell-text">那些夏夜的微风与清凉，或许都会留在记忆里</p>
+                    
+                    <div class="wish">✨ 祝愿你会找到真正属于自己的温柔陪伴 ✨</div>
+                    
+                    <div class="signature">
+                        <p>工作顺利，保重身体</p>
+                        <p class="signature-line">—— eer小耳朵</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+   
+    <script>
+        let audio = null;
+        let isPlaying = false;
+        let hasInteracted = false;
+        let blessingEffect = null;
+        let isBlessingActive = false;
+        let musicEnded = false;
+        let progressInterval = null;
+        let finaleStarted = false;
+        let runningSound = null;
+        
+        // 播放空调开启音效
+        function playRunningSound() {
+            if (!runningSound) {
+                runningSound = new Audio('/static/audio/switch.ogg');
+                runningSound.volume = 0.5;
+            }
+            
+            runningSound.currentTime = 0; // 重置到开始位置
+            runningSound.play().catch(error => {
+                console.error('空调音效播放失败:', error);
+            });
+        }
+        
+        // 更新空调状态显示
+        function updateACStatus(running) {
+            const powerIcon = document.getElementById('ac-power-icon');
+            const powerStatus = document.getElementById('ac-power-status');
+            const mode = document.getElementById('ac-mode');
+            const fanSpeed = document.getElementById('ac-fan-speed');
+            
+            if (running) {
+                powerIcon.classList.remove('off');
+                powerStatus.textContent = '运行中';
+                mode.textContent = '制冷';
+                fanSpeed.textContent = '自动';
+                // 播放空调开启音效
+                playRunningSound();
+            } else {
+                powerIcon.classList.add('off');
+                powerStatus.textContent = '已关闭';
+                mode.textContent = '待机';
+                fanSpeed.textContent = '--';
+            }
+        }
+        
+        function playMusic() {
+            if (!audio) {
+                audio = new Audio('/static/audio/jijie.mp3');
+                audio.loop = false; // 只播放一次
+                audio.volume = 0.3;
+                
+                // 监听音乐播放进度
+                audio.addEventListener('timeupdate', function() {
+                    if (!finaleStarted && audio.duration) {
+                        // 当音乐剩余8秒时开始谢幕
+                        const timeRemaining = audio.duration - audio.currentTime;
+                        if (timeRemaining <= 8 && timeRemaining > 0) {
+                            finaleStarted = true;
+                            showFinale();
+                        }
+                    }
+                });
+                
+                // 音乐结束时的处理
+                audio.addEventListener('ended', function() {
+                    if (!musicEnded) {
+                        musicEnded = true;
+                    }
+                });
+            }
+            
+            // 播放音乐
+            audio.play().then(() => {
+                isPlaying = true;
+                document.getElementById('guideBtn').innerHTML = '<i class="fas fa-pause"></i><span class="guide-btn-text">暂停</span>';
+                // 显示进度条
+                showProgress();
+                // 更新空调状态为运行中
+                updateACStatus(true);
+                // 开启祝福特效
+                if (!isBlessingActive) {
+                    blessingEffect.start();
+                    isBlessingActive = true;
+                }
+            }).catch(error => {
+                console.error('音乐播放失败:', error);
+            });
+        }
+        
+        function toggleMusic() {
+            if (!audio) {
+                playMusic();
+                return;
+            }
+            
+            if (isPlaying) {
+                audio.pause();
+                isPlaying = false;
+                document.getElementById('guideBtn').innerHTML = '<i class="fas fa-snowflake"></i><span class="guide-btn-text">请最后再开启一次空调吧</span>';
+                // 更新空调状态为已关闭
+                updateACStatus(false);
+                // 停止祝福特效
+                if (isBlessingActive) {
+                    blessingEffect.stop();
+                    isBlessingActive = false;
+                }
+            } else {
+                audio.play().then(() => {
+                    isPlaying = true;
+                    document.getElementById('guideBtn').innerHTML = '<i class="fas fa-pause"></i><span class="guide-btn-text">暂停</span>';
+                    // 显示进度条
+                    showProgress();
+                    // 更新空调状态为运行中
+                    updateACStatus(true);
+                    // 开启祝福特效
+                    if (!isBlessingActive) {
+                        blessingEffect.start();
+                        isBlessingActive = true;
+                    }
+                }).catch(error => {
+                    console.error('音乐播放失败:', error);
+                });
+            }
+        }
+        
+
+        
+        // 记录请求ip
+        async function addRequestTime() {
+            try {
+                const response = await axios.get('/api/shop/addAccess');
+                
+                if (response.data && response.data.code === 200) {
+                    console.log('✅ 访问记录成功');
+                    return true;
+                } else {
+                    console.error('❌ 接口返回错误:', response.data?.msg || '未知错误');
+                    return false;
+                }
+                
+            } catch (error) {
+                console.error('❌ 请求失败:', error.message || error);
+                return false;
+            }
+        }
+        
+        // 显示进度条
+        function showProgress() {
+            const progressContainer = document.getElementById('progress-container');
+            const progressFill = document.getElementById('progress-fill');
+            const progressText = document.getElementById('progress-text');
+            
+            progressContainer.style.opacity = '1';
+            progressText.textContent = '耗能中...';
+            
+            // 更新进度条
+            progressInterval = setInterval(() => {
+                if (audio && audio.duration) {
+                    const progress = (audio.currentTime / audio.duration) * 100;
+                    progressFill.style.width = `${progress}%`;
+                    
+                    // 根据进度显示不同文案
+                    if (progress >= 95) {
+                        progressText.textContent = '能量耗尽，很高兴你会耐心等到这里！';
+                    } else if (progress >= 70) {
+                        progressText.textContent = '我只剩最后一点能量啦，未来的每个夏天都照顾好自己!';
+                    } else if (progress >= 50) {
+                        progressText.textContent = '能量消耗过半啦...';
+                    } else {
+                        progressText.textContent = '耗能中...';
+                    }
+                    
+                    // 当进度达到100%时，停止更新
+                    if (progress >= 100) {
+                        clearInterval(progressInterval);
+                        progressText.textContent = '能量耗尽啦，很高兴你会耐心等到这里！';
+                    }
+                }
+            }, 100);
+        }
+        
+        // 显示谢幕特效
+        function showFinale() {
+            // 停止祝福特效
+            if (blessingEffect && isBlessingActive) {
+                blessingEffect.stop();
+                isBlessingActive = false;
+            }
+            
+            // 不暂停音乐，让音乐继续播放到结束
+            // 这个函数会在音乐结束前8秒被调用
+            
+            // 立即显示帘子关闭效果
+            setTimeout(() => {
+                const curtainLeft = document.getElementById('curtain-left');
+                const curtainRight = document.getElementById('curtain-right');
+                
+                curtainLeft.classList.add('closing');
+                curtainRight.classList.add('closing');
+                
+                // 帘子关闭后显示谢幕文字
+                setTimeout(() => {
+                    const finaleContainer = document.getElementById('finale-container');
+                    finaleContainer.style.opacity = '1';
+                    finaleContainer.classList.add('show');
+                }, 2000);
+            }, 500);
+        }
+        
+        // 祝福文字特效
+        class BlessingEffect {
+            constructor() {
+                this.container = document.getElementById('blessing-container');
+                // 修复了中文逗号的问题，改为英文逗号
+                this.blessings = [
+                    '驱蚊中', '正在制冷', '蚊子飞走咯', '清凉一下', '休息一下吧',
+                    '幸运数字7', '双倍奖励发放成功', '打地鼠高手', '刚好7次就猜到啦', '你一直都很棒',
+                    '你的努力会有人看到', '爱吃的水果在水果机里吗', '上班打卡成功', '别忘记下班打卡哦', '经验发放成功',
+                    '晚餐倒计时:每一天', '翻到可爱的卡牌了嘛', '少喝咖啡', 'no smoking', '北北~糕糕再见👋', '别忘了喂我喝水呀',
+                    '宠物太饿啦', '我太渴了不能吃东西哦', '好感度+999999', '商店上新啦', '不能直接在背包使用哦', '别忘了喂我喝水呀',
+                    '太扯了啦', '你很烦耶', '好了啦', '偷偷打电动哦', '等级提升啦', '7777777', '恭喜触发彩蛋哦','窗外又在下雨吗',
+                    '今天的你也超棒', '微笑是最好的魔法', '小歇片刻也不错', '进度条+1%',
+                    '你的坚持会被看见', '慢慢来比较快', '今天也辛苦啦',
+                    '别忘了伸个懒腰', '眼睛需要休息啦', '深呼吸三次', '今日份快乐收集完成',
+                     '小确幸已签收', '充电完成,能量满格',
+                      'Lucky 7 again', '7的祝福加持', '七连击达成',
+                      '你比昨天又进步了',
+                            '小小的努力也有大大的意义',
+                            '你的存在本身就是美好',
+                            '每一步都算数',
+                            '你已经做得很好了',
+                            '给自己一个赞吧',
+                            '今天的你闪闪发光',
+                            '温柔又有力量的你',
+                            '你的笑容很有感染力',
+                            '坚持到这里的你很棒',
+                            '累了就休息,没关系的',
+                            '你值得被好好对待',
+                            '你的用心会被看见',
+                            '慢慢来,我等你',
+                            '你比想象中更强大',
+                            '小小的你也大大了不起',
+                            '做自己就很了不起',
+                            '今天也认真生活的你',
+                            '你的善良温暖人心',
+                            '偶尔的停顿是为了更好的出发',
+                            '你已经很棒了,真的',
+                            '每一个今天都是新的开始',
+                            '你的努力不会白费',
+                            '给自己一点掌声',
+                            '你正在成为更好的自己',
+                            '平凡的日子也值得庆祝',
+                            '今天的你也很可爱',
+                            '辛苦了,但都值得',
+                            '你让世界变得更美好',
+                            '别对自己太严格',
+                            '你已经足够好了',
+                            '你的坚持感动了我',
+                            '每一天都在成长呢',
+                            '你的进步肉眼可见',
+                            '给自己一个拥抱吧',
+                            '你是独一无二的存在',
+                            '今天的小成就get✓',
+                            '你的耐心值得称赞',
+                            '温柔地对待自己',
+                            '你比星星更闪亮',
+                            '小小的你很了不起',
+                            '你正在创造奇迹',
+                            '今天也是美好的一天',
+                            '你的勇气令人敬佩',
+                            '每一步都是成长',
+                            '你笑起来真好看',
+                            '你的存在让今天特别',
+                            '今天的努力,明天的底气',
+                            '你值得所有的美好',
+                            '做得很棒,继续加油',
+                            '你的热情很有感染力',
+                            '今天也为自己骄傲吧',
+                            '你让平凡变得不凡',
+                            '你的努力终将开花',
+                            '温柔而坚定地前行',
+                            '你比想象中更优秀',
+                            '每一天都是新的可能',
+                            '你的坚持终有回报',
+                            '今天也要好好爱自己',
+                            '你正在闪闪发光呢',
+                            '小小的你,大大的能量',
+                            '你的善良自带光芒',
+                            '今天的你也很努力',
+                            '你值得被温柔以待',
+                            '一步一步来,别着急',
+                            '你比自己想象的更强大',
+                            '今天也是充满希望的一天',
+                            '你的用心终将被看见',
+                            '给自己一点甜吧',
+                            '你让简单变得特别',
+                            '今天的挑战完成✓',
+                            '你的进步令人欣喜',
+                            '温柔地鼓励自己',
+                            '你值得被深深爱着',
+                            '小小的步伐也是前进',
+                            '你今天也很不错呢',
+                            '你的坚持终将美好',
+                            '今天也要好好吃饭',
+                            '你让世界多了份温柔',
+                            '一步一步,脚踏实地',
+                            '你正在创造美好',
+                            '今天也要对自己好一点',
+                            '你的努力正在开花',
+                            '你值得被好好珍惜',
+                            '温柔的你也很有力量',
+                            '今天的你也辛苦了',
+                            '你让一切变得可能',
+                            '每一步都在接近梦想',
+                            '你今天也很了不起',
+                            '你的善良终有回响',
+                            '今天也要开心一点',
+                            '你值得被世界温柔以待',
+                            '小小的你也影响世界',
+                            '今天的你也很重要',
+                            '你的坚持终将闪耀',
+                            '给自己一点时间',
+                            '你让今天变得特别',
+                            '一步一步,慢慢成长',
+                            '你值得所有的掌声',
+                            '今天的你也充满力量',
+                            '你的存在就是礼物',
+                            '温柔地向前走吧',
+                            '你今天也很勇敢',
+                            '你的努力终将被铭记',
+                            '今天也要好好休息',
+                            '你让平凡闪闪发光'
+                    
+                ];
+                // 使用更细腻的颜色，不仅仅是粉色系
+                this.colors = [
+                    '#f472b6', '#ec4899', '#f9a8d4', '#fbcfe8', '#fce7f3',
+                    '#db2777', '#be185d', '#9d174d', '#831843', '#701a75',
+                    '#a78bfa', '#8b5cf6', '#7c3aed', '#6d28d9', '#5b21b6',
+                    '#60a5fa', '#3b82f6', '#2563eb', '#1d4ed8', '#1e40af',
+                    '#34d399', '#10b981', '#059669', '#047857', '#065f46'
+                ];
+                this.isActive = false;
+                this.animationIntervals = [];
+            }
+            
+            createBlessing(x, y, text, color) {
+                const blessing = document.createElement('div');
+                blessing.className = 'blessing-text';
+                blessing.textContent = text;
+                blessing.style.left = x + 'px';
+                blessing.style.top = y + 'px';
+                blessing.style.color = color;
+                
+                // 添加光晕效果
+                blessing.style.boxShadow = `
+                    0 0 20px rgba(255, 255, 255, 0.8),
+                    0 0 40px rgba(255, 255, 255, 0.5),
+                    0 0 60px ${color}40,
+                    0 4px 15px rgba(0, 0, 0, 0.1)
+                `;
+                
+                // 随机选择动画
+                const animations = ['blessing-float', 'blessing-spiral', 'blessing-wave', 'blessing-pulse'];
+                const randomAnimation = animations[Math.floor(Math.random() * animations.length)];
+                const randomDuration = 4 + Math.random() * 3; // 4-7秒
+                
+                blessing.style.animation = `${randomAnimation} ${randomDuration}s ease-out forwards`;
+                
+                this.container.appendChild(blessing);
+                
+                // 动画结束后移除元素
+                setTimeout(() => {
+                    if (blessing.parentNode) {
+                        blessing.parentNode.removeChild(blessing);
+                    }
+                }, randomDuration * 1000);
+            }
+            
+            start() {
+                if (this.isActive) return;
+                
+                this.isActive = true;
+                
+                // 创建循环的祝福文字 - 优化移动端性能
+                const createBlessingLoop = () => {
+                    if (!this.isActive) return;
+                    
+                    const x = Math.random() * window.innerWidth;
+                    const y = window.innerHeight * 0.3 + Math.random() * window.innerHeight * 0.4;
+                    const text = this.blessings[Math.floor(Math.random() * this.blessings.length)];
+                    const color = this.colors[Math.floor(Math.random() * this.colors.length)];
+                    
+                    this.createBlessing(x, y, text, color);
+                    
+                    // 移动端减少创建频率，桌面端保持原频率
+                    const isMobile = window.innerWidth <= 768;
+                    const nextInterval = isMobile ? 600 + Math.random() * 900 : 300 + Math.random() * 700;
+                    const intervalId = setTimeout(createBlessingLoop, nextInterval);
+                    this.animationIntervals.push(intervalId);
+                };
+                
+                // 开始创建祝福文字
+                createBlessingLoop();
+                
+                // 创建波浪式祝福
+                const createWaveBlessings = () => {
+                    if (!this.isActive) return;
+                    
+                    const waveTexts = ['保重', '珍重', '前程似锦', '平安喜乐'];
+                    const startX = window.innerWidth * 0.1;
+                    const endX = window.innerWidth * 0.9;
+                    const y = window.innerHeight * 0.5;
+                    
+                    waveTexts.forEach((text, index) => {
+                        const x = startX + (endX - startX) * (index / (waveTexts.length - 1));
+                        const color = this.colors[index % this.colors.length];
+                        
+                        this.createBlessing(x, y, text, color);
+                    });
+                    
+                    // 定期创建波浪式祝福 - 移动端降低频率
+                    const isMobile = window.innerWidth <= 768;
+                    const waveInterval = setInterval(() => {
+                        if (!this.isActive) {
+                            clearInterval(waveInterval);
+                            return;
+                        }
+                        
+                        const newY = window.innerHeight * 0.3 + Math.random() * window.innerHeight * 0.4;
+                        waveTexts.forEach((text, index) => {
+                            const x = startX + (endX - startX) * (index / (waveTexts.length - 1));
+                            const color = this.colors[(index + Math.floor(Math.random() * 5)) % this.colors.length];
+                            
+                            this.createBlessing(x, newY, text, color);
+                        });
+                    }, isMobile ? 8000 : 5000);
+                    
+                    this.animationIntervals.push(waveInterval);
+                };
+                
+                // 延迟开始波浪式祝福
+                setTimeout(createWaveBlessings, 1000);
+            }
+            
+            stop() {
+                this.isActive = false;
+                
+                // 清除所有定时器
+                this.animationIntervals.forEach(intervalId => {
+                    clearTimeout(intervalId);
+                    clearInterval(intervalId);
+                });
+                this.animationIntervals = [];
+                
+                // 清除所有祝福文字
+                const blessings = this.container.querySelectorAll('.blessing-text');
+                blessings.forEach(blessing => {
+                    if (blessing.parentNode) {
+                        blessing.parentNode.removeChild(blessing);
+                    }
+                });
+            }
+        }
+        
+        // 密码弹窗功能
+        function showPasswordModal() {
+            const modal = document.getElementById('password-modal');
+            const input = document.getElementById('passwordInput');
+            const error = document.getElementById('passwordError');
+            
+            modal.classList.add('show');
+            input.value = '';
+            error.classList.remove('show');
+            
+            // 自动聚焦输入框
+            setTimeout(() => {
+                input.focus();
+            }, 300);
+        }
+        
+        function hidePasswordModal() {
+            const modal = document.getElementById('password-modal');
+            modal.classList.remove('show');
+        }
+        
+        function checkPassword() {
+            const input = document.getElementById('passwordInput');
+            const error = document.getElementById('passwordError');
+            const password = input.value;
+            
+            if (password === '777') {
+                // 密码正确，执行关闭操作
+                hidePasswordModal();
+                performFinalClose();
+            } else {
+                // 密码错误
+                error.classList.add('show');
+                input.value = '';
+                input.focus();
+                
+                // 3秒后隐藏错误提示
+                setTimeout(() => {
+                    error.classList.remove('show');
+                }, 3000);
+            }
+        }
+        
+        function performFinalClose() {
+            // 保存关闭状态到本地存储
+            localStorage.setItem('acClosed', 'true');
+            
+            // 显示成功提示弹窗
+            const successModal = document.getElementById('success-modal');
+            successModal.classList.add('show');
+            
+            // 3秒后淡出谢幕容器
+            setTimeout(() => {
+                const finaleContainer = document.getElementById('finale-container');
+                finaleContainer.style.transition = 'opacity 2s ease';
+                finaleContainer.style.opacity = '0';
+            }, 3000);
+            
+            // 5秒后可以跳转或执行其他操作
+            setTimeout(() => {
+                // window.location.href = '/'; // 可以跳转到首页
+            }, 5000);
+        }
+        
+        // 检查是否已经关闭
+        function checkClosedStatus() {
+            const isClosed = localStorage.getItem('acClosed');
+            if (isClosed === 'true') {
+                // 隐藏所有其他元素
+                document.querySelector('.bg-decoration').style.display = 'none';
+                document.querySelector('.card-wrapper').style.display = 'none';
+                document.getElementById('progress-container').style.display = 'none';
+                document.getElementById('finale-container').style.display = 'none';
+                
+                // 直接显示成功提示
+                const successModal = document.getElementById('success-modal');
+                successModal.classList.add('show');
+                successModal.style.background = 'rgba(255, 255, 255, 0.98)';
+            }
+        }
+        
+        // 页面加载
+        document.addEventListener('DOMContentLoaded', function() {
+            // 首先检查是否已经关闭
+            checkClosedStatus();
+            
+            // 如果已经关闭，不执行后续初始化
+            if (localStorage.getItem('acClosed') === 'true') {
+                return;
+            }
+            
+            addRequestTime();
+            
+            // 初始化祝福特效
+            blessingEffect = new BlessingEffect();
+            
+            // 触发动画
+            setTimeout(() => {
+                document.querySelectorAll('.init-hidden').forEach(el => {
+                    el.classList.remove('init-hidden');
+                });
+            }, 100);
+            
+            // 引导按钮点击事件
+            document.getElementById('guideBtn').addEventListener('click', function() {
+                hasInteracted = true;
+                toggleMusic();
+            });
+            
+            // 尝试自动播放音乐（可能会被浏览器阻止）
+            document.addEventListener('click', function() {
+                if (!hasInteracted && !isPlaying) {
+                    hasInteracted = true;
+                    playMusic();
+                }
+            }, { once: true });
+            
+            // 图标悬停效果增强
+            document.querySelectorAll('.icon').forEach(icon => {
+                icon.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-3px) scale(1.05)';
+                });
+                icon.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0) scale(1)';
+                });
+            });
+            
+            // 添加进度条点击事件，可以拖动调试
+            const progressBar = document.getElementById('progress-bar');
+            progressBar.addEventListener('click', function(e) {
+                if (audio && audio.duration) {
+                    const rect = progressBar.getBoundingClientRect();
+                    const clickX = e.clientX - rect.left;
+                    const percentage = clickX / rect.width;
+                    audio.currentTime = audio.duration * percentage;
+                    
+                    // 重置谢幕标志，允许重新触发
+                    finaleStarted = false;
+                }
+            });
+            
+            // 最终关闭按钮事件
+            const finalCloseBtn = document.getElementById('finalCloseBtn');
+            if (finalCloseBtn) {
+                finalCloseBtn.addEventListener('click', showPasswordModal);
+            }
+            
+            // 密码弹窗事件
+            const passwordCancel = document.getElementById('passwordCancel');
+            const passwordConfirm = document.getElementById('passwordConfirm');
+            const passwordInput = document.getElementById('passwordInput');
+            const passwordModal = document.getElementById('password-modal');
+            
+            if (passwordCancel) {
+                passwordCancel.addEventListener('click', hidePasswordModal);
+            }
+            
+            if (passwordConfirm) {
+                passwordConfirm.addEventListener('click', checkPassword);
+            }
+            
+            if (passwordInput) {
+                // 回车键确认
+                passwordInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        checkPassword();
+                    }
+                });
+            }
+            
+            // 点击弹窗外部关闭
+            if (passwordModal) {
+                passwordModal.addEventListener('click', function(e) {
+                    if (e.target === passwordModal) {
+                        hidePasswordModal();
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
