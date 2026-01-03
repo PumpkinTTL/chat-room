@@ -79,39 +79,35 @@
 }
 
 .dark-mode {
-    /* Dark Theme */
-    /* Dark Theme - Glassmorphism */
-    --app-bg: #0b1121;
-    /* Deep rich dark */
-    --glass-bg: #1e293b;
-    --glass-border: rgba(255, 255, 255, 0.08);
+    /* Dark Theme - 统一深色配色 */
+    --app-bg: #0f172a;
+    --glass-bg: #0f172a;
+    --glass-border: #1e293b;
     --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 
-    --sidebar-bg: #1e293b;
-    --sidebar-border: var(--glass-border);
-    --sidebar-hover: rgba(255, 255, 255, 0.06);
+    --sidebar-bg: #0f172a;
+    --sidebar-border: #1e293b;
+    --sidebar-hover: rgba(255, 255, 255, 0.05);
 
-    --header-bg: rgba(17, 24, 39, 0.9);
-    --header-border: rgba(255, 255, 255, 0.06);
+    --header-bg: #0f172a;
+    --header-border: #1e293b;
 
-    --text-primary: #f3f4f6;
-    --text-secondary: #9ca3af;
-    --text-tertiary: #6b7280;
+    --text-primary: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --text-tertiary: #64748b;
 
     --primary-color: #3b82f6;
-    /* Blue 500 */
     --primary-hover: #60a5fa;
-    --primary-light: rgba(59, 130, 246, 0.1);
+    --primary-light: rgba(59, 130, 246, 0.15);
 
-    --input-area-bg: #111827;
-    --input-bg: #1f2937;
-    /* Gray 800 */
-    --input-placeholder: #6b7280;
+    --input-area-bg: #0f172a;
+    --input-bg: #1e293b;
+    --input-placeholder: #64748b;
 
     --msg-own-bg: var(--primary-color);
     --msg-own-text: #ffffff;
-    --msg-other-bg: #1f2937;
-    --msg-other-text: #f3f4f6;
+    --msg-other-bg: #1e293b;
+    --msg-other-text: #f1f5f9;
 }
 
 * {
@@ -180,13 +176,7 @@ body {
 .sidebar {
     width: 290px;
     background: var(--sidebar-bg);
-    border: 1px solid var(--sidebar-border);
-    border-radius: 0;
-    /* Glass Effect */
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    box-shadow: none;
-
+    border-right: 1px solid var(--sidebar-border);
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
@@ -201,15 +191,9 @@ body {
     display: flex;
     flex-direction: column;
     min-width: 0;
-    background: var(--sidebar-bg);
-    /* Use same glass style */
-    border: 1px solid var(--sidebar-border);
+    background: var(--app-bg);
+    border-left: 1px solid var(--sidebar-border);
     border-radius: 0;
-    /* Glass Effect */
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    box-shadow: none;
-
     position: relative;
     overflow: hidden;
 }
