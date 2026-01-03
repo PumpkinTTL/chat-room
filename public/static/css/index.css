@@ -991,8 +991,7 @@ body {
     overflow-x: hidden;
     padding: 0;
     scroll-behavior: smooth;
-    background-image: radial-gradient(var(--sidebar-border) 1px, transparent 1px);
-    background-size: 24px 24px;
+    background: transparent;
     position: relative;
 }
 
