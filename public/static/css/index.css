@@ -38,7 +38,7 @@
     --sidebar-hover: rgba(0, 0, 0, 0.04);
 
     --header-bg: rgba(255, 255, 255, 0.85);
-    --header-border: rgba(0, 0, 0, 0.04);
+    --header-border: var(--slate-200);
 
     --text-primary: #0f172a;
     --text-secondary: #475569;
@@ -629,17 +629,6 @@ body {
 .bottom-icon-btn,
 .connection-status {
     display: none;
-}
-
-/* Main Content */
-.main-content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-    background: var(--app-bg);
-    position: relative;
-    overflow: hidden;
 }
 
 .chat-navbar {
