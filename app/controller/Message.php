@@ -228,4 +228,47 @@ class Message
             ]
         ]);
     }
+
+    /**
+     * 标记消息为已读
+     * @param Request $request
+     * @return Response
+     */
+    public function markRead(Request $request)
+    {
+        $messageIds = $request->param('message_ids');
+        $roomId = $request->param('room_id');
+        $userId = $request->userId;
+
+        // 支持单个消息ID或数组
+        if (!empty($messageIds)) {
+            if (!is_array($messageIds)) {
+                $messageIds = [$messageIds];
+            }
+            $count = \app\service\MessageReadService::batchMarkAsRead($messageIds, $userId);
+            
+            // 通过WebSocket通知发送者（如果有的话）
+            self::notifyReadStatus($messageIds, $userId);
+        } elseif (!empty($roomId)) {
+            // 标记整个房间的消息为已读
+            $count = \app\service\MessageReadService::markRoomMessagesAsRead($roomId, $userId);
+        } else {
+            return json(['code' => 1, 'msg' => '请提供消息ID或房间ID'], 400);
+        }
+
+        return json([
+            'code' => 0,
+            'msg'  => '标记成功',
+            'data' => ['count' => $count]
+        ]);
+    }
+    
+    /**
+     * 通知消息发送者已读状态（预留，后续通过WebSocket实现）
+     */
+    private static function notifyReadStatus($messageIds, $readerId)
+    {
+        // TODO: 通过WebSocket广播已读状态给消息发送者
+        // 这里可以通过Redis发布订阅或直接调用WebSocket服务
+    }
 }

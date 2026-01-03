@@ -70,6 +70,7 @@ Route::group('api', function () {
         Route::post('burn', 'Message/burn');
         Route::get('latestTime', 'Message/latestTime');
         Route::get('unreadCount', 'Message/unreadCount');
+        Route::post('markRead', 'Message/markRead');
     });
 
 });

@@ -7,7 +7,7 @@
     <title>轻量聊天室</title>
     <link rel="stylesheet" href="/static/css/animate.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="/static/css/index.css?v=46">
+    <link rel="stylesheet" href="/static/css/index.css?v=48">
     <!-- 关键：在Vue加载前隐藏整个应用，防止模板闪现 -->
     <style>
         [v-cloak] {
@@ -33,7 +33,7 @@
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
-                    
+
                     <!-- 用户信息 -->
                     <div class="user-info" v-if="currentUser.id">
                         <div class="user-avatar">
@@ -77,10 +77,8 @@
                         <p>暂无房间</p>
                     </div>
                     <div v-else class="room-list">
-                        <div v-for="room in roomList" :key="room.id" 
-                            class="room-item" 
-                            :class="{ 'room-item-active': roomId == room.id }"
-                            @click="switchRoom(room)">
+                        <div v-for="room in roomList" :key="room.id" class="room-item"
+                            :class="{ 'room-item-active': roomId == room.id }" @click="switchRoom(room)">
                             <div class="room-item-icon" v-text="room.name.charAt(0)"></div>
                             <div class="room-item-content">
                                 <div class="room-item-name" v-text="room.name"></div>
@@ -93,8 +91,8 @@
                 <!-- 底部工具栏 -->
                 <div class="sidebar-footer">
                     <div class="footer-tools">
-                        <button class="tool-btn" :class="{ 'tool-btn-active': autoRefresh }"
-                            @click="toggleAutoRefresh" :title="autoRefresh ? '关闭自动刷新' : '开启自动刷新'">
+                        <button class="tool-btn" :class="{ 'tool-btn-active': autoRefresh }" @click="toggleAutoRefresh"
+                            :title="autoRefresh ? '关闭自动刷新' : '开启自动刷新'">
                             <i class="fas fa-sync-alt"></i>
                         </button>
                         <button class="tool-btn" @click="manualRefresh" title="手动刷新">
@@ -200,6 +198,12 @@
                                     </div>
 
                                     <div v-if="message.isOwn" class="msg-time-own">
+                                        <span class="msg-read-status" :class="{ 'read': message.isRead }"
+                                            :title="message.readUsers && message.readUsers.length > 0 ? message.readUsers.map(u => u.nickname).join(', ') + ' 已读' : ''">
+                                            <span v-if="message.readCount > 0"
+                                                v-text="message.readCount + '人已读'"></span>
+                                            <span v-else>未读</span>
+                                        </span>
                                         <span v-text="formatTime(message.time)"></span>
                                         <!-- 发送状态图标 -->
                                         <span v-if="messageSendStatus && messageSendStatus[message.id]"
@@ -262,12 +266,8 @@
                             <i class="fas fa-plus-circle"></i>
                         </button>
                         <div class="text-input-wrapper">
-                            <input v-model="newMessage" type="text" placeholder="说点什么..." 
-                                @keyup.enter="sendMessage"
-                                @focus="onInputFocus"
-                                @blur="onInputBlur"
-                                @input="onInputChange"
-                                class="text-input">
+                            <input v-model="newMessage" type="text" placeholder="说点什么..." @keyup.enter="sendMessage"
+                                @focus="onInputFocus" @blur="onInputBlur" @input="onInputChange" class="text-input">
                             <button class="emoji-btn" @click.stop="toggleEmojiPicker">
                                 <i class="far fa-smile"></i>
                             </button>

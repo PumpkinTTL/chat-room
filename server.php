@@ -126,6 +126,9 @@ $wsWorker->onMessage = function ($connection, $data) use (&$localConnections) {
             case 'typing':
                 handleTyping($connection, $msg, $localConnections);
                 break;
+            case 'mark_read':
+                handleMarkRead($connection, $msg, $localConnections);
+                break;
             case 'ping':
                 $connection->send(json_encode(['type' => 'pong']));
                 break;
@@ -452,6 +455,46 @@ function broadcastToRoomExcludeUser($roomId, $data, &$localConnections, $exclude
             $conn->send($message);
         } catch (\Exception $e) {}
     }
+}
+
+// 处理标记已读
+function handleMarkRead($connection, $msg, &$localConnections)
+{
+    $connData = $localConnections[$connection->id];
+    if (!$connData['authed'] || !$connData['room_id']) {
+        return;
+    }
+
+    $messageIds = $msg['message_ids'] ?? [];
+    $userId = $connData['user_id'];
+    $nickname = $connData['nickname'];
+    $roomId = $connData['room_id'];
+
+    if (empty($messageIds)) {
+        return;
+    }
+
+    // 调用服务标记已读
+    $count = \app\service\MessageReadService::batchMarkAsRead($messageIds, $userId);
+    
+    if ($count > 0) {
+        echo "[" . date('H:i:s') . "] 用户{$userId} {$nickname} 已读 {$count} 条消息\n";
+        
+        // 广播已读回执给房间内其他用户（主要是消息发送者）
+        broadcastToRoomExcludeUser($roomId, [
+            'type' => 'message_read',
+            'message_ids' => $messageIds,
+            'reader_id' => $userId,
+            'reader_nickname' => $nickname,
+            'read_at' => date('Y-m-d H:i:s')
+        ], $localConnections, $userId);
+    }
+    
+    // 回复确认
+    $connection->send(json_encode([
+        'type' => 'mark_read_success',
+        'count' => $count
+    ]));
 }
 
 Worker::runAll();

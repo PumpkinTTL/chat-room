@@ -187,10 +187,76 @@ class MessageService
                 $messages = array_reverse($messages);
             }
 
+            // 获取消息ID列表
+            $messageIds = array_column($messages, 'id');
+            
+            // 批量查询已读状态和已读人数
+            $readStatusMap = [];
+            $readCountMap = [];
+            $readUsersMap = [];
+            
+            if (!empty($messageIds)) {
+                // 查询每条消息的已读人数（排除发送者自己）
+                $readCounts = \think\facade\Db::table('ch_message_reads')
+                    ->alias('r')
+                    ->join('ch_messages m', 'r.message_id = m.id')
+                    ->whereIn('r.message_id', $messageIds)
+                    ->whereRaw('r.user_id != m.user_id') // 排除发送者自己
+                    ->group('r.message_id')
+                    ->column('COUNT(*) as cnt', 'r.message_id');
+                
+                foreach ($readCounts as $msgId => $count) {
+                    $readCountMap[$msgId] = (int)$count;
+                    $readStatusMap[$msgId] = $count > 0;
+                }
+                
+                // 查询已读用户列表（最多显示5个）
+                $readUsers = \think\facade\Db::table('ch_message_reads')
+                    ->alias('r')
+                    ->join('ch_users u', 'r.user_id = u.id')
+                    ->join('ch_messages m', 'r.message_id = m.id')
+                    ->whereIn('r.message_id', $messageIds)
+                    ->whereRaw('r.user_id != m.user_id') // 排除发送者自己
+                    ->field('r.message_id, r.user_id, u.nick_name, r.read_at')
+                    ->order('r.read_at', 'desc')
+                    ->select()
+                    ->toArray();
+                
+                foreach ($readUsers as $record) {
+                    $msgId = $record['message_id'];
+                    if (!isset($readUsersMap[$msgId])) {
+                        $readUsersMap[$msgId] = [];
+                    }
+                    // 每条消息最多保留5个已读用户
+                    if (count($readUsersMap[$msgId]) < 5) {
+                        $readUsersMap[$msgId][] = [
+                            'user_id' => $record['user_id'],
+                            'nickname' => $record['nick_name'],
+                            'read_at' => $record['read_at']
+                        ];
+                    }
+                }
+            }
+
             // 格式化消息数据
             $formattedMessages = [];
             foreach ($messages as $message) {
-                $formattedMessages[] = self::formatMessage($message, $userId);
+                $formatted = self::formatMessage($message, $userId);
+                $msgId = $message['id'];
+                
+                // 添加已读信息
+                if ($message['user_id'] == $userId) {
+                    // 自己发的消息：显示被多少人已读
+                    $formatted['is_read'] = isset($readStatusMap[$msgId]) && $readStatusMap[$msgId];
+                    $formatted['read_count'] = $readCountMap[$msgId] ?? 0;
+                    $formatted['read_users'] = $readUsersMap[$msgId] ?? [];
+                } else {
+                    // 别人的消息：对自己来说不需要显示已读状态
+                    $formatted['is_read'] = true;
+                    $formatted['read_count'] = 0;
+                    $formatted['read_users'] = [];
+                }
+                $formattedMessages[] = $formatted;
             }
 
             return [
