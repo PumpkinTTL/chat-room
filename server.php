@@ -152,34 +152,47 @@ $wsWorker->onClose = function ($connection) use (&$localConnections) {
     unset($localConnections[$connection->id]);
 
     if ($userId && $roomId) {
-        // 清理 Redis
-        try {
-            $redis = getRedis();
-            if ($redis) {
-                $redis->sRem("ws:room:{$roomId}:users", $userId);
-                $redis->del("ws:room:{$roomId}:user:{$userId}");
-                $redis->del("ws:user:{$userId}:room");
-            }
-        } catch (\Exception $e) {
-            echo "[" . date('H:i:s') . "] 断开连接时 Redis 清理失败: " . $e->getMessage() . "\n";
-        }
-
-        // 计算在线人数
-        $onlineCount = 0;
+        // 检查该用户是否还有其他连接在同一房间
+        $userStillInRoom = false;
         foreach ($localConnections as $conn) {
-            if ($conn['room_id'] == $roomId) {
-                $onlineCount++;
+            if ($conn['user_id'] == $userId && $conn['room_id'] == $roomId) {
+                $userStillInRoom = true;
+                break;
             }
         }
 
-        // 广播用户离开
-        broadcastToRoom($roomId, [
-            'type' => 'user_left',
-            'room_id' => $roomId,
-            'user_id' => $userId,
-            'nickname' => $nickname,
-            'online_count' => $onlineCount
-        ], $localConnections);
+        // 只有当用户没有其他连接在房间时，才清理Redis和广播离开
+        if (!$userStillInRoom) {
+            // 清理 Redis
+            try {
+                $redis = getRedis();
+                if ($redis) {
+                    $redis->sRem("ws:room:{$roomId}:users", $userId);
+                    $redis->del("ws:room:{$roomId}:user:{$userId}");
+                    $redis->del("ws:user:{$userId}:room");
+                }
+            } catch (\Exception $e) {
+                echo "[" . date('H:i:s') . "] 断开连接时 Redis 清理失败: " . $e->getMessage() . "\n";
+            }
+
+            // 计算在线人数（按用户ID去重）
+            $onlineUserIds = [];
+            foreach ($localConnections as $conn) {
+                if ($conn['room_id'] == $roomId && $conn['user_id']) {
+                    $onlineUserIds[$conn['user_id']] = true;
+                }
+            }
+            $onlineCount = count($onlineUserIds);
+
+            // 广播用户离开
+            broadcastToRoom($roomId, [
+                'type' => 'user_left',
+                'room_id' => $roomId,
+                'user_id' => $userId,
+                'nickname' => $nickname,
+                'online_count' => $onlineCount
+            ], $localConnections);
+        }
     }
 };
 
@@ -205,18 +218,8 @@ function handleAuth($connection, $msg, &$localConnections)
         return;
     }
 
-    // 踢掉旧连接
-    global $wsWorker;
-    foreach ($localConnections as $connId => $connData) {
-        if ($connData['user_id'] == $userId && $connId != $connection->id) {
-            if (isset($wsWorker->connections[$connId])) {
-                $wsWorker->connections[$connId]->send(json_encode(['type' => 'kicked', 'msg' => '账号在其他地方登录']));
-                $wsWorker->connections[$connId]->close();
-            }
-            unset($localConnections[$connId]);
-        }
-    }
-
+    // 允许多端登录，不再踢掉旧连接
+    // 只记录当前连接的用户信息
     $localConnections[$connection->id]['user_id'] = $userId;
     $localConnections[$connection->id]['nickname'] = $user->nick_name;
     $localConnections[$connection->id]['authed'] = true;
@@ -228,7 +231,7 @@ function handleAuth($connection, $msg, &$localConnections)
         'avatar' => $user->avatar
     ]));
 
-    echo "[" . date('H:i:s') . "] 认证: {$user->nick_name} (ID:{$userId})\n";
+    echo "[" . date('H:i:s') . "] 认证: {$user->nick_name} (ID:{$userId}) 连接#{$connection->id}\n";
 }
 
 // 加入房间
@@ -267,28 +270,51 @@ function handleJoinRoom($connection, $msg, &$localConnections)
     // 离开旧房间
     $oldRoomId = $connData['room_id'];
     if ($oldRoomId && $oldRoomId != $roomId) {
-        try {
-            $redis = getRedis();
-            if ($redis) {
-                $redis->sRem("ws:room:{$oldRoomId}:users", $userId);
-                $redis->del("ws:room:{$oldRoomId}:user:{$userId}");
-            }
-        } catch (\Exception $e) {
-            echo "[" . date('H:i:s') . "] 离开旧房间 Redis 操作失败: " . $e->getMessage() . "\n";
-        }
-        $oldCount = 0;
-        foreach ($localConnections as $conn) {
-            if ($conn['room_id'] == $oldRoomId && $conn['user_id'] != $userId) {
-                $oldCount++;
+        // 检查该用户是否还有其他连接在旧房间
+        $userStillInOldRoom = false;
+        foreach ($localConnections as $connId => $conn) {
+            if ($connId != $connection->id && $conn['user_id'] == $userId && $conn['room_id'] == $oldRoomId) {
+                $userStillInOldRoom = true;
+                break;
             }
         }
-        broadcastToRoom($oldRoomId, [
-            'type' => 'user_left',
-            'room_id' => $oldRoomId,
-            'user_id' => $userId,
-            'nickname' => $nickname,
-            'online_count' => $oldCount
-        ], $localConnections, $connection->id);
+
+        if (!$userStillInOldRoom) {
+            try {
+                $redis = getRedis();
+                if ($redis) {
+                    $redis->sRem("ws:room:{$oldRoomId}:users", $userId);
+                    $redis->del("ws:room:{$oldRoomId}:user:{$userId}");
+                }
+            } catch (\Exception $e) {
+                echo "[" . date('H:i:s') . "] 离开旧房间 Redis 操作失败: " . $e->getMessage() . "\n";
+            }
+
+            // 计算旧房间在线人数（按用户ID去重）
+            $oldRoomUserIds = [];
+            foreach ($localConnections as $connId => $conn) {
+                if ($connId != $connection->id && $conn['room_id'] == $oldRoomId && $conn['user_id']) {
+                    $oldRoomUserIds[$conn['user_id']] = true;
+                }
+            }
+
+            broadcastToRoom($oldRoomId, [
+                'type' => 'user_left',
+                'room_id' => $oldRoomId,
+                'user_id' => $userId,
+                'nickname' => $nickname,
+                'online_count' => count($oldRoomUserIds)
+            ], $localConnections, $connection->id);
+        }
+    }
+
+    // 检查该用户是否已有其他连接在新房间（用于判断是否需要广播加入）
+    $userAlreadyInNewRoom = false;
+    foreach ($localConnections as $connId => $conn) {
+        if ($connId != $connection->id && $conn['user_id'] == $userId && $conn['room_id'] == $roomId) {
+            $userAlreadyInNewRoom = true;
+            break;
+        }
     }
 
     // 更新房间
@@ -304,16 +330,16 @@ function handleJoinRoom($connection, $msg, &$localConnections)
         }
     } catch (\Exception $e) {
         echo "[" . date('H:i:s') . "] 加入房间 Redis 操作失败: " . $e->getMessage() . "\n";
-        // Redis 失败不影响 WebSocket 功能，继续执行
     }
 
-    // 获取在线用户
-    $onlineUsers = [];
+    // 获取在线用户（按用户ID去重）
+    $onlineUserMap = [];
     foreach ($localConnections as $conn) {
         if ($conn['room_id'] == $roomId && $conn['user_id']) {
-            $onlineUsers[] = ['user_id' => $conn['user_id'], 'nick_name' => $conn['nickname']];
+            $onlineUserMap[$conn['user_id']] = ['user_id' => $conn['user_id'], 'nick_name' => $conn['nickname']];
         }
     }
+    $onlineUsers = array_values($onlineUserMap);
 
     $connection->send(json_encode([
         'type' => 'room_joined',
@@ -322,16 +348,18 @@ function handleJoinRoom($connection, $msg, &$localConnections)
         'online_count' => count($onlineUsers)
     ]));
 
-    // 广播
-    broadcastToRoom($roomId, [
-        'type' => 'user_joined',
-        'room_id' => $roomId,
-        'user_id' => $userId,
-        'nickname' => $nickname,
-        'online_count' => count($onlineUsers)
-    ], $localConnections, $connection->id);
+    // 只有当用户之前不在房间时才广播加入消息
+    if (!$userAlreadyInNewRoom) {
+        broadcastToRoom($roomId, [
+            'type' => 'user_joined',
+            'room_id' => $roomId,
+            'user_id' => $userId,
+            'nickname' => $nickname,
+            'online_count' => count($onlineUsers)
+        ], $localConnections, $connection->id);
+    }
 
-    echo "[" . date('H:i:s') . "] {$nickname} 加入房间 {$roomId}\n";
+    echo "[" . date('H:i:s') . "] {$nickname} 加入房间 {$roomId} (连接#{$connection->id})\n";
 }
 
 // 发送消息
@@ -383,15 +411,16 @@ function handleTyping($connection, $msg, &$localConnections)
     $status = $typing ? '正在输入' : '停止输入';
     echo "[" . date('H:i:s') . "] #{$connection->id} 用户{$connData['user_id']} {$connData['nickname']} {$status}\n";
 
-    broadcastToRoom($connData['room_id'], [
+    // 广播给房间内其他用户（排除自己的所有连接）
+    broadcastToRoomExcludeUser($connData['room_id'], [
         'type' => 'typing',
         'user_id' => $connData['user_id'],
         'nickname' => $connData['nickname'],
         'typing' => $typing
-    ], $localConnections, $connection->id);
+    ], $localConnections, $connData['user_id']);
 }
 
-// 广播
+// 广播（排除指定连接）
 function broadcastToRoom($roomId, $data, &$localConnections, $excludeConnId = null)
 {
     global $wsWorker;
@@ -401,6 +430,23 @@ function broadcastToRoom($roomId, $data, &$localConnections, $excludeConnId = nu
         if (!isset($localConnections[$conn->id])) continue;
         if ($localConnections[$conn->id]['room_id'] != $roomId) continue;
         if ($excludeConnId !== null && $conn->id == $excludeConnId) continue;
+
+        try {
+            $conn->send($message);
+        } catch (\Exception $e) {}
+    }
+}
+
+// 广播（排除指定用户的所有连接）
+function broadcastToRoomExcludeUser($roomId, $data, &$localConnections, $excludeUserId)
+{
+    global $wsWorker;
+    $message = json_encode($data);
+
+    foreach ($wsWorker->connections as $conn) {
+        if (!isset($localConnections[$conn->id])) continue;
+        if ($localConnections[$conn->id]['room_id'] != $roomId) continue;
+        if ($localConnections[$conn->id]['user_id'] == $excludeUserId) continue;
 
         try {
             $conn->send($message);
