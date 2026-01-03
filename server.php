@@ -141,10 +141,23 @@ $wsWorker->onMessage = function ($connection, $data) use (&$localConnections) {
 
 // 连接关闭
 $wsWorker->onClose = function ($connection) use (&$localConnections) {
-    echo "[" . date('H:i:s') . "] 断开 #{$connection->id}\n";
-
     if (!isset($localConnections[$connection->id])) {
+        echo "[" . date('H:i:s') . "] 断开 #{$connection->id} (未绑定用户)\n";
         return;
+    }
+
+    $connData = $localConnections[$connection->id];
+    $userId = $connData['user_id'];
+    $roomId = $connData['room_id'];
+    $nickname = $connData['nickname'];
+
+    // 输出详细的断开日志
+    if ($userId && $nickname) {
+        echo "[" . date('H:i:s') . "] 断开 #{$connection->id} 用户:{$nickname}(ID:{$userId}) 房间:{$roomId}\n";
+    } elseif ($userId) {
+        echo "[" . date('H:i:s') . "] 断开 #{$connection->id} 用户ID:{$userId} 房间:{$roomId}\n";
+    } else {
+        echo "[" . date('H:i:s') . "] 断开 #{$connection->id} (已认证但未绑定用户)\n";
     }
 
     $connData = $localConnections[$connection->id];
