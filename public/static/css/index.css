@@ -83,11 +83,11 @@
     /* Dark Theme - Glassmorphism */
     --app-bg: #0b1121;
     /* Deep rich dark */
-    --glass-bg: rgba(30, 41, 59, 0.7);
+    --glass-bg: #1e293b;
     --glass-border: rgba(255, 255, 255, 0.08);
     --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 
-    --sidebar-bg: var(--glass-bg);
+    --sidebar-bg: #1e293b;
     --sidebar-border: var(--glass-border);
     --sidebar-hover: rgba(255, 255, 255, 0.06);
 
