@@ -130,7 +130,7 @@ $wsWorker->onMessage = function ($connection, $data) use (&$localConnections) {
                 handleMarkRead($connection, $msg, $localConnections);
                 break;
             case 'ping':
-                $connection->send(json_encode(['type' => 'pong']));
+                handlePing($connection, $localConnections);
                 break;
         }
     } catch (\Exception $e) {
@@ -508,6 +508,30 @@ function handleMarkRead($connection, $msg, &$localConnections)
         'type' => 'mark_read_success',
         'count' => $count
     ]));
+}
+
+// 处理心跳检测检测
+function handlePing($connection, &$localConnections)
+{
+    $connection->send(json_encode(['type' => 'pong']));
+    
+    if (!isset($localConnections[$connection->id])) {
+        echo "[" . date('H:i:s') . "] 心跳检测检测 #{$connection->id} (未绑定用户)\n";
+        return;
+    }
+    
+    $connData = $localConnections[$connection->id];
+    $userId = $connData['user_id'];
+    $nickname = $connData['nickname'];
+    $roomId = $connData['room_id'];
+    
+    if ($userId && $nickname) {
+        echo "[" . date('H:i:s') . "] 心跳检测 #{$connection->id} 用户:{$nickname}(ID:{$userId}) 房间:{$roomId}\n";
+    } elseif ($userId) {
+        echo "[" . date('H:i:s') . "] 心跳检测 #{$connection->id} 用户ID:{$userId} 房间:{$roomId}\n";
+    } else {
+        echo "[" . date('H:i:s') . "] 心跳检测 #{$connection->id} (未认证)\n";
+    }
 }
 
 Worker::runAll();
