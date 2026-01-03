@@ -7,7 +7,7 @@
     <title>轻量聊天室</title>
     <link rel="stylesheet" href="/static/css/animate.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="/static/css/index.css?v=35">
+    <link rel="stylesheet" href="/static/css/index.css?v=36">
     <!-- 关键：在Vue加载前隐藏整个应用，防止模板闪现 -->
     <style>
         [v-cloak] {
@@ -22,79 +22,91 @@
         <div class="layout-container" @click="hideEmojiPicker">
             <!-- 侧边栏 -->
             <aside class="sidebar" :class="{ 'sidebar-open': sidebarOpen }">
+                <!-- 顶部：Logo + 关闭按钮 -->
                 <div class="sidebar-header">
                     <div class="app-brand">
                         <div class="brand-logo">
-                            <i class="fas fa-shield-alt"></i>
+                            <i class="fas fa-comments"></i>
                         </div>
-                        <span class="brand-name">端对端聊天室</span>
+                        <span class="brand-name">轻聊</span>
                     </div>
                     <button class="sidebar-close-btn mobile-only" @click="toggleSidebar">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
 
-                <div class="sidebar-scroll-area">
-                    <!-- 用户信息模块 -->
-                    <div class="sidebar-user-section" v-if="currentUser.id">
-                        <div class="user-avatar-base">
-                            <div class="user-avatar-inner" v-text="currentUser.nick_name.charAt(0)"></div>
-                            <div class="user-status-online"></div>
-                        </div>
-                        <div class="user-info-text">
-                            <div class="user-nickname" v-text="currentUser.nick_name"></div>
-                            <div class="user-id-badge">ID: <span v-text="currentUser.id"></span></div>
-                        </div>
+                <!-- 用户信息卡片 -->
+                <div class="user-card" v-if="currentUser.id">
+                    <div class="user-card-avatar">
+                        <span v-text="currentUser.nick_name.charAt(0)"></span>
+                        <i class="user-card-status"></i>
                     </div>
-                    <!-- 搜索部分 -->
-                    <div class="sidebar-action-group">
-                        <!-- <div class="sidebar-search-box">
-                            <i class="fas fa-search"></i>
-                            <input type="text" placeholder="搜索房间..." v-model="searchKeyword">
-                        </div> -->
-                        <button class="sidebar-action-btn" @click="showJoinRoomDialog">
-                            <i class="fas fa-plus"></i>
-                            <span>加入房间</span>
-                        </button>
+                    <div class="user-card-info">
+                        <div class="user-card-name" v-text="currentUser.nick_name"></div>
+                        <div class="user-card-id">ID: <span v-text="currentUser.id"></span></div>
                     </div>
+                    <button class="user-card-logout" @click="handleLogout" title="退出登录">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </div>
 
-                    <div class="sidebar-nav-container">
-                        <div class="nav-label">房间列表</div>
-                        <div class="room-items-list">
-                            <div v-if="roomList.length === 0" class="empty-state">
-                                <i class="fas fa-door-open"></i>
-                                <p>这里很安静</p>
-                                <span>点击上方按钮加入房间</span>
-                            </div>
-                            <div v-else v-for="(room, index) in roomList" :key="room.id" class="room-card"
-                                :class="{ 'active-room': roomId == room.id }" @click="switchRoom(room)">
-                                <div class="room-icon" v-text="room.name.charAt(0)"></div>
-                                <div class="room-info">
-                                    <div class="room-title" v-text="room.name"></div>
-                                    <div class="room-subtitle" v-text="room.description || '暂无简介'"></div>
-                                </div>
-                                <div class="room-badge" v-if="roomId == room.id"></div>
+                <!-- 导航标签 -->
+                <div class="sidebar-tabs">
+                    <div class="sidebar-tab active">
+                        <i class="fas fa-users"></i>
+                        <span>群聊</span>
+                    </div>
+                    <div class="sidebar-tab disabled" title="敬请期待">
+                        <i class="fas fa-user"></i>
+                        <span>联系人</span>
+                    </div>
+                </div>
+
+                <!-- 操作按钮 -->
+                <div class="sidebar-actions">
+                    <button class="action-btn-primary" @click="showJoinRoomDialog">
+                        <i class="fas fa-plus"></i>
+                        <span>加入房间</span>
+                    </button>
+                </div>
+
+                <!-- 房间列表 -->
+                <div class="sidebar-list">
+                    <div v-if="roomList.length === 0" class="empty-state-mini">
+                        <i class="far fa-folder-open"></i>
+                        <p>暂无房间</p>
+                    </div>
+                    <div v-else class="room-list">
+                        <div v-for="room in roomList" :key="room.id" 
+                            class="room-item" 
+                            :class="{ 'room-item-active': roomId == room.id }"
+                            @click="switchRoom(room)">
+                            <div class="room-item-icon" v-text="room.name.charAt(0)"></div>
+                            <div class="room-item-content">
+                                <div class="room-item-name" v-text="room.name"></div>
+                                <div class="room-item-desc" v-text="room.description || '暂无简介'"></div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="sidebar-bottom-bar">
-                    <div class="bottom-controls">
-                        <button class="bottom-icon-btn" :class="{ 'refresh-active': autoRefresh }"
+                <!-- 底部工具栏 -->
+                <div class="sidebar-footer">
+                    <div class="footer-tools">
+                        <button class="tool-btn" :class="{ 'tool-btn-active': autoRefresh }"
                             @click="toggleAutoRefresh" :title="autoRefresh ? '关闭自动刷新' : '开启自动刷新'">
                             <i class="fas fa-sync-alt"></i>
                         </button>
-                        <button class="bottom-icon-btn" @click="manualRefresh" title="手动刷新">
+                        <button class="tool-btn" @click="manualRefresh" title="手动刷新">
                             <i class="fas fa-redo"></i>
                         </button>
-                        <button class="bottom-icon-btn" @click="toggleTheme" title="切换主题">
+                        <button class="tool-btn" @click="toggleTheme" title="切换主题">
                             <i class="fas" :class="isDarkMode ? 'fa-sun' : 'fa-moon'"></i>
                         </button>
                     </div>
-                    <div class="connection-status">
-                        <i class="fas fa-shield-check"></i>
-                        <span>已加密连接</span>
+                    <div class="footer-status">
+                        <i class="fas fa-lock"></i>
+                        <span>加密连接</span>
                     </div>
                 </div>
             </aside>
@@ -370,7 +382,7 @@
         })();
     </script>
     <script src="/static/js/websocket.js?v=3"></script>
-    <script src="/static/js/index.js?v=39"></script>
+    <script src="/static/js/index.js?v=40"></script>
 </body>
 
 </html>
