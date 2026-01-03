@@ -1,0 +1,730 @@
+/* 
+ * iOS Safari 兼容性修复
+ * 专门针对iOS设备的布局和样式问题
+ */
+
+/* iOS Safari 视口单位修复 */
+@supports (-webkit-touch-callout: none) {
+    body {
+        /* 使用传统的vh替代dvh */
+        min-height: 100vh;
+    }
+
+    .app-container {
+        height: 100vh;
+        /* iOS Safari地址栏问题修复 */
+        height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    }
+
+    /* 修复iOS上的输入框缩放问题 */
+    input,
+    textarea,
+    select {
+        font-size: 16px !important;
+        /* 防止iOS自动缩放 */
+        transform-origin: left top;
+        transform: scale(1);
+    }
+}
+
+/* iOS Safari特定的滚动修复 */
+@media screen and (-webkit-min-device-pixel-ratio: 1) {
+    .messages-container {
+        /* iOS弹性滚动 */
+        -webkit-overflow-scrolling: touch;
+        /* 修复iOS滚动惯性 */
+        overflow: auto;
+    }
+
+    .sidebar {
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* 修复iOS上的position: fixed问题 */
+    .input-section {
+        position: -webkit-sticky;
+        position: sticky;
+        bottom: 0;
+        /* iOS safe area支持 */
+        padding-bottom: max(12px, env(safe-area-inset-bottom));
+    }
+
+    .header {
+        /* iOS状态栏安全区域 */
+        padding-top: max(12px, env(safe-area-inset-top));
+    }
+}
+
+/* iOS设备特定的布局修复 */
+@media only screen and (device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) {
+
+    /* iPhone X/XS/11 Pro */
+    .app-container {
+        height: calc(100vh - 34px);
+        /* 考虑底部home indicator */
+    }
+}
+
+@media only screen and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) {
+
+    /* iPhone XR/11 */
+    .app-container {
+        height: calc(100vh - 34px);
+    }
+}
+
+@media only screen and (device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) {
+
+    /* iPhone 12/13/14 */
+    .app-container {
+        height: calc(100vh - 34px);
+    }
+}
+
+/* iOS触摸优化 */
+.ios-touch-fix {
+    /* 防止iOS上的触摸延迟 */
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+}
+
+/* 按钮点击反馈优化 */
+button,
+.btn,
+.icon-btn {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+}
+
+/* iOS键盘弹出时的布局修复 */
+@media screen and (max-height: 500px) and (orientation: portrait) {
+
+    /* 可能是键盘弹出状态 */
+    .messages-container {
+        height: calc(100vh - 120px) !important;
+        min-height: 200px;
+    }
+
+    .input-section {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 1000;
+    }
+}
+
+/* iOS Safari图片查看器修复 */
+.image-viewer {
+    /* iOS全屏修复 */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    /* 防止iOS Safari地址栏影响 */
+    height: -webkit-fill-available;
+}
+
+/* iOS滚动边界修复 */
+.messages-container {
+    /* 防止过度滚动导致的橡皮筋效果影响布局 */
+    overscroll-behavior: contain;
+    -webkit-overscroll-behavior: contain;
+}
+
+/* iOS文本选择优化 */
+.msg-content {
+    /* 改善iOS上的文本选择体验 */
+    -webkit-user-select: text;
+    user-select: text;
+}
+
+.msg-content img {
+    /* 防止图片意外选择 */
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+/* iOS输入框样式修复 */
+.text-input {
+    /* 移除iOS默认的圆角和阴影 */
+    -webkit-appearance: none;
+    appearance: none;
+    border-radius: 12px;
+    /* 确保在iOS上有足够的字体大小 */
+    font-size: max(16px, 1rem);
+}
+
+/* iOS深色模式适配 */
+@media (prefers-color-scheme: dark) {
+    .dark-mode body {
+        /* iOS深色模式下的背景色调整 */
+        background-color: #000000;
+    }
+}
+
+/* iOS侧边栏手势冲突修复 */
+.sidebar {
+    /* 防止与iOS系统手势冲突 */
+    touch-action: pan-y;
+}
+
+/* iOS安全区域内边距 */
+.app-container {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+}
+
+/* iOS横屏模式优化 */
+@media screen and (orientation: landscape) and (max-height: 430px) {
+    .sidebar {
+        /* 横屏时侧边栏调整 */
+        width: 200px;
+    }
+
+    .messages-container {
+        padding-top: 8px;
+        padding-bottom: 8px;
+    }
+}
+
+/* iOS特定的动画性能优化 */
+@media screen and (-webkit-min-device-pixel-ratio: 2) {
+    .msg-bubble-wrapper {
+        /* 使用transform而不是margin/padding进行动画 */
+        will-change: transform;
+    }
+
+    .fade-enter-active,
+    .fade-leave-active {
+        /* iOS上更平滑的过渡 */
+        transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out;
+    }
+}
+
+/* iOS虚拟键盘适配 */
+@supports (height: 100dvh) {
+
+    /* 如果支持动态视口，使用它 */
+    .app-container {
+        height: 100dvh;
+    }
+}
+
+@supports not (height: 100dvh) {
+
+    /* 如果不支持，使用JavaScript计算或CSS calc */
+    .app-container {
+        height: calc(100vh - var(--keyboard-height, 0px));
+    }
+}
+
+/* iOS图片加载优化 */
+.image-wrapper img {
+    /* iOS图片渲染优化 */
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: auto;
+}
+
+/* iOS字体渲染优化 */
+body {
+    /* iOS文字渲染优化 */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+}
+
+/* iOS触摸反馈 */
+.msg-bubble {
+    /* iOS按压反馈 */
+    transition: transform 0.1s ease;
+}
+
+.msg-bubble:active {
+    transform: scale(0.98);
+}
+
+/* JavaScript动态应用的iOS类 */
+.ios-device .app-container {
+    /* iOS设备特定的容器调整 */
+    height: calc(var(--vh, 1vh) * 100);
+}
+
+.ios-device.keyboard-open .messages-container {
+    /* 键盘弹出时的消息容器 */
+    height: calc(var(--viewport-height, 100vh) - 200px) !important;
+    transition: height 0.3s ease;
+}
+
+.ios-device.keyboard-open .input-section {
+    /* 键盘弹出时的输入区域 */
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 1001;
+    background: var(--app-bg);
+    border-top: 1px solid var(--sidebar-border);
+}
+
+/* iOS设备上的额外触摸优化 */
+.ios-device button,
+.ios-device .btn,
+.ios-device .icon-btn {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* iOS设备上的滚动优化 */
+.ios-device .messages-container,
+.ios-device .sidebar {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+}
+
+/* iOS设备上的输入框优化 */
+.ios-device input,
+.ios-device textarea {
+    /* 确保足够大的字体防止自动缩放 */
+    font-size: max(16px, 1rem) !important;
+    /* 移除iOS默认样式 */
+    -webkit-appearance: none;
+    border-radius: 12px;
+}
+
+/* iOS设备横屏优化 */
+.ios-device.landscape .sidebar {
+    width: 200px;
+}
+
+.ios-device.landscape .messages-container {
+    padding-top: 4px;
+    padding-bottom: 4px;
+}
+
+/* ==================== iOS登录页面布局优化 ==================== */
+
+/* iOS登录卡片间距修复 */
+.ios-device .login-card {
+    /* iOS上稍微调整内边距 */
+    padding: 36px 40px 40px;
+}
+
+/* iOS表单整体间距优化 */
+.ios-device form {
+    gap: 20px;
+    /* 进一步增加表单项间距 */
+}
+
+/* iOS输入组间距修复 */
+.ios-device .input-group {
+    gap: 10px;
+    /* iOS上标签和输入框间距 */
+    margin-bottom: 4px;
+    /* 输入组底部额外间距 */
+}
+
+/* iOS输入框标签优化 */
+.ios-device .input-group label {
+    font-size: 13px;
+    font-weight: 600;
+    margin-left: 2px;
+    margin-bottom: 6px;
+    /* iOS上增加标签和输入框间距 */
+    display: block;
+}
+
+/* iOS输入框图标位置精确调整 */
+.ios-device .input-icon {
+    left: 14px;
+    /* iOS上图标左边距 */
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 15px;
+    /* 增加图标大小 */
+    color: #94a3b8;
+    z-index: 2;
+    pointer-events: none;
+    position: absolute;
+    display: block !important;
+    /* 强制显示图标 */
+    font-family: "Font Awesome 6 Free";
+    font-weight: 900;
+}
+
+/* iOS输入框内边距优化 */
+.ios-device input {
+    height: 44px;
+    /* iOS推荐的最小触摸目标 */
+    padding: 0 16px 0 44px;
+    /* 图标区域留更多空间 */
+    font-size: 16px !important;
+    /* 防止自动缩放 */
+    line-height: 1.4;
+    /* iOS文本垂直居中 */
+    position: relative;
+}
+
+/* iOS输入框包装器 */
+.ios-device .input-wrapper {
+    position: relative;
+    display: block;
+}
+
+/* iOS记住我复选框区域优化 */
+.ios-device .form-options {
+    margin-top: 6px;
+    /* iOS上增加顶部间距 */
+    margin-bottom: 8px;
+    /* 增加底部间距 */
+    padding: 4px 0;
+    /* 内边距增加可点击区域 */
+}
+
+/* iOS复选框标签间距优化 */
+.ios-device .checkbox-label {
+    gap: 10px;
+    /* 复选框和文字间距增加 */
+    align-items: center;
+    font-size: 13px;
+    /* iOS上稍微调整字体大小 */
+    line-height: 1.3;
+    display: flex;
+    cursor: pointer;
+    padding: 2px 0;
+    /* 增加点击区域 */
+}
+
+.ios-device .checkbox-label span {
+    margin-left: 2px;
+    /* 文字左边距 */
+    user-select: none;
+}
+
+/* iOS复选框样式修复 */
+.ios-device .checkbox-label input[type="checkbox"] {
+    width: 16px !important;
+    /* iOS上复选框大小 */
+    height: 16px !important;
+    min-width: 16px;
+    padding: 0;
+    margin: 0;
+    border-radius: 4px;
+    /* iOS复选框外观修复 */
+    -webkit-appearance: none;
+    appearance: none;
+    border: 2px solid #d1d5db;
+    background: white;
+    position: relative;
+    flex-shrink: 0;
+}
+
+/* iOS复选框选中状态 */
+.ios-device .checkbox-label input[type="checkbox"]:checked {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+/* iOS复选框选中标记 */
+.ios-device .checkbox-label input[type="checkbox"]:checked::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 10px;
+    font-weight: bold;
+}
+
+/* iOS按钮优化 */
+.ios-device .btn-primary {
+    height: 48px;
+    /* iOS上稍微增加按钮高度 */
+    font-size: 15px;
+    /* iOS字体大小优化 */
+    font-weight: 600;
+    margin-top: 16px;
+    /* iOS上按钮顶部间距增加 */
+    border-radius: 12px;
+    /* iOS风格圆角 */
+    gap: 6px;
+    /* 图标和文字间距缩小 */
+    letter-spacing: 0.2px;
+    /* iOS文字间距微调 */
+    justify-content: center;
+    align-items: center;
+    display: flex;
+}
+
+/* iOS按钮内容布局精确控制 */
+.ios-device .btn-primary span {
+    display: inline-flex;
+    align-items: center;
+}
+
+.ios-device .btn-primary i.btn-icon {
+    margin-left: 4px;
+    /* 图标右侧微调 */
+    display: inline-flex;
+    align-items: center;
+}
+
+/* iOS按钮图标大小调整 */
+.ios-device .btn-icon {
+    font-size: 12px;
+    /* 图标稍微小一点 */
+    line-height: 1;
+}
+
+/* iOS登录头部间距优化 */
+.ios-device .login-header {
+    margin-bottom: 28px;
+    /* iOS上头部底部间距 */
+}
+
+/* iOS Logo容器间距 */
+.ios-device .logo-container {
+    margin-bottom: 20px;
+    /* iOS上Logo底部间距增加 */
+}
+
+/* iOS标题间距 */
+.ios-device h1 {
+    margin-bottom: 6px;
+    /* iOS上标题底部间距缩小 */
+    font-size: 22px;
+    /* iOS上标题字体大小微调 */
+    line-height: 1.3;
+}
+
+/* iOS副标题优化 */
+.ios-device .subtitle {
+    font-size: 13px;
+    /* iOS上副标题字体稍小 */
+    line-height: 1.5;
+    gap: 8px;
+    /* 文字和徽章间距缩小 */
+}
+
+/* iOS徽章间距 */
+.ios-device .badge {
+    padding: 2px 6px;
+    /* iOS上徽章内边距调整 */
+    font-size: 9px;
+    border-radius: 4px;
+    /* iOS徽章圆角缩小 */
+}
+
+/* iOS登录底部区域间距 */
+.ios-device .login-footer {
+    margin-top: 24px;
+    /* iOS上底部区域顶部间距 */
+    padding-top: 16px;
+    /* iOS上分割线顶部间距 */
+}
+
+/* iOS登录底部文字 */
+.ios-device .login-footer p {
+    font-size: 12px;
+    /* iOS上底部文字大小 */
+    gap: 8px;
+    /* 图标和文字间距增加 */
+    line-height: 1.4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ios-device .login-footer i {
+    font-size: 11px;
+    /* 图标稍微小一点 */
+    color: var(--success-color);
+    display: inline-flex;
+    align-items: center;
+    margin-right: 2px;
+    /* 图标右边距微调 */
+}
+
+/* iOS错误信息优化 */
+.ios-device .error-message {
+    font-size: 12px;
+    /* iOS错误文字大小 */
+    margin-left: 4px;
+    /* iOS错误文字左边距 */
+    margin-top: 2px;
+    /* iOS错误文字顶部间距 */
+    line-height: 1.3;
+}
+
+/* iOS加载状态优化 */
+.ios-device .spinner {
+    width: 18px;
+    /* iOS加载图标大小 */
+    height: 18px;
+    border-width: 2.5px;
+}
+
+/* iOS聚焦状态优化 */
+.ios-device input:focus {
+    /* iOS聚焦时的样式调整 */
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    border-color: var(--primary-color);
+}
+
+/* iOS输入框占位符优化 */
+.ios-device input::placeholder {
+    color: #9ca3af;
+    /* iOS占位符颜色 */
+    font-size: 16px;
+    /* 确保与输入文字大小一致 */
+}
+
+/* 小屏幕iOS设备优化 */
+@media screen and (max-width: 480px) {
+    .ios-device .login-card {
+        padding: 20px 16px 24px;
+        /* 小屏iOS设备内边距 */
+        margin: 12px;
+        /* 小屏外边距 */
+    }
+
+    .ios-device .input-group {
+        gap: 8px;
+        /* 小屏间距稍微压缩 */
+        margin-bottom: 2px;
+    }
+
+    .ios-device form {
+        gap: 18px;
+        /* 小屏表单项间距适中 */
+    }
+
+    .ios-device .login-header {
+        margin-bottom: 20px;
+        /* 小屏头部间距 */
+    }
+
+    .ios-device .logo-container {
+        margin-bottom: 16px;
+        /* 小屏Logo间距 */
+    }
+
+    .ios-device .btn-primary {
+        height: 44px;
+        /* 小屏按钮高度稍小 */
+        margin-top: 12px;
+        /* 小屏按钮顶部间距 */
+        gap: 5px;
+        /* 小屏按钮内容间距 */
+    }
+
+    .ios-device .form-options {
+        margin-top: 4px;
+        margin-bottom: 6px;
+        padding: 2px 0;
+    }
+}
+
+/* iOS设备兼容性提示 */
+.ios-compatibility-notice {
+    background: rgba(255, 193, 7, 0.1);
+    border: 1px solid rgba(255, 193, 7, 0.3);
+    border-radius: 8px;
+    padding: 8px 12px;
+    margin-top: 12px;
+    font-size: 11px;
+    color: #d97706;
+    text-align: center;
+    line-height: 1.4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    /* 图标和文字间距稍微增加 */
+}
+
+.ios-compatibility-notice i {
+    font-size: 10px;
+    /* 图标稍微小一点 */
+    color: #d97706;
+    flex-shrink: 0;
+    margin-right: 1px;
+    /* 图标右边距微调 */
+}
+
+.ios-compatibility-notice span {
+    flex: 1;
+    text-align: center;
+}
+
+/* ==================== iOS Vue加载占位符修复 ==================== */
+
+/* iOS设备Vue加载时隐藏占位符 */
+.ios-device [v-cloak] {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
+
+/* iOS设备Vue模板占位符隐藏 */
+.ios-device [v-cloak] * {
+    display: none !important;
+}
+
+/* iOS设备强化占位符隐藏 */
+@media screen and (-webkit-min-device-pixel-ratio: 1) {
+    [v-cloak] {
+        display: none !important;
+        opacity: 0 !important;
+        visibility: hidden !important;
+    }
+
+    /* 针对可能的Vue模板内容 */
+    [v-cloak] .login-card,
+    [v-cloak] form,
+    [v-cloak] .input-group,
+    [v-cloak] .btn-primary {
+        display: none !important;
+    }
+}
+
+/* iOS设备Vue加载完成后的显示动画 */
+.ios-device .vue-loaded {
+    animation: iosVueShow 0.3s ease-out forwards;
+}
+
+@keyframes iosVueShow {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* iOS设备确保Vue加载时整个应用隐藏 */
+.ios-device #app[v-cloak] {
+    display: none !important;
+    opacity: 0 !important;
+    height: 0 !important;
+    overflow: hidden !important;
+}
+
+/* iOS设备登录卡片加载状态 */
+.ios-device .login-card[v-cloak] {
+    display: none !important;
+}
+
+/* iOS设备表单元素加载状态 */
+.ios-device [v-cloak] input,
+.ios-device [v-cloak] button,
+.ios-device [v-cloak] label {
+    display: none !important;
+}
