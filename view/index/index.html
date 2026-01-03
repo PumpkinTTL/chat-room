@@ -7,7 +7,7 @@
     <title>轻量聊天室</title>
     <link rel="stylesheet" href="/static/css/animate.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="/static/css/index.css?v=36">
+    <link rel="stylesheet" href="/static/css/index.css?v=46">
     <!-- 关键：在Vue加载前隐藏整个应用，防止模板闪现 -->
     <style>
         [v-cloak] {
@@ -22,32 +22,32 @@
         <div class="layout-container" @click="hideEmojiPicker">
             <!-- 侧边栏 -->
             <aside class="sidebar" :class="{ 'sidebar-open': sidebarOpen }">
-                <!-- 顶部：Logo + 关闭按钮 -->
-                <div class="sidebar-header">
-                    <div class="app-brand">
-                        <div class="brand-logo">
-                            <i class="fas fa-comments"></i>
+                <!-- 顶部区域 -->
+                <div class="sidebar-top">
+                    <div class="sidebar-header">
+                        <div class="app-brand">
+                            <i class="fas fa-shield-alt"></i>
+                            <span>端对端聊天系统</span>
                         </div>
-                        <span class="brand-name">轻聊</span>
+                        <button class="sidebar-close-btn mobile-only" @click="toggleSidebar">
+                            <i class="fas fa-times"></i>
+                        </button>
                     </div>
-                    <button class="sidebar-close-btn mobile-only" @click="toggleSidebar">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-
-                <!-- 用户信息卡片 -->
-                <div class="user-card" v-if="currentUser.id">
-                    <div class="user-card-avatar">
-                        <span v-text="currentUser.nick_name.charAt(0)"></span>
-                        <i class="user-card-status"></i>
+                    
+                    <!-- 用户信息 -->
+                    <div class="user-info" v-if="currentUser.id">
+                        <div class="user-avatar">
+                            <span v-text="currentUser.nick_name.charAt(0)"></span>
+                            <i class="user-status-dot"></i>
+                        </div>
+                        <div class="user-detail">
+                            <span class="user-name" v-text="currentUser.nick_name"></span>
+                            <span class="user-id">#<span v-text="currentUser.id"></span></span>
+                        </div>
+                        <button class="logout-btn" @click="handleLogout" title="退出登录">
+                            <i class="fas fa-sign-out-alt"></i>
+                        </button>
                     </div>
-                    <div class="user-card-info">
-                        <div class="user-card-name" v-text="currentUser.nick_name"></div>
-                        <div class="user-card-id">ID: <span v-text="currentUser.id"></span></div>
-                    </div>
-                    <button class="user-card-logout" @click="handleLogout" title="退出登录">
-                        <i class="fas fa-sign-out-alt"></i>
-                    </button>
                 </div>
 
                 <!-- 导航标签 -->
