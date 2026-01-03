@@ -62,14 +62,18 @@ class RoomUser
             return json(['code' => 1, 'msg' => '房间ID不能为空'], 400);
         }
 
-        $count = RoomUserService::getOnlineUserCount($roomId);
+        // 从数据库获取群成员总数
+        $totalCount = RoomUserService::getOnlineUserCount($roomId);
+        // 从 Redis 获取实时在线人数
+        $onlineCount = \app\service\WebSocketService::getRoomOnlineCount($roomId);
 
         return json([
             'code' => 0,
             'msg' => '获取成功',
             'data' => [
                 'room_id' => $roomId,
-                'online_count' => $count
+                'total_count' => $totalCount,    // 群成员总数（SQL）
+                'online_count' => $onlineCount   // 实时在线人数（Redis）
             ]
         ]);
     }

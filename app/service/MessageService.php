@@ -33,8 +33,8 @@ class MessageService
         }
 
         // 内容长度检查
-        if (mb_strlen($content) > 1000) {
-            return ['code' => 1, 'msg' => '消息内容过长，最多1000字符'];
+        if (mb_strlen($content) > 10000) {
+            return ['code' => 1, 'msg' => '消息内容过长，最多10000字符'];
         }
 
         try {

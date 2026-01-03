@@ -91,4 +91,36 @@ abstract class BaseController
         return $v->failException(true)->check($data);
     }
 
+    /**
+     * 获取客户端真实IP地址（支持反向代理/内网穿透）
+     * @return string
+     */
+    protected function getRealIp()
+    {
+        $headers = [
+            'HTTP_X_FORWARDED_FOR',
+            'HTTP_X_REAL_IP',
+            'HTTP_CF_CONNECTING_IP',
+            'HTTP_CLIENT_IP',
+            'HTTP_X_FORWARDED',
+            'HTTP_FORWARDED_FOR',
+            'HTTP_X_CLUSTER_CLIENT_IP',
+        ];
+
+        foreach ($headers as $header) {
+            $ip = $this->request->server($header);
+            if ($ip) {
+                if (strpos($ip, ',') !== false) {
+                    $ips = explode(',', $ip);
+                    $ip = trim($ips[0]);
+                }
+                if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+                    return $ip;
+                }
+            }
+        }
+
+        return $this->request->ip();
+    }
+
 }

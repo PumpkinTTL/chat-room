@@ -59,7 +59,7 @@ class Message
         // 验证参数
         $validate = Validate::rule([
             'room_id' => 'require|integer|min:1',
-            'content' => 'require|length:1,1000',
+            'content' => 'require|max:10000',
         ]);
 
         if (!$validate->check(['room_id' => $roomId, 'content' => $content])) {

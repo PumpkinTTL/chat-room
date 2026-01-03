@@ -1,0 +1,1225 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkyTech - 创新科技 引领未来</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #0ea5e9;
+            --accent: #f59e0b;
+            --dark: #1e293b;
+            --dark-light: #334155;
+            --light: #f8fafc;
+            --gray: #64748b;
+            --gray-light: #e2e8f0;
+            --bg-white: #ffffff;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            line-height: 1.6;
+            color: var(--dark);
+            background: var(--light);
+            overflow-x: hidden;
+        }
+
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(12px);
+            padding: 0.875rem 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+            border-bottom: 1px solid var(--gray-light);
+        }
+
+        .logo {
+            font-size: 1.35rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2.25rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--gray);
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: color 0.2s ease;
+        }
+
+        .nav-links a:hover {
+            color: var(--primary);
+        }
+
+        .nav-btn {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            border: none;
+            padding: 0.6rem 1.4rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: all 0.2s ease;
+        }
+
+        .nav-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        /* Hero Section */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            padding: 6rem 5% 3rem;
+            position: relative;
+        }
+
+        .hero-bg-dots {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image:
+                radial-gradient(circle at 20% 30%, rgba(99, 102, 241, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(14, 165, 233, 0.03) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .hero-content {
+            flex: 1;
+            max-width: 520px;
+            z-index: 1;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(14, 165, 233, 0.08) 100%);
+            color: var(--primary);
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            margin-bottom: 1.25rem;
+            border: 1px solid rgba(99, 102, 241, 0.15);
+        }
+
+        .hero-badge i {
+            font-size: 0.75rem;
+        }
+
+        .hero h1 {
+            font-size: 2.5rem;
+            line-height: 1.2;
+            margin-bottom: 1rem;
+            color: var(--dark);
+            font-weight: 700;
+            position: relative;
+        }
+
+        .hero h1 span {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero h1::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            width: 60px;
+            height: 4px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            border-radius: 2px;
+        }
+
+        .hero p {
+            font-size: 1rem;
+            color: var(--gray);
+            margin-bottom: 1.75rem;
+            max-width: 450px;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.75rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.25s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.35);
+            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--secondary) 100%);
+        }
+
+        .btn-secondary {
+            background: var(--bg-white);
+            color: var(--dark);
+            border: 1.5px solid var(--gray-light);
+            padding: 0.7rem 1.75rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: rgba(99, 102, 241, 0.04);
+        }
+
+        .hero-visual {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-card {
+            background: var(--bg-white);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+            position: relative;
+            border: 1px solid rgba(0, 0, 0, 0.04);
+        }
+
+        .hero-card-icon {
+            width: 52px;
+            height: 52px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1rem;
+            font-size: 1.3rem;
+            color: white;
+        }
+
+        .hero-card h3 {
+            font-size: 1.1rem;
+            margin-bottom: 0.3rem;
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .hero-card p {
+            color: var(--gray);
+            font-size: 0.85rem;
+            margin-bottom: 0;
+        }
+
+        .floating-badge {
+            position: absolute;
+            background: var(--bg-white);
+            padding: 0.55rem 0.85rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            border: 1px solid var(--gray-light);
+        }
+
+        .floating-badge.badge-1 {
+            top: -14px;
+            right: -14px;
+        }
+
+        .floating-badge.badge-2 {
+            bottom: -14px;
+            left: -14px;
+        }
+
+        .badge-icon {
+            width: 30px;
+            height: 30px;
+            background: rgba(99, 102, 241, 0.1);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary);
+        }
+
+        .badge-icon i {
+            font-size: 0.8rem;
+        }
+
+        .badge-text strong {
+            font-size: 0.85rem;
+            color: var(--dark);
+        }
+
+        .badge-text span {
+            font-size: 0.65rem;
+            color: var(--gray);
+            display: block;
+            line-height: 1.2;
+        }
+
+        /* Hero Decorations */
+        .hero-decoration {
+            position: absolute;
+            z-index: 0;
+        }
+
+        .decoration-circle {
+            position: absolute;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.06) 0%, rgba(14, 165, 233, 0.06) 100%);
+        }
+
+        .dec-1 {
+            width: 300px;
+            height: 300px;
+            top: 10%;
+            right: 15%;
+        }
+
+        .dec-2 {
+            width: 180px;
+            height: 180px;
+            bottom: 20%;
+            left: 10%;
+        }
+
+        .dec-3 {
+            width: 80px;
+            height: 80px;
+            top: 25%;
+            left: 5%;
+            background: rgba(99, 102, 241, 0.04);
+        }
+
+        .dec-4 {
+            width: 120px;
+            height: 120px;
+            bottom: 15%;
+            right: 5%;
+            background: rgba(14, 165, 233, 0.04);
+        }
+
+        /* Stats Section */
+        .stats {
+            padding: 2.5rem 5%;
+            background: var(--bg-white);
+            border-top: 1px solid var(--gray-light);
+            border-bottom: 1px solid var(--gray-light);
+        }
+
+        .stats-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 1.25rem 0.75rem;
+            position: relative;
+        }
+
+        .stat-item:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 1px;
+            height: 60%;
+            background: var(--gray-light);
+        }
+
+        .stat-icon {
+            width: 44px;
+            height: 44px;
+            background: rgba(99, 102, 241, 0.06);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 0.6rem;
+            color: var(--primary);
+        }
+
+        .stat-icon i {
+            font-size: 1rem;
+        }
+
+        .stat-number {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--dark);
+        }
+
+        .stat-label {
+            color: var(--gray);
+            font-size: 0.85rem;
+        }
+
+        /* Services Section */
+        .services {
+            padding: 4rem 5%;
+        }
+
+        .section-header {
+            text-align: center;
+            max-width: 480px;
+            margin: 0 auto 2.5rem;
+        }
+
+        .section-tag {
+            display: inline-block;
+            background: rgba(99, 102, 241, 0.06);
+            color: var(--primary);
+            padding: 0.35rem 0.8rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            margin-bottom: 0.6rem;
+            border: 1px solid rgba(99, 102, 241, 0.1);
+        }
+
+        .section-header h2 {
+            font-size: 1.6rem;
+            margin-bottom: 0.4rem;
+            color: var(--dark);
+        }
+
+        .section-header p {
+            color: var(--gray);
+            font-size: 0.9rem;
+        }
+
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.25rem;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .service-card {
+            background: var(--bg-white);
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid var(--gray-light);
+            transition: all 0.2s ease;
+        }
+
+        .service-card:hover {
+            border-color: var(--primary-light);
+            box-shadow: 0 4px 16px rgba(99, 102, 241, 0.08);
+        }
+
+        .service-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 0.85rem;
+        }
+
+        .service-icon i {
+            font-size: 1.1rem;
+        }
+
+        .service-icon.blue {
+            background: rgba(14, 165, 233, 0.08);
+            color: var(--secondary);
+        }
+
+        .service-icon.purple {
+            background: rgba(99, 102, 241, 0.08);
+            color: var(--primary);
+        }
+
+        .service-icon.orange {
+            background: rgba(245, 158, 11, 0.08);
+            color: var(--accent);
+        }
+
+        .service-icon.green {
+            background: rgba(16, 185, 129, 0.08);
+            color: #10b981;
+        }
+
+        .service-icon.pink {
+            background: rgba(236, 72, 153, 0.08);
+            color: #ec4899;
+        }
+
+        .service-icon.teal {
+            background: rgba(20, 184, 166, 0.08);
+            color: #14b8a6;
+        }
+
+        .service-card h3 {
+            font-size: 0.95rem;
+            margin-bottom: 0.35rem;
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .service-card p {
+            color: var(--gray);
+            font-size: 0.85rem;
+            line-height: 1.6;
+        }
+
+        /* Features Section */
+        .features {
+            padding: 4rem 5%;
+            background: var(--bg-white);
+        }
+
+        .features-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3.5rem;
+            align-items: center;
+        }
+
+        .features-content h2 {
+            font-size: 1.6rem;
+            margin-bottom: 0.6rem;
+            color: var(--dark);
+        }
+
+        .features-content .section-header {
+            text-align: left;
+            margin: 0 0 1.25rem 0;
+        }
+
+        .features-content p {
+            color: var(--gray);
+            font-size: 0.9rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .feature-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.85rem;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.65rem;
+        }
+
+        .feature-check {
+            width: 22px;
+            height: 22px;
+            background: rgba(16, 185, 129, 0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #10b981;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .feature-check i {
+            font-size: 0.65rem;
+        }
+
+        .feature-text h4 {
+            font-size: 0.9rem;
+            margin-bottom: 0.1rem;
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .feature-text p {
+            color: var(--gray);
+            font-size: 0.85rem;
+            margin: 0;
+            line-height: 1.5;
+        }
+
+        .features-visual {
+            position: relative;
+        }
+
+        .features-image {
+            width: 100%;
+            height: 280px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .features-image i {
+            font-size: 3rem;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .features-image::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20 20.5V18H0v-2h20v-2H0v-2h20v-2H0V8h20V6H0V4h20V2H0V0h22v20h2V0h2v20h2V0h2v20h2V0h2v20h2V0h2v20h2v.5z' fill='%23ffffff' fill-opacity='0.06' fill-rule='evenodd'/%3E%3C/svg%3E");
+        }
+
+        /* Testimonials */
+        .testimonials {
+            padding: 4rem 5%;
+        }
+
+        .testimonials-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.25rem;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .testimonial-card {
+            background: var(--bg-white);
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid var(--gray-light);
+        }
+
+        .testimonial-stars {
+            color: var(--accent);
+            font-size: 0.75rem;
+            margin-bottom: 0.75rem;
+            letter-spacing: 2px;
+        }
+
+        .testimonial-text {
+            color: var(--dark-light);
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            line-height: 1.7;
+        }
+
+        .testimonial-author {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+        }
+
+        .author-avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        .author-info h4 {
+            font-size: 0.85rem;
+            margin-bottom: 0.05rem;
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .author-info p {
+            color: var(--gray);
+            font-size: 0.8rem;
+        }
+
+        /* CTA Section */
+        .cta {
+            padding: 4rem 5%;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            text-align: center;
+            position: relative;
+        }
+
+        .cta::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        }
+
+        .cta-content {
+            position: relative;
+            z-index: 1;
+            max-width: 560px;
+            margin: 0 auto;
+        }
+
+        .cta h2 {
+            font-size: 1.6rem;
+            color: white;
+            margin-bottom: 0.5rem;
+        }
+
+        .cta p {
+            color: rgba(255, 255, 255, 0.85);
+            font-size: 0.95rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .cta-btn {
+            background: white;
+            color: var(--primary);
+            border: none;
+            padding: 0.75rem 2.25rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+        }
+
+        .cta-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Footer */
+        footer {
+            background: var(--dark);
+            color: white;
+            padding: 3rem 5% 1.5rem;
+        }
+
+        .footer-grid {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1.5fr 1fr 1fr 1fr;
+            gap: 2.5rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .footer-brand .logo {
+            margin-bottom: 0.6rem;
+        }
+
+        .footer-brand p {
+            color: #94a3b8;
+            font-size: 0.85rem;
+            margin-bottom: 1rem;
+            line-height: 1.7;
+        }
+
+        .social-links {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .social-links a {
+            width: 34px;
+            height: 34px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: all 0.2s ease;
+        }
+
+        .social-links a:hover {
+            background: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        .footer-column h4 {
+            font-size: 0.9rem;
+            margin-bottom: 0.85rem;
+            font-weight: 600;
+        }
+
+        .footer-links {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.45rem;
+        }
+
+        .footer-links a {
+            color: #94a3b8;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s ease;
+        }
+
+        .footer-links a:hover {
+            color: white;
+        }
+
+        .footer-bottom {
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            padding-top: 1.25rem;
+            text-align: center;
+            color: #64748b;
+            font-size: 0.8rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .hero {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .hero-content {
+                max-width: 100%;
+            }
+
+            .hero p {
+                margin: 0 auto 1.75rem;
+            }
+
+            .hero-buttons {
+                justify-content: center;
+            }
+
+            .hero h1::after {
+                left: 50%;
+                transform: translateX(-50%);
+            }
+
+            .services-grid,
+            .testimonials-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .features-container {
+                grid-template-columns: 1fr;
+            }
+
+            .features-content .section-header {
+                text-align: center;
+            }
+
+            .footer-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+
+            .hero h1 {
+                font-size: 1.9rem;
+            }
+
+            .stats-container {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .stats .stat-item:not(:last-child)::after {
+                display: none;
+            }
+
+            .services-grid,
+            .testimonials-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .footer-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Navigation -->
+    <nav>
+        <div class="logo">
+            <i class="fas fa-cloud"></i>
+            SkyTech
+        </div>
+        <ul class="nav-links">
+            <li><a href="#home">首页</a></li>
+            <li><a href="#services">服务</a></li>
+            <li><a href="#features">特色</a></li>
+            <li><a href="#testimonials">评价</a></li>
+            <li><a href="#contact">联系</a></li>
+        </ul>
+        <button class="nav-btn">免费试用</button>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero" id="home">
+        <div class="hero-bg-dots"></div>
+        <div class="hero-decoration">
+            <div class="decoration-circle dec-1"></div>
+            <div class="decoration-circle dec-2"></div>
+            <div class="decoration-circle dec-3"></div>
+            <div class="decoration-circle dec-4"></div>
+        </div>
+        <div class="hero-content">
+            <span class="hero-badge">
+                <i class="fas fa-rocket"></i>
+                全新版本 v2.0 已发布
+            </span>
+            <h1>打造卓越的<span>数字体验</span>，让业务飞速增长</h1>
+            <p>我们提供全方位的数字化解决方案，帮助企业实现智能化转型，提升运营效率，创造更大价值。</p>
+            <div class="hero-buttons">
+                <button class="btn-primary">
+                    <i class="fas fa-arrow-right"></i>
+                    立即开始
+                </button>
+                <button class="btn-secondary">
+                    <i class="fas fa-play"></i>
+                    观看演示
+                </button>
+            </div>
+        </div>
+        <div class="hero-visual">
+            <div class="hero-card">
+                <div class="hero-card-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <h3>数据分析</h3>
+                <p>实时监控业务指标，精准决策</p>
+                <div class="floating-badge badge-1">
+                    <div class="badge-icon">
+                        <i class="fas fa-trending-up"></i>
+                    </div>
+                    <div class="badge-text">
+                        <strong>+128%</strong>
+                        <span>增长率</span>
+                    </div>
+                </div>
+                <div class="floating-badge badge-2">
+                    <div class="badge-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="badge-text">
+                        <strong>10K+</strong>
+                        <span>活跃用户</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section class="stats">
+        <div class="stats-container">
+            <div class="stat-item">
+                <div class="stat-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="stat-number">500+</div>
+                <div class="stat-label">企业客户</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-icon">
+                    <i class="fas fa-project-diagram"></i>
+                </div>
+                <div class="stat-number">1200+</div>
+                <div class="stat-label">完成项目</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-icon">
+                    <i class="fas fa-award"></i>
+                </div>
+                <div class="stat-number">50+</div>
+                <div class="stat-label">行业奖项</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-icon">
+                    <i class="fas fa-globe"></i>
+                </div>
+                <div class="stat-number">30+</div>
+                <div class="stat-label">覆盖国家</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Services Section -->
+    <section class="services" id="services">
+        <div class="section-header">
+            <span class="section-tag">我们的服务</span>
+            <h2>一站式数字化解决方案</h2>
+            <p>从咨询到实施，我们为您提供全生命周期的专业服务</p>
+        </div>
+        <div class="services-grid">
+            <div class="service-card">
+                <div class="service-icon purple">
+                    <i class="fas fa-code"></i>
+                </div>
+                <h3>定制开发</h3>
+                <p>为企业量身定制软件解决方案，满足个性化业务需求</p>
+            </div>
+            <div class="service-card">
+                <div class="service-icon blue">
+                    <i class="fas fa-cloud"></i>
+                </div>
+                <h3>云服务</h3>
+                <p>安全可靠的云计算平台，支持弹性扩展和高可用性</p>
+            </div>
+            <div class="service-card">
+                <div class="service-icon orange">
+                    <i class="fas fa-palette"></i>
+                </div>
+                <h3>UI/UX设计</h3>
+                <p>打造直观优雅的用户界面，提升用户体验和满意度</p>
+            </div>
+            <div class="service-card">
+                <div class="service-icon green">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <h3>安全防护</h3>
+                <p>全方位安全解决方案，保障数据和系统安全</p>
+            </div>
+            <div class="service-card">
+                <div class="service-icon pink">
+                    <i class="fas fa-brain"></i>
+                </div>
+                <h3>AI智能</h3>
+                <p>运用人工智能技术，实现业务流程智能化</p>
+            </div>
+            <div class="service-card">
+                <div class="service-icon teal">
+                    <i class="fas fa-headset"></i>
+                </div>
+                <h3>技术支持</h3>
+                <p>7×24小时专业技术支持，快速响应客户需求</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features" id="features">
+        <div class="features-container">
+            <div class="features-content">
+                <div class="section-header">
+                    <span class="section-tag">产品特色</span>
+                    <h2>为什么选择我们</h2>
+                    <p>我们致力于为客户提供最优质的产品和服务，帮助企业实现数字化转型</p>
+                </div>
+                <div class="feature-list">
+                    <div class="feature-item">
+                        <div class="feature-check">
+                            <i class="fas fa-check"></i>
+                        </div>
+                        <div class="feature-text">
+                            <h4>高性能架构</h4>
+                            <p>采用先进的微服务架构，确保系统稳定高效运行</p>
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-check">
+                            <i class="fas fa-check"></i>
+                        </div>
+                        <div class="feature-text">
+                            <h4>企业级安全</h4>
+                            <p>多重安全防护机制，符合国际安全标准</p>
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-check">
+                            <i class="fas fa-check"></i>
+                        </div>
+                        <div class="feature-text">
+                            <h4>灵活扩展</h4>
+                            <p>模块化设计，支持按需扩展和定制</p>
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-check">
+                            <i class="fas fa-check"></i>
+                        </div>
+                        <div class="feature-text">
+                            <h4>专业服务</h4>
+                            <p>资深团队全程跟进，确保项目成功交付</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="features-visual">
+                <div class="features-image">
+                    <i class="fas fa-lightbulb"></i>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials Section -->
+    <section class="testimonials" id="testimonials">
+        <div class="section-header">
+            <span class="section-tag">客户评价</span>
+            <h2>来自客户的真实反馈</h2>
+            <p>听听我们的客户怎么说</p>
+        </div>
+        <div class="testimonials-grid">
+            <div class="testimonial-card">
+                <div class="testimonial-stars">★★★★★</div>
+                <p class="testimonial-text">"SkyTech 团队非常专业，他们帮助我们实现了数字化转型，业务效率提升了 150%。"</p>
+                <div class="testimonial-author">
+                    <div class="author-avatar">李</div>
+                    <div class="author-info">
+                        <h4>李明</h4>
+                        <p>某科技公司 CEO</p>
+                    </div>
+                </div>
+            </div>
+            <div class="testimonial-card">
+                <div class="testimonial-stars">★★★★★</div>
+                <p class="testimonial-text">"产品质量非常出色，技术支持响应迅速。强烈推荐给需要数字化解决方案的企业！"</p>
+                <div class="testimonial-author">
+                    <div class="author-avatar">王</div>
+                    <div class="author-info">
+                        <h4>王芳</h4>
+                        <p>某金融机构 CTO</p>
+                    </div>
+                </div>
+            </div>
+            <div class="testimonial-card">
+                <div class="testimonial-stars">★★★★★</div>
+                <p class="testimonial-text">"从设计到实施，每个环节都做得非常出色。用户体验大大提升，客户满意度显著提高。"</p>
+                <div class="testimonial-author">
+                    <div class="author-avatar">张</div>
+                    <div class="author-info">
+                        <h4>张伟</h4>
+                        <p>某电商平台创始人</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta" id="contact">
+        <div class="cta-content">
+            <h2>准备好开始您的数字化转型了吗？</h2>
+            <p>立即联系我们的专业团队，获取定制化的解决方案</p>
+            <button class="cta-btn">免费咨询</button>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-grid">
+            <div class="footer-brand">
+                <div class="logo">
+                    <i class="fas fa-cloud"></i>
+                    SkyTech
+                </div>
+                <p>我们致力于为企业提供最优质的数字化解决方案，帮助客户实现业务增长和数字化转型。</p>
+                <div class="social-links">
+                    <a href="#"><i class="fab fa-weixin"></i></a>
+                    <a href="#"><i class="fab fa-weibo"></i></a>
+                    <a href="#"><i class="fab fa-github"></i></a>
+                </div>
+            </div>
+            <div class="footer-column">
+                <h4>产品</h4>
+                <ul class="footer-links">
+                    <li><a href="#">云平台</a></li>
+                    <li><a href="#">数据分析</a></li>
+                    <li><a href="#">AI服务</a></li>
+                    <li><a href="#">安全防护</a></li>
+                </ul>
+            </div>
+            <div class="footer-column">
+                <h4>公司</h4>
+                <ul class="footer-links">
+                    <li><a href="#">关于我们</a></li>
+                    <li><a href="#">新闻中心</a></li>
+                    <li><a href="#">合作伙伴</a></li>
+                    <li><a href="#">加入我们</a></li>
+                </ul>
+            </div>
+            <div class="footer-column">
+                <h4>支持</h4>
+                <ul class="footer-links">
+                    <li><a href="#">帮助中心</a></li>
+                    <li><a href="#">联系我们</a></li>
+                    <li><a href="#">隐私政策</a></li>
+                    <li><a href="#">服务条款</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2025 SkyTech. All rights reserved. | 沪ICP备xxxxxxxx号</p>
+        </div>
+    </footer>
+</body>
+
+</html>

@@ -1,12 +1,29 @@
 *.log
 .env
 composer.phar
-composer.lock
 .DS_Store
 Thumbs.db
+
+# IDE
 /.idea
 /.vscode
-/vendor
 /.settings
 /.buildpath
 /.project
+
+# Dependencies
+/vendor
+
+# Runtime
+/runtime/*
+!/runtime/.gitignore
+
+# Storage
+/public/storage/*
+!/public/storage/.gitignore
+
+# AI Tools
+/.claude
+/.zencoder
+/.zenflow
+/.kiro

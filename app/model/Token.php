@@ -17,6 +17,7 @@ class Token extends Model
         'id'          => 'varchar',
         'user_id'     => 'int',
         'status'      => 'int',
+        'ip'          => 'string',
         'expire_time' => 'datetime',
         'create_time' => 'datetime',
     ];

@@ -11,8 +11,15 @@ use think\facade\Route;
 Route::get('/', 'Index/login');
 Route::get('login', 'Index/login');
 
+// 记录页面访问
+Route::post('api/logAccess', 'Index/logAccess');
+
 // 聊天室首页
 Route::get('chat', 'Index/index');
+
+// WebSocket 测试页面
+Route::get('websocket', 'WebSocketTest/index');
+Route::get('websocket/config', 'WebSocketTest/config');
 
 // 静态文件访问路由（用于访问上传的文件）
 Route::get('storage/<path>', 'StaticFile/storage')->pattern(['path' => '.+']);

@@ -1,0 +1,411 @@
+<?php
+
+/**
+ * WebSocket 聊天服务器
+ * 启动命令: php server.php start
+ */
+
+use Workerman\Worker;
+
+require_once __DIR__ . '/vendor/autoload.php';
+
+define('APP_PATH', __DIR__ . '/app/');
+define('RUNTIME_PATH', __DIR__ . '/runtime/');
+
+$app = new think\App();
+$app->initialize();
+
+// 全局 Redis 连接
+$redis = null;
+$redisLastCheck = 0;
+
+function getRedis()
+{
+    global $redis, $redisLastCheck;
+    
+    $now = time();
+    
+    try {
+        // 如果 Redis 连接存在且最近检查过，直接返回
+        if ($redis !== null && ($now - $redisLastCheck) < 5) {
+            return $redis;
+        }
+        
+        // 检查连接是否有效
+        if ($redis !== null) {
+            try {
+                $redis->ping();
+                $redisLastCheck = $now;
+                return $redis;
+            } catch (\Exception $e) {
+                // 连接失效，重新连接
+                $redis = null;
+            }
+        }
+        
+        // 创建新连接
+        $config = config('cache.stores.redis');
+        $redis = new \Redis();
+        $redis->connect($config['host'] ?? '127.0.0.1', $config['port'] ?? 6379, 3); // 3秒超时
+        if (!empty($config['password'])) {
+            $redis->auth($config['password']);
+        }
+        $redis->select($config['select'] ?? 0);
+        $redisLastCheck = $now;
+        return $redis;
+    } catch (\Exception $e) {
+        echo "[" . date('H:i:s') . "] Redis 连接失败: " . $e->getMessage() . "\n";
+        $redis = null;
+        return null;
+    }
+}
+
+// 本地连接映射
+$localConnections = [];
+
+// 创建 Worker
+$wsWorker = new Worker('websocket://0.0.0.0:2346');
+$wsWorker->count = 1;
+$wsWorker->name = 'ChatWebSocket';
+
+// 启动时清理旧数据
+$wsWorker->onWorkerStart = function ($worker) {
+    echo "[" . date('H:i:s') . "] WebSocket 服务器启动\n";
+    
+    try {
+        $redis = getRedis();
+        if ($redis) {
+            $keys = $redis->keys('ws:*');
+            if (!empty($keys)) {
+                $redis->del($keys);
+                echo "[" . date('H:i:s') . "] 已清理 " . count($keys) . " 个旧的 Redis 键\n";
+            }
+        }
+    } catch (\Exception $e) {
+        echo "[" . date('H:i:s') . "] 清理旧数据失败: " . $e->getMessage() . "\n";
+    }
+};
+
+// 连接建立
+$wsWorker->onConnect = function ($connection) use (&$localConnections) {
+    echo "[" . date('H:i:s') . "] 新连接 #{$connection->id}\n";
+    $localConnections[$connection->id] = [
+        'user_id' => null,
+        'room_id' => null,
+        'nickname' => null,
+        'authed' => false
+    ];
+    $connection->send(json_encode([
+        'type' => 'connected',
+        'conn_id' => $connection->id,
+        'msg' => '连接成功，请先认证'
+    ]));
+};
+
+// 收到消息
+$wsWorker->onMessage = function ($connection, $data) use (&$localConnections) {
+    $msg = json_decode($data, true);
+    if (!$msg || !isset($msg['type'])) {
+        $connection->send(json_encode(['type' => 'error', 'msg' => '消息格式错误']));
+        return;
+    }
+
+    echo "[" . date('H:i:s') . "] #{$connection->id} -> {$msg['type']}\n";
+
+    try {
+        switch ($msg['type']) {
+            case 'auth':
+                handleAuth($connection, $msg, $localConnections);
+                break;
+            case 'join_room':
+                handleJoinRoom($connection, $msg, $localConnections);
+                break;
+            case 'message':
+                handleMessage($connection, $msg, $localConnections);
+                break;
+            case 'typing':
+                handleTyping($connection, $msg, $localConnections);
+                break;
+            case 'ping':
+                $connection->send(json_encode(['type' => 'pong']));
+                break;
+        }
+    } catch (\Exception $e) {
+        echo "[" . date('H:i:s') . "] 错误: " . $e->getMessage() . "\n";
+        $connection->send(json_encode(['type' => 'error', 'msg' => '服务器错误']));
+    }
+};
+
+// 连接关闭
+$wsWorker->onClose = function ($connection) use (&$localConnections) {
+    echo "[" . date('H:i:s') . "] 断开 #{$connection->id}\n";
+
+    if (!isset($localConnections[$connection->id])) {
+        return;
+    }
+
+    $connData = $localConnections[$connection->id];
+    $userId = $connData['user_id'];
+    $roomId = $connData['room_id'];
+    $nickname = $connData['nickname'];
+
+    unset($localConnections[$connection->id]);
+
+    if ($userId && $roomId) {
+        // 清理 Redis
+        try {
+            $redis = getRedis();
+            if ($redis) {
+                $redis->sRem("ws:room:{$roomId}:users", $userId);
+                $redis->del("ws:room:{$roomId}:user:{$userId}");
+                $redis->del("ws:user:{$userId}:room");
+            }
+        } catch (\Exception $e) {
+            echo "[" . date('H:i:s') . "] 断开连接时 Redis 清理失败: " . $e->getMessage() . "\n";
+        }
+
+        // 计算在线人数
+        $onlineCount = 0;
+        foreach ($localConnections as $conn) {
+            if ($conn['room_id'] == $roomId) {
+                $onlineCount++;
+            }
+        }
+
+        // 广播用户离开
+        broadcastToRoom($roomId, [
+            'type' => 'user_left',
+            'room_id' => $roomId,
+            'user_id' => $userId,
+            'nickname' => $nickname,
+            'online_count' => $onlineCount
+        ], $localConnections);
+    }
+};
+
+// 认证
+function handleAuth($connection, $msg, &$localConnections)
+{
+    $token = $msg['token'] ?? '';
+    if (empty($token)) {
+        $connection->send(json_encode(['type' => 'error', 'msg' => 'token不能为空']));
+        return;
+    }
+
+    $tokenData = \app\service\TokenService::verifyToken($token);
+    if (!$tokenData || !isset($tokenData['user_id'])) {
+        $connection->send(json_encode(['type' => 'error', 'msg' => 'token无效']));
+        return;
+    }
+
+    $userId = $tokenData['user_id'];
+    $user = \app\model\User::find($userId);
+    if (!$user) {
+        $connection->send(json_encode(['type' => 'error', 'msg' => '用户不存在']));
+        return;
+    }
+
+    // 踢掉旧连接
+    global $wsWorker;
+    foreach ($localConnections as $connId => $connData) {
+        if ($connData['user_id'] == $userId && $connId != $connection->id) {
+            if (isset($wsWorker->connections[$connId])) {
+                $wsWorker->connections[$connId]->send(json_encode(['type' => 'kicked', 'msg' => '账号在其他地方登录']));
+                $wsWorker->connections[$connId]->close();
+            }
+            unset($localConnections[$connId]);
+        }
+    }
+
+    $localConnections[$connection->id]['user_id'] = $userId;
+    $localConnections[$connection->id]['nickname'] = $user->nick_name;
+    $localConnections[$connection->id]['authed'] = true;
+
+    $connection->send(json_encode([
+        'type' => 'auth_success',
+        'user_id' => $userId,
+        'nickname' => $user->nick_name,
+        'avatar' => $user->avatar
+    ]));
+
+    echo "[" . date('H:i:s') . "] 认证: {$user->nick_name} (ID:{$userId})\n";
+}
+
+// 加入房间
+function handleJoinRoom($connection, $msg, &$localConnections)
+{
+    $connData = &$localConnections[$connection->id];
+
+    if (!$connData['authed']) {
+        $connection->send(json_encode(['type' => 'error', 'msg' => '请先认证']));
+        return;
+    }
+
+    $roomId = (int)($msg['room_id'] ?? 0);
+    if ($roomId <= 0) {
+        $connection->send(json_encode(['type' => 'error', 'msg' => '房间ID无效']));
+        return;
+    }
+
+    $userId = $connData['user_id'];
+    $nickname = $connData['nickname'];
+
+    // 验证用户是否已加入该房间（数据库层面）
+    try {
+        $isInRoom = \app\service\RoomUserService::isUserInRoom($roomId, $userId);
+        if (!$isInRoom) {
+            $connection->send(json_encode(['type' => 'error', 'msg' => '您未加入此房间']));
+            echo "[" . date('H:i:s') . "] 用户 {$userId} 未加入房间 {$roomId}\n";
+            return;
+        }
+    } catch (\Exception $e) {
+        echo "[" . date('H:i:s') . "] 检查房间成员失败: " . $e->getMessage() . "\n";
+        $connection->send(json_encode(['type' => 'error', 'msg' => '检查房间成员失败']));
+        return;
+    }
+
+    // 离开旧房间
+    $oldRoomId = $connData['room_id'];
+    if ($oldRoomId && $oldRoomId != $roomId) {
+        try {
+            $redis = getRedis();
+            if ($redis) {
+                $redis->sRem("ws:room:{$oldRoomId}:users", $userId);
+                $redis->del("ws:room:{$oldRoomId}:user:{$userId}");
+            }
+        } catch (\Exception $e) {
+            echo "[" . date('H:i:s') . "] 离开旧房间 Redis 操作失败: " . $e->getMessage() . "\n";
+        }
+        $oldCount = 0;
+        foreach ($localConnections as $conn) {
+            if ($conn['room_id'] == $oldRoomId && $conn['user_id'] != $userId) {
+                $oldCount++;
+            }
+        }
+        broadcastToRoom($oldRoomId, [
+            'type' => 'user_left',
+            'room_id' => $oldRoomId,
+            'user_id' => $userId,
+            'nickname' => $nickname,
+            'online_count' => $oldCount
+        ], $localConnections, $connection->id);
+    }
+
+    // 更新房间
+    $connData['room_id'] = $roomId;
+
+    // 写入 Redis
+    try {
+        $redis = getRedis();
+        if ($redis) {
+            $redis->sAdd("ws:room:{$roomId}:users", $userId);
+            $redis->hMSet("ws:room:{$roomId}:user:{$userId}", ['nick_name' => $nickname, 'join_time' => time()]);
+            $redis->set("ws:user:{$userId}:room", $roomId);
+        }
+    } catch (\Exception $e) {
+        echo "[" . date('H:i:s') . "] 加入房间 Redis 操作失败: " . $e->getMessage() . "\n";
+        // Redis 失败不影响 WebSocket 功能，继续执行
+    }
+
+    // 获取在线用户
+    $onlineUsers = [];
+    foreach ($localConnections as $conn) {
+        if ($conn['room_id'] == $roomId && $conn['user_id']) {
+            $onlineUsers[] = ['user_id' => $conn['user_id'], 'nick_name' => $conn['nickname']];
+        }
+    }
+
+    $connection->send(json_encode([
+        'type' => 'room_joined',
+        'room_id' => $roomId,
+        'users' => $onlineUsers,
+        'online_count' => count($onlineUsers)
+    ]));
+
+    // 广播
+    broadcastToRoom($roomId, [
+        'type' => 'user_joined',
+        'room_id' => $roomId,
+        'user_id' => $userId,
+        'nickname' => $nickname,
+        'online_count' => count($onlineUsers)
+    ], $localConnections, $connection->id);
+
+    echo "[" . date('H:i:s') . "] {$nickname} 加入房间 {$roomId}\n";
+}
+
+// 发送消息
+function handleMessage($connection, $msg, &$localConnections)
+{
+    $connData = $localConnections[$connection->id];
+
+    if (!$connData['authed']) {
+        $connection->send(json_encode(['type' => 'error', 'msg' => '请先认证']));
+        return;
+    }
+    if (!$connData['room_id']) {
+        $connection->send(json_encode(['type' => 'error', 'msg' => '请先加入房间']));
+        return;
+    }
+
+    $content = trim($msg['content'] ?? '');
+    if (empty($content)) {
+        $connection->send(json_encode(['type' => 'error', 'msg' => '消息不能为空']));
+        return;
+    }
+
+    $result = \app\service\MessageService::sendTextMessage($connData['room_id'], $connData['user_id'], $content);
+    if ($result['code'] !== 0) {
+        $connection->send(json_encode(['type' => 'error', 'msg' => $result['msg']]));
+        return;
+    }
+
+    broadcastToRoom($connData['room_id'], [
+        'type' => 'message',
+        'room_id' => $connData['room_id'],
+        'message_id' => $result['data']['id'],
+        'from_user_id' => $connData['user_id'],
+        'from_nickname' => $connData['nickname'],
+        'content' => $content,
+        'time' => date('H:i:s')
+    ], $localConnections);
+}
+
+// 正在输入
+function handleTyping($connection, $msg, &$localConnections)
+{
+    $connData = $localConnections[$connection->id];
+    if (!$connData['authed'] || !$connData['room_id']) {
+        return;
+    }
+
+    $typing = $msg['typing'] ?? false;
+    $status = $typing ? '正在输入' : '停止输入';
+    echo "[" . date('H:i:s') . "] #{$connection->id} 用户{$connData['user_id']} {$connData['nickname']} {$status}\n";
+
+    broadcastToRoom($connData['room_id'], [
+        'type' => 'typing',
+        'user_id' => $connData['user_id'],
+        'nickname' => $connData['nickname'],
+        'typing' => $typing
+    ], $localConnections, $connection->id);
+}
+
+// 广播
+function broadcastToRoom($roomId, $data, &$localConnections, $excludeConnId = null)
+{
+    global $wsWorker;
+    $message = json_encode($data);
+
+    foreach ($wsWorker->connections as $conn) {
+        if (!isset($localConnections[$conn->id])) continue;
+        if ($localConnections[$conn->id]['room_id'] != $roomId) continue;
+        if ($excludeConnId !== null && $conn->id == $excludeConnId) continue;
+
+        try {
+            $conn->send($message);
+        } catch (\Exception $e) {}
+    }
+}
+
+Worker::runAll();

@@ -13,9 +13,10 @@ class TokenService
      * 生成并保存token
      * @param int $userId 用户ID
      * @param int $expireHours 过期小时数，默认24小时
+     * @param string $ip 用户IP地址
      * @return string token字符串
      */
-    public static function generateToken($userId, $expireHours = 24)
+    public static function generateToken($userId, $expireHours = 24, $ip = '')
     {
         // 生成随机token
         $token = bin2hex(random_bytes(32));
@@ -28,6 +29,7 @@ class TokenService
             'id' => $token,
             'user_id' => $userId,
             'status' => Token::STATUS_ACTIVE,
+            'ip' => $ip,
             'expire_time' => $expireTime,
         ]);
 

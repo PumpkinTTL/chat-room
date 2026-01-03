@@ -193,8 +193,9 @@ class UserService
             return ['code' => 1, 'msg' => '用户已被禁用'];
         }
 
-        // 业务逻辑成功，生成token
-        $token = TokenService::generateToken($userInfo['id']);
+        // 业务逻辑成功，生成token并记录登录IP
+        $ip = isset($data['ip']) ? $data['ip'] : '';
+        $token = TokenService::generateToken($userInfo['id'], 24, $ip);
 
         // 返回用户信息和token
         return [

@@ -3,6 +3,7 @@
 namespace app\controller;
 
 use app\BaseController;
+use app\service\AccessService;
 use think\facade\View;
 
 class Index extends BaseController
@@ -18,6 +19,24 @@ class Index extends BaseController
     public function login()
     {
         return View::fetch('login/index');
+    }
+
+    /**
+     * 记录页面访问
+     */
+    public function logAccess()
+    {
+        $ip = request()->param('client_ip', '');
+        $page = request()->param('page', '未知页面');
+        $userAgent = request()->header('user-agent', '');
+        
+        if (empty($ip)) {
+            $ip = $this->getRealIp();
+        }
+        
+        AccessService::logAccess($ip, $page, $userAgent);
+        
+        return json(['code' => 0, 'msg' => 'ok']);
     }
 
     /**
