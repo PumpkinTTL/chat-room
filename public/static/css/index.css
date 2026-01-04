@@ -2798,3 +2798,68 @@ button:disabled {
 }
 
 /* 输入区域定位样式 - 已合并到主定义中 */
+
+
+/* 加载更多历史消息 */
+.load-more-wrapper {
+    display: flex;
+    justify-content: center;
+    padding: 16px 0;
+    margin-bottom: 8px;
+}
+
+.load-more-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: var(--sidebar-hover);
+    border-radius: 20px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.load-more-btn:hover {
+    background: var(--primary-light);
+    color: var(--primary-color);
+}
+
+.load-more-btn:active {
+    transform: scale(0.98);
+}
+
+.load-more-btn i {
+    font-size: 10px;
+}
+
+.load-more-loading {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    font-size: 12px;
+    color: var(--text-tertiary);
+}
+
+.load-more-loading i {
+    color: var(--primary-color);
+}
+
+.no-more-messages {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 16px;
+    font-size: 12px;
+    color: var(--text-tertiary);
+}
+
+/* 暗黑模式 */
+.dark-mode .load-more-btn {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.dark-mode .load-more-btn:hover {
+    background: var(--primary-light);
+}

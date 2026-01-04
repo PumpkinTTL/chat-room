@@ -101,6 +101,11 @@ try {
             const showNewMessageTip = ref(false);
             const newMessageCount = ref(0);
 
+            // 分页加载相关
+            const hasMoreMessages = ref(true);  // 是否还有更多历史消息
+            const loadingMore = ref(false);     // 是否正在加载更多
+            const currentPage = ref(1);         // 当前页码
+
             // 表情面板触摸滑动检测
             const emojiTouchStartPos = ref({ x: 0, y: 0 });
             const emojiHasMoved = ref(false);
@@ -894,6 +899,10 @@ try {
             const loadRoomMessages = async (roomIdValue, shouldScroll = true, showLoading = true) => {
                 if (!roomIdValue) return;
 
+                // 重置分页状态
+                currentPage.value = 1;
+                hasMoreMessages.value = true;
+
                 // 记录刷新前用户是否在底部
                 const wasAtBottom = isUserAtBottom();
 
@@ -902,7 +911,7 @@ try {
                         messagesLoading.value = true; // 显示消息加载loading
                     }
 
-                    const response = await apiRequest(`/api/message/list?room_id=${roomIdValue}&limit=50`);
+                    const response = await apiRequest(`/api/message/list?room_id=${roomIdValue}&page=1&limit=50`);
                     const result = await response.json();
 
                     if (result.code === 0) {
@@ -912,6 +921,7 @@ try {
 
                         // 加载历史消息
                         const roomMessages = result.data.messages || [];
+                        hasMoreMessages.value = result.data.has_more !== false;
 
                         // 检查消息是否有变化 - 比较消息ID列表
                         const currentMessageIds = messages.value.map(function (m) { return m.id; }).join(',');
@@ -1048,6 +1058,95 @@ try {
                             }, 100);
                         });
                     }
+                }
+            };
+
+            // 加载更多历史消息（上滑加载）
+            const loadMoreMessages = async () => {
+                if (!roomId.value || loadingMore.value || !hasMoreMessages.value) return;
+
+                try {
+                    loadingMore.value = true;
+                    const nextPage = currentPage.value + 1;
+
+                    const response = await apiRequest(`/api/message/list?room_id=${roomId.value}&page=${nextPage}&limit=50`);
+                    const result = await response.json();
+
+                    if (result.code === 0) {
+                        const olderMessages = result.data.messages || [];
+                        hasMoreMessages.value = result.data.has_more !== false;
+                        currentPage.value = nextPage;
+
+                        if (olderMessages.length > 0) {
+                            // 记录当前滚动位置和容器高度
+                            const container = messagesContainer.value;
+                            const oldScrollHeight = container ? container.scrollHeight : 0;
+
+                            // 处理旧消息
+                            const processedMessages = olderMessages.map(function (msg) {
+                                const isOwnMessage = msg.sender && msg.sender.id == currentUser.value.id;
+                                const processedMsg = {
+                                    id: msg.id,
+                                    content: msg.content,
+                                    type: msg.type,
+                                    timestamp: msg.timestamp,
+                                    sender: msg.sender,
+                                    isOwn: isOwnMessage,
+                                    username: (msg.sender && msg.sender.nickname) || '未知用户',
+                                    isNewMessage: false,
+                                    isRead: msg.is_read || false,
+                                    readCount: msg.read_count || 0,
+                                    readUsers: msg.read_users || []
+                                };
+
+                                if (msg.timestamp) {
+                                    let safeTimestamp = msg.timestamp;
+                                    if (typeof safeTimestamp === 'string') {
+                                        safeTimestamp = safeTimestamp.replace(/-/g, '/');
+                                    }
+                                    processedMsg.time = new Date(safeTimestamp);
+                                }
+
+                                for (const key in msg) {
+                                    if (msg.hasOwnProperty && msg.hasOwnProperty(key) && !processedMsg.hasOwnProperty(key)) {
+                                        processedMsg[key] = msg[key];
+                                    }
+                                }
+
+                                if (isOwnMessage && msg.id) {
+                                    messageSendStatus.value[msg.id] = 'success';
+                                }
+
+                                return processedMsg;
+                            });
+
+                            // 将旧消息插入到列表开头
+                            messages.value = processedMessages.concat(messages.value);
+
+                            // 保持滚动位置
+                            nextTick(function () {
+                                if (container) {
+                                    const newScrollHeight = container.scrollHeight;
+                                    container.scrollTop = newScrollHeight - oldScrollHeight;
+                                }
+                            });
+                        }
+                    }
+                } catch (error) {
+                    console.error('加载更多消息失败:', error);
+                } finally {
+                    loadingMore.value = false;
+                }
+            };
+
+            // 监听滚动事件，检测是否滚动到顶部
+            const handleScrollForLoadMore = () => {
+                const container = messagesContainer.value;
+                if (!container) return;
+
+                // 滚动到顶部附近时加载更多
+                if (container.scrollTop < 100 && hasMoreMessages.value && !loadingMore.value) {
+                    loadMoreMessages();
                 }
             };
 
@@ -2116,6 +2215,10 @@ try {
                 joinRoom,
                 getRoomInfo,
                 loadRoomMessages,
+                loadMoreMessages,
+                hasMoreMessages,
+                loadingMore,
+                handleScrollForLoadMore,
                 // 右键菜单相关
                 contextMenu,
                 showContextMenu,
