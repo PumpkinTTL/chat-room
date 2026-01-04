@@ -1264,7 +1264,7 @@ try {
                     // 平滑过渡到100%
                     const currentProgress = uploadProgress.value[msgId] || 0;
                     const remaining = 100 - currentProgress;
-                    const steps = 10; // 分10步完成
+                    const steps = 8; // 分8步完成
                     const stepValue = remaining / steps;
                     let step = 0;
                     
@@ -1276,15 +1276,15 @@ try {
                             clearInterval(smoothTimer);
                             uploadProgress.value[msgId] = 100;
                             
-                            // 延迟清理进度数据
+                            // 100%停留500ms后再清理
                             setTimeout(() => {
                                 delete uploadProgress.value[msgId];
                                 if (newMsgId && newMsgId !== msgId) {
                                     delete uploadProgress.value[newMsgId];
                                 }
-                            }, 200);
+                            }, 500);
                         }
-                    }, 30); // 每30ms一步，总共300ms完成
+                    }, 25); // 每25ms一步，约200ms到100%，然后停留500ms
                 };
 
                 try {
