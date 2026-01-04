@@ -1302,7 +1302,26 @@ try {
                         const msgIndex = messages.value.findIndex(m => m.id === tempId);
                         if (msgIndex > -1) {
                             messages.value[msgIndex].id = result.data.id;
-                            messages.value[msgIndex].imageUrl = result.data.imageUrl;
+                            
+                            // 预加载服务器返回的图片URL，避免切换时闪动
+                            const serverImageUrl = result.data.imageUrl;
+                            const preloadImg = new Image();
+                            preloadImg.onload = function() {
+                                // 图片加载完成后再更新URL，避免闪动
+                                const idx = messages.value.findIndex(m => m.id === result.data.id);
+                                if (idx > -1) {
+                                    messages.value[idx].imageUrl = serverImageUrl;
+                                }
+                            };
+                            preloadImg.onerror = function() {
+                                // 加载失败也更新，使用服务器URL
+                                const idx = messages.value.findIndex(m => m.id === result.data.id);
+                                if (idx > -1) {
+                                    messages.value[idx].imageUrl = serverImageUrl;
+                                }
+                            };
+                            preloadImg.src = serverImageUrl;
+                            
                             // iOS Safari 兼容性：确保服务器时间格式正确
                             let serverTime = result.data.time;
                             if (typeof serverTime === 'string') {
