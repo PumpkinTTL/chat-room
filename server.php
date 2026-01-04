@@ -378,7 +378,7 @@ function handleJoinRoom($connection, $msg, &$localConnections)
     echo "[" . date('H:i:s') . "] {$nickname} 加入房间 {$roomId} (连接#{$connection->id})\n";
 }
 
-// 发送消息
+// 消息通知（纯广播，不写数据库）
 function handleMessage($connection, $msg, &$localConnections)
 {
     $connData = $localConnections[$connection->id];
@@ -392,50 +392,29 @@ function handleMessage($connection, $msg, &$localConnections)
         return;
     }
 
-    // 如果有 message_id，说明消息已通过 HTTP 保存，只需广播
+    // 必须有 message_id，说明消息已通过 HTTP 保存
     $messageId = $msg['message_id'] ?? null;
+    if (!$messageId) {
+        $connection->send(json_encode(['type' => 'error', 'msg' => '请通过HTTP发送消息']));
+        return;
+    }
+
     $messageType = $msg['message_type'] ?? 'text';
     $content = $msg['content'] ?? '';
 
-    if ($messageId) {
-        // 已保存的消息（图片、文件等），只广播给其他用户
-        echo "[" . date('H:i:s') . "] 广播消息: {$connData['nickname']} 发送了 {$messageType} (ID:{$messageId})\n";
-        
-        broadcastToRoomExcludeUser($connData['room_id'], [
-            'type' => 'message',
-            'room_id' => $connData['room_id'],
-            'message_id' => $messageId,
-            'message_type' => $messageType,
-            'from_user_id' => $connData['user_id'],
-            'from_nickname' => $connData['nickname'],
-            'content' => $content,
-            'time' => date('H:i:s')
-        ], $localConnections, $connData['user_id']);
-        return;
-    }
-
-    // 文本消息，需要保存并广播
-    $content = trim($content);
-    if (empty($content)) {
-        $connection->send(json_encode(['type' => 'error', 'msg' => '消息不能为空']));
-        return;
-    }
-
-    $result = \app\service\MessageService::sendTextMessage($connData['room_id'], $connData['user_id'], $content);
-    if ($result['code'] !== 0) {
-        $connection->send(json_encode(['type' => 'error', 'msg' => $result['msg']]));
-        return;
-    }
-
+    echo "[" . date('H:i:s') . "] 广播消息: {$connData['nickname']} 发送了 {$messageType} (ID:{$messageId})\n";
+    
+    // 广播给房间内所有用户（排除当前连接，但包括发送者的其他设备）
     broadcastToRoom($connData['room_id'], [
         'type' => 'message',
         'room_id' => $connData['room_id'],
-        'message_id' => $result['data']['id'],
+        'message_id' => $messageId,
+        'message_type' => $messageType,
         'from_user_id' => $connData['user_id'],
         'from_nickname' => $connData['nickname'],
         'content' => $content,
         'time' => date('H:i:s')
-    ], $localConnections);
+    ], $localConnections, $connection->id);
 }
 
 // 正在输入

@@ -1074,15 +1074,15 @@ try {
                     text: messageText,
                     time: new Date(),
                     isOwn: true,
-                    isRead: false, // 新发送的消息默认未读
-                    isNewMessage: true // 自己发送的消息也需要动画
+                    isRead: false,
+                    isNewMessage: true
                 };
 
                 messages.value.push(newMsg);
                 messageSendStatus.value[tempId] = 'sending';
                 newMessage.value = '';
 
-                // 动画播放后立即移除标记，避免后续更新时重复播放
+                // 动画播放后立即移除标记
                 setTimeout(function () {
                     const msgIndex = messages.value.findIndex(function (m) { return m.id === tempId; });
                     if (msgIndex > -1) {
@@ -1097,49 +1097,47 @@ try {
                 try {
                     isSending.value = true;
 
-                    // 优先使用 WebSocket 发送消息
-                    if (wsConnected.value && sendWebSocketMessage(messageText)) {
-                        console.log('[WebSocket] 消息已通过 WebSocket 发送，等待服务器确认');
-                        // 保持 sending 状态，等服务器广播回来后在 onMessage 中更新
-                    } else {
-                        // 降级到 HTTP API
-                        console.log('[HTTP] 通过 API 发送消息');
+                    // 统一通过 HTTP API 发送消息
+                    const response = await apiRequest('/api/message/sendText', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            room_id: roomId.value,
+                            content: messageText
+                        })
+                    });
 
-                        const response = await apiRequest('/api/message/sendText', {
-                            method: 'POST',
-                            body: JSON.stringify({
-                                room_id: roomId.value,
-                                content: messageText
-                            })
-                        });
+                    const result = await response.json();
 
-                        const result = await response.json();
-
-                        if (result.code === 0 && result.data) {
-                            // 发送成功，更新消息ID和状态
-                            const msgIndex = messages.value.findIndex(m => m.id === tempId);
-                            if (msgIndex > -1) {
-                                messages.value[msgIndex].id = result.data.id;
-                                // iOS Safari 兼容性：确保服务器时间格式正确
-                                let serverTime = result.data.time;
-                                if (typeof serverTime === 'string') {
-                                    serverTime = serverTime.replace(/-/g, '/');
-                                }
-                                messages.value[msgIndex].time = new Date(serverTime);
-
-                                // 更新状态为成功（常驻显示）
-                                delete messageSendStatus.value[tempId];
-                                messageSendStatus.value[result.data.id] = 'success';
+                    if (result.code === 0 && result.data) {
+                        // 发送成功，更新消息ID和状态
+                        const msgIndex = messages.value.findIndex(m => m.id === tempId);
+                        if (msgIndex > -1) {
+                            messages.value[msgIndex].id = result.data.id;
+                            let serverTime = result.data.time;
+                            if (typeof serverTime === 'string') {
+                                serverTime = serverTime.replace(/-/g, '/');
                             }
-                        } else {
-                            // 发送失败
-                            messageSendStatus.value[tempId] = 'failed';
-                            window.Toast.error('发送失败：' + (result.msg || '未知错误'));
+                            messages.value[msgIndex].time = new Date(serverTime);
+
+                            delete messageSendStatus.value[tempId];
+                            messageSendStatus.value[result.data.id] = 'success';
+
+                            // 通过 WebSocket 广播通知其他用户
+                            if (wsClient.value && wsClient.value.isConnected) {
+                                wsClient.value.send({
+                                    type: 'message',
+                                    message_id: result.data.id,
+                                    message_type: 'text',
+                                    content: messageText
+                                });
+                            }
                         }
+                    } else {
+                        messageSendStatus.value[tempId] = 'failed';
+                        window.Toast.error('发送失败：' + (result.msg || '未知错误'));
                     }
 
                 } catch (error) {
-                    // 发送失败
                     messageSendStatus.value[tempId] = 'failed';
                     window.Toast.error('发送失败：' + error.message);
                 } finally {
@@ -1274,13 +1272,13 @@ try {
                             messageSendStatus.value[result.data.id] = 'success';
 
                             // 通过 WebSocket 通知其他用户有新图片消息
-                            if (wsClient.value && wsClient.value.readyState === WebSocket.OPEN) {
-                                wsClient.value.send(JSON.stringify({
+                            if (wsClient.value && wsClient.value.isConnected) {
+                                wsClient.value.send({
                                     type: 'message',
                                     message_id: result.data.id,
                                     message_type: 'image',
                                     content: result.data.imageUrl
-                                }));
+                                });
                             }
                         }
                     } else {
