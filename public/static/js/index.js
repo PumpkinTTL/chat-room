@@ -468,10 +468,12 @@ try {
                             }
 
                             // 别人发送的消息，添加新消息
+                            const msgType = data.message_type || 'normal';
                             const newMsg = {
                                 id: data.message_id,
-                                type: 'normal',
-                                text: data.content,
+                                type: msgType === 'image' ? 'image' : 'normal',
+                                text: msgType === 'image' ? '' : data.content,
+                                imageUrl: msgType === 'image' ? data.content : '',
                                 username: data.from_nickname,
                                 time: new Date(),
                                 isOwn: isOwn,
@@ -1270,6 +1272,16 @@ try {
                             // 更新状态为成功（常驻显示）
                             delete messageSendStatus.value[tempId];
                             messageSendStatus.value[result.data.id] = 'success';
+
+                            // 通过 WebSocket 通知其他用户有新图片消息
+                            if (wsClient.value && wsClient.value.readyState === WebSocket.OPEN) {
+                                wsClient.value.send(JSON.stringify({
+                                    type: 'message',
+                                    message_id: result.data.id,
+                                    message_type: 'image',
+                                    content: result.data.imageUrl
+                                }));
+                            }
                         }
                     } else {
                         // 发送失败

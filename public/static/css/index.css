@@ -26,18 +26,17 @@
     --slate-800: #1e293b;
     --slate-900: #0f172a;
 
-    /* Light Theme - Glassmorphism */
+    /* Light Theme */
     --app-bg: #f3f5f9;
-    /* Softer gray-blue bg */
-    --glass-bg: rgba(255, 255, 255, 0.75);
+    --glass-bg: #ffffff;
     --glass-border: var(--slate-200);
     --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.04);
 
-    --sidebar-bg: var(--glass-bg);
-    --sidebar-border: var(--glass-border);
+    --sidebar-bg: #ffffff;
+    --sidebar-border: var(--slate-200);
     --sidebar-hover: rgba(0, 0, 0, 0.04);
 
-    --header-bg: rgba(255, 255, 255, 0.85);
+    --header-bg: #ffffff;
     --header-border: var(--slate-200);
 
     --text-primary: #0f172a;
@@ -74,7 +73,7 @@
     /* Message Bubbles - Light Theme */
     --msg-own-bg: var(--primary-color);
     --msg-own-text: #ffffff;
-    --msg-other-bg: var(--slate-100);
+    --msg-other-bg: #e2e8f0;
     --msg-other-text: var(--text-primary);
 }
 
@@ -217,38 +216,38 @@ body {
 
 /* 顶部区域 */
 .sidebar-top {
-    padding: 14px;
+    padding: 12px;
 }
 
 .sidebar-header {
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    margin-bottom: 14px;
-    padding-bottom: 14px;
+    margin-bottom: 12px;
+    padding-bottom: 12px;
     border-bottom: 1px solid var(--sidebar-border);
     position: relative;
-    padding-left: 4px;
+    padding-left: 2px;
 }
 
 .app-brand {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     color: var(--primary-color);
     font-weight: 600;
-    font-size: 14px;
+    font-size: 13px;
 }
 
 .app-brand i {
-    font-size: 16px;
+    font-size: 14px;
 }
 
 .sidebar-close-btn {
     position: absolute;
     right: 0;
-    width: 24px;
-    height: 24px;
+    width: 22px;
+    height: 22px;
     border-radius: 4px;
     border: none;
     background: transparent;
@@ -257,7 +256,7 @@ body {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 12px;
+    font-size: 11px;
 }
 
 .sidebar-close-btn:hover {
@@ -274,9 +273,9 @@ body {
 
 .user-avatar {
     position: relative;
-    width: 40px;
-    height: 40px;
-    border-radius: 12px;
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
     background: var(--primary-color);
     color: white;
     display: flex;
@@ -289,8 +288,8 @@ body {
 
 .user-status-dot {
     position: absolute;
-    bottom: 0;
-    right: 0;
+    bottom: -1px;
+    right: -1px;
     width: 8px;
     height: 8px;
     background: #22c55e;
@@ -307,20 +306,20 @@ body {
 }
 
 .user-name {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
     color: var(--text-primary);
     line-height: 1.2;
 }
 
 .user-id {
-    font-size: 11px;
+    font-size: 10px;
     color: var(--text-tertiary);
 }
 
 .logout-btn {
-    width: 24px;
-    height: 24px;
+    width: 22px;
+    height: 22px;
     border-radius: 4px;
     border: none;
     background: transparent;
@@ -329,7 +328,7 @@ body {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 11px;
+    font-size: 10px;
     flex-shrink: 0;
     transition: all 0.15s;
 }
@@ -342,10 +341,10 @@ body {
 /* 导航标签 */
 .sidebar-tabs {
     display: flex;
-    padding: 4px;
-    background: var(--slate-100);
-    border-radius: 10px;
-    margin: 10px 14px 10px;
+    padding: 3px;
+    background: var(--slate-200);
+    border-radius: 6px;
+    margin: 10px 12px;
 }
 
 .sidebar-tab {
@@ -353,25 +352,25 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
-    padding: 8px 0;
+    gap: 5px;
+    padding: 7px 0;
     font-size: 13px;
     font-weight: 500;
-    color: var(--text-tertiary);
+    color: var(--text-secondary);
     cursor: pointer;
-    border-radius: 8px;
-    transition: all 0.2s ease;
-    font-weight: 600;
+    border-radius: 4px;
+    transition: all 0.15s ease;
 }
 
 .sidebar-tab:hover:not(.disabled) {
-    color: var(--text-secondary);
+    color: var(--text-primary);
+    background: rgba(0, 0, 0, 0.05);
 }
 
 .sidebar-tab.active {
     color: var(--text-primary);
-    background: var(--app-bg);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    background: #ffffff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .sidebar-tab.disabled {
@@ -380,22 +379,22 @@ body {
 }
 
 .sidebar-tab i {
-    font-size: 11px;
+    font-size: 10px;
 }
 
 /* 操作按钮 */
 .sidebar-actions {
-    padding: 4px 10px 10px;
+    padding: 4px 12px 8px;
 }
 
 .action-btn-primary {
     width: 100%;
-    height: 36px;
+    height: 34px;
     background: var(--primary-color);
     color: white;
     border: none;
-    border-radius: 10px;
-    font-size: 12px;
+    border-radius: 6px;
+    font-size: 13px;
     font-weight: 500;
     cursor: pointer;
     display: flex;
@@ -457,11 +456,11 @@ body {
 .room-item {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
     padding: 10px 12px;
-    border-radius: 12px;
+    border-radius: 6px;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.15s;
     margin-bottom: 2px;
 }
 
@@ -488,10 +487,10 @@ body {
 }
 
 .room-item-icon {
-    width: 42px;
-    height: 42px;
-    border-radius: 12px;
-    background: var(--input-bg);
+    width: 38px;
+    height: 38px;
+    border-radius: 6px;
+    background: var(--slate-200);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -501,54 +500,57 @@ body {
     flex-shrink: 0;
 }
 
+.dark-mode .room-item-icon {
+    background: #1e293b;
+}
+
 .room-item-content {
     flex: 1;
     min-width: 0;
 }
 
 .room-item-name {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 500;
     color: var(--text-primary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    line-height: 1.4;
+    line-height: 1.3;
 }
 
 .room-item-desc {
-    font-size: 10px;
+    font-size: 11px;
     color: var(--text-tertiary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    margin-top: 1px;
+    margin-top: 2px;
 }
 
 /* 底部工具栏 */
 .sidebar-footer {
-    padding: 10px 14px;
+    padding: 12px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     flex-shrink: 0;
-    /* Remove top border, use spacing */
-    border-top: none;
-    margin-top: auto;
 }
 
 .footer-tools {
     display: flex;
-    gap: 2px;
+    background: var(--slate-100);
+    border-radius: 6px;
+    padding: 2px;
 }
 
 .tool-btn {
-    width: 28px;
+    width: 32px;
     height: 28px;
-    border-radius: 5px;
+    border-radius: 4px;
     border: none;
     background: transparent;
-    color: var(--text-tertiary);
+    color: var(--text-secondary);
     cursor: pointer;
     display: inline-flex;
     align-items: center;
@@ -558,31 +560,65 @@ body {
 }
 
 .tool-btn:hover {
-    background: var(--sidebar-hover);
-    color: var(--text-secondary);
+    color: var(--text-primary);
 }
 
 .tool-btn-active {
-    background: var(--primary-light) !important;
+    background: #ffffff !important;
     color: var(--primary-color) !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.dark-mode .footer-tools {
+    background: #1e293b;
+}
+
+.dark-mode .tool-btn {
+    color: var(--text-tertiary);
+}
+
+.dark-mode .tool-btn:hover {
+    color: var(--text-primary);
+}
+
+.dark-mode .tool-btn-active {
+    background: #334155 !important;
+    color: var(--primary-color) !important;
+    box-shadow: none;
 }
 
 .footer-status {
-    font-size: 10px;
+    font-size: 11px;
     color: var(--text-tertiary);
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 5px;
+    padding: 4px 8px;
+    background: rgba(34, 197, 94, 0.1);
+    border-radius: 4px;
 }
 
 .footer-status i {
-    font-size: 6px;
+    font-size: 8px;
     color: #22c55e;
 }
 
+.dark-mode .footer-status {
+    background: rgba(34, 197, 94, 0.15);
+}
+
 /* 暗黑模式侧边栏调整 */
+.dark-mode .sidebar-tabs {
+    background: #1e293b;
+}
+
+.dark-mode .sidebar-tab:hover:not(.disabled) {
+    background: rgba(255, 255, 255, 0.05);
+}
+
 .dark-mode .sidebar-tab.active {
-    background: var(--input-bg);
+    background: #334155;
+    color: #f1f5f9;
     box-shadow: none;
 }
 
@@ -623,7 +659,6 @@ body {
     padding: 0 20px;
     background: var(--header-bg);
     border-bottom: 1px solid var(--header-border);
-    backdrop-filter: blur(10px);
     z-index: 10;
 }
 
@@ -1079,23 +1114,20 @@ body {
 }
 
 .msg-bubble {
-    padding: 10px 14px;
-    border-radius: 18px;
-    border-bottom-left-radius: 6px;
+    padding: 8px 12px;
+    border-radius: 12px 12px 12px 4px;
     font-size: 14px;
     line-height: 1.5;
     background: var(--msg-other-bg);
     color: var(--msg-other-text);
     position: relative;
     word-break: break-word;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 .msg-own .msg-bubble {
     background: var(--msg-own-bg);
     color: var(--msg-own-text);
-    border-radius: 18px;
-    border-bottom-right-radius: 6px;
+    border-radius: 12px 12px 4px 12px;
 }
 
 .msg-image {
@@ -1509,7 +1541,6 @@ body {
         inset: 0;
         background: rgba(0, 0, 0, 0.5);
         z-index: 40;
-        backdrop-filter: blur(2px);
         opacity: 0;
         animation: fadeIn 0.2s forwards;
     }
@@ -1912,12 +1943,10 @@ button:disabled {
     padding: 6px;
     min-width: 180px;
     z-index: 1000;
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
 }
 
 .dark-mode .context-menu {
-    background: rgba(31, 41, 55, 0.95);
+    background: #1e293b;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3), 0 2px 6px rgba(0, 0, 0, 0.2);
 }
 
@@ -2414,7 +2443,6 @@ button:disabled {
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(8px);
     display: flex;
     align-items: center;
     justify-content: center;

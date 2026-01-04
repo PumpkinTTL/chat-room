@@ -392,7 +392,30 @@ function handleMessage($connection, $msg, &$localConnections)
         return;
     }
 
-    $content = trim($msg['content'] ?? '');
+    // 如果有 message_id，说明消息已通过 HTTP 保存，只需广播
+    $messageId = $msg['message_id'] ?? null;
+    $messageType = $msg['message_type'] ?? 'text';
+    $content = $msg['content'] ?? '';
+
+    if ($messageId) {
+        // 已保存的消息（图片、文件等），只广播给其他用户
+        echo "[" . date('H:i:s') . "] 广播消息: {$connData['nickname']} 发送了 {$messageType} (ID:{$messageId})\n";
+        
+        broadcastToRoomExcludeUser($connData['room_id'], [
+            'type' => 'message',
+            'room_id' => $connData['room_id'],
+            'message_id' => $messageId,
+            'message_type' => $messageType,
+            'from_user_id' => $connData['user_id'],
+            'from_nickname' => $connData['nickname'],
+            'content' => $content,
+            'time' => date('H:i:s')
+        ], $localConnections, $connData['user_id']);
+        return;
+    }
+
+    // 文本消息，需要保存并广播
+    $content = trim($content);
     if (empty($content)) {
         $connection->send(json_encode(['type' => 'error', 'msg' => '消息不能为空']));
         return;
