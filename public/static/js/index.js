@@ -124,6 +124,12 @@ try {
             // 消息发送状态映射 { messageId: 'sending' | 'success' | 'failed' }
             const messageSendStatus = ref({});
 
+            // 上传进度映射 { messageId: progress(0-100) }
+            const uploadProgress = ref({});
+
+            // 模拟上传进度的定时器映射
+            const uploadProgressTimers = ref({});
+
             // 计算图片样式
             const imageStyle = computed(() => ({
                 transform: `translate(${imagePosition.value.x}px, ${imagePosition.value.y}px) scale(${imageScale.value})`,
@@ -1216,8 +1222,24 @@ try {
 
                 messages.value.push(newMsg);
                 messageSendStatus.value[tempId] = 'sending';
-                // 暂时不清空预览，等发送完成后再清空
-                // clearImagePreview(); // 注释掉这行，改到发送完成后执行
+                
+                // 初始化上传进度
+                uploadProgress.value[tempId] = 0;
+                
+                // 启动模拟进度（快速到60%，然后慢慢增加到85%等待HTTP回调）
+                let progress = 0;
+                uploadProgressTimers.value[tempId] = setInterval(() => {
+                    if (progress < 60) {
+                        // 快速阶段：每100ms增加3-6%
+                        progress += Math.random() * 3 + 3;
+                    } else if (progress < 85) {
+                        // 慢速阶段：每100ms增加0.2-0.5%
+                        progress += Math.random() * 0.3 + 0.2;
+                    }
+                    // 最多到85%，剩下15%等HTTP回调
+                    progress = Math.min(progress, 85);
+                    uploadProgress.value[tempId] = Math.round(progress);
+                }, 100);
 
                 // 动画播放后立即移除标记，避免后续更新时重复播放
                 setTimeout(() => {
@@ -1230,6 +1252,24 @@ try {
                 nextTick(() => {
                     scrollToBottom();
                 });
+
+                // 清理进度的辅助函数
+                const cleanupProgress = (msgId, newMsgId) => {
+                    // 停止进度定时器
+                    if (uploadProgressTimers.value[msgId]) {
+                        clearInterval(uploadProgressTimers.value[msgId]);
+                        delete uploadProgressTimers.value[msgId];
+                    }
+                    // 设置进度为100%
+                    uploadProgress.value[msgId] = 100;
+                    // 延迟清理进度数据
+                    setTimeout(() => {
+                        delete uploadProgress.value[msgId];
+                        if (newMsgId && newMsgId !== msgId) {
+                            delete uploadProgress.value[newMsgId];
+                        }
+                    }, 300);
+                };
 
                 try {
                     isSending.value = true;
@@ -1255,7 +1295,10 @@ try {
                     const result = await response.json();
 
                     if (result.code === 0 && result.data) {
-                        // 发送成功，更新消息ID和真实图片URL
+                        // 发送成功，清理进度
+                        cleanupProgress(tempId, result.data.id);
+                        
+                        // 更新消息ID和真实图片URL
                         const msgIndex = messages.value.findIndex(m => m.id === tempId);
                         if (msgIndex > -1) {
                             messages.value[msgIndex].id = result.data.id;
@@ -1282,13 +1325,15 @@ try {
                             }
                         }
                     } else {
-                        // 发送失败
+                        // 发送失败，清理进度
+                        cleanupProgress(tempId);
                         messageSendStatus.value[tempId] = 'failed';
                         window.Toast.error(result.msg || '图片发送失败');
                     }
 
                 } catch (error) {
-                    // 发送失败
+                    // 发送失败，清理进度
+                    cleanupProgress(tempId);
                     messageSendStatus.value[tempId] = 'failed';
                     window.Toast.error('图片发送失败：' + error.message);
                 } finally {
@@ -2065,6 +2110,7 @@ try {
                 // 发送状态
                 isSending,
                 messageSendStatus,
+                uploadProgress,
                 // 功能提示
                 showComingSoon,
                 // 清空消息
