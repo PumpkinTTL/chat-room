@@ -1253,22 +1253,38 @@ try {
                     scrollToBottom();
                 });
 
-                // 清理进度的辅助函数
+                // 清理进度的辅助函数 - 平滑过渡到100%
                 const cleanupProgress = (msgId, newMsgId) => {
-                    // 停止进度定时器
+                    // 停止模拟进度定时器
                     if (uploadProgressTimers.value[msgId]) {
                         clearInterval(uploadProgressTimers.value[msgId]);
                         delete uploadProgressTimers.value[msgId];
                     }
-                    // 设置进度为100%
-                    uploadProgress.value[msgId] = 100;
-                    // 延迟清理进度数据
-                    setTimeout(() => {
-                        delete uploadProgress.value[msgId];
-                        if (newMsgId && newMsgId !== msgId) {
-                            delete uploadProgress.value[newMsgId];
+                    
+                    // 平滑过渡到100%
+                    const currentProgress = uploadProgress.value[msgId] || 0;
+                    const remaining = 100 - currentProgress;
+                    const steps = 10; // 分10步完成
+                    const stepValue = remaining / steps;
+                    let step = 0;
+                    
+                    const smoothTimer = setInterval(() => {
+                        step++;
+                        uploadProgress.value[msgId] = Math.min(Math.round(currentProgress + stepValue * step), 100);
+                        
+                        if (step >= steps) {
+                            clearInterval(smoothTimer);
+                            uploadProgress.value[msgId] = 100;
+                            
+                            // 延迟清理进度数据
+                            setTimeout(() => {
+                                delete uploadProgress.value[msgId];
+                                if (newMsgId && newMsgId !== msgId) {
+                                    delete uploadProgress.value[newMsgId];
+                                }
+                            }, 200);
                         }
-                    }, 300);
+                    }, 30); // 每30ms一步，总共300ms完成
                 };
 
                 try {
