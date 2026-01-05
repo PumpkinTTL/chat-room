@@ -161,6 +161,11 @@ class User extends BaseController
         $userId = $request->param('user_id');
         $currentUserId = $request->userId; // 从中间件获取
 
+        // 如果没有传递user_id，则使用当前登录用户ID
+        if (empty($userId)) {
+            $userId = $currentUserId;
+        }
+
         // 验证参数
         if (empty($userId)) {
             return json(['code' => 1, 'msg' => '用户ID不能为空'], 400);

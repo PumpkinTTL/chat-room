@@ -2180,6 +2180,32 @@ try {
                     return; // 如果没有用户信息，直接返回
                 }
 
+                // 从服务器获取最新用户信息并覆盖本地数据
+                fetch('/api/user/profile', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include'
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.code === 0 && result.data.profile) {
+                        const profile = result.data.profile;
+                        // 更新全局用户状态
+                        Object.assign(currentUser.value, {
+                            id: profile.id,
+                            nick_name: profile.nickname,
+                            avatar: profile.avatar
+                        });
+                        username.value = profile.nickname;
+                        console.log('[init] 从服务器获取最新用户信息成功');
+                    }
+                })
+                .catch(error => {
+                    console.error('[init] 获取用户信息失败:', error);
+                });
+
                 // 加载表情数据
                 fetch('/static/js/emoji-data.json')
                     .then(response => response.json())
@@ -2256,12 +2282,6 @@ try {
 
                 // 监听页面可见性变化（解决移动端失焦后轮询失效问题）
                 document.addEventListener('visibilitychange', handleVisibilityChange);
-
-                // 监听用户资料更新事件
-                window.addEventListener('userProfileUpdated', function() {
-                    // 重新从localStorage加载用户信息
-                    loadCurrentUser();
-                });
 
                 // 监听消息容器滚动事件，检测可见消息并标记已读
                 nextTick(function() {

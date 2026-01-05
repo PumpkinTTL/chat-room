@@ -350,24 +350,10 @@
                 // 刷新显示
                 renderProfile();
 
-                // 如果是当前用户，更新全局用户信息和localStorage
-                if (window.currentUser && window.currentUser.id === state.userId) {
-                    window.currentUser.nick_name = nickname;
-
-                    // 更新localStorage中的用户信息
-                    try {
-                        const userInfoStr = localStorage.getItem('userInfo');
-                        if (userInfoStr) {
-                            const userInfo = JSON.parse(userInfoStr);
-                            userInfo.nick_name = nickname;
-                            localStorage.setItem('userInfo', JSON.stringify(userInfo));
-                        }
-                    } catch (e) {
-                        console.error('[UserProfile] 更新localStorage失败:', e);
-                    }
-
-                    window.dispatchEvent(new CustomEvent('userProfileUpdated'));
-                }
+                // 延迟1秒后刷新页面
+                setTimeout(() => {
+                    location.reload();
+                }, 1000);
             } else {
                 throw new Error(result.msg || '保存失败');
             }
@@ -425,24 +411,10 @@
                 // 更新显示
                 renderProfile();
 
-                // 如果是当前用户，更新全局用户信息和localStorage
-                if (window.currentUser && window.currentUser.id === state.userId) {
-                    window.currentUser.avatar = result.data.avatar;
-
-                    // 更新localStorage中的用户信息
-                    try {
-                        const userInfoStr = localStorage.getItem('userInfo');
-                        if (userInfoStr) {
-                            const userInfo = JSON.parse(userInfoStr);
-                            userInfo.avatar = result.data.avatar;
-                            localStorage.setItem('userInfo', JSON.stringify(userInfo));
-                        }
-                    } catch (e) {
-                        console.error('[UserProfile] 更新localStorage失败:', e);
-                    }
-
-                    window.dispatchEvent(new CustomEvent('userProfileUpdated'));
-                }
+                // 延迟1秒后刷新页面
+                setTimeout(() => {
+                    location.reload();
+                }, 1000);
             } else {
                 throw new Error(result.msg || '上传失败');
             }
