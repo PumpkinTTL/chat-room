@@ -1068,6 +1068,10 @@ try {
                 const container = messagesContainer.value;
                 if (!container) return;
 
+                // 记录滚动位置
+                const scrollTopBefore = container.scrollTop;
+                const scrollHeightBefore = container.scrollHeight;
+
                 loadingMore.value = true;
 
                 try {
@@ -1120,19 +1124,17 @@ try {
                                 return processedMsg;
                             });
 
-                            // 记录当前第一条消息的位置
-                            const firstMsg = container.querySelector('.msg-row');
-                            const firstMsgTop = firstMsg ? firstMsg.getBoundingClientRect().top : 0;
-
                             // 插入到开头
                             messages.value = processedMessages.concat(messages.value);
 
-                            // 恢复滚动位置
+                            // DOM 更新后恢复滚动位置
+                            // 使用 requestAnimationFrame 确保 CSS 渲染完成后再设置
                             nextTick(function() {
-                                if (firstMsg) {
-                                    const newTop = firstMsg.getBoundingClientRect().top;
-                                    container.scrollTop += (newTop - firstMsgTop);
-                                }
+                                requestAnimationFrame(function() {
+                                    const scrollHeightAfter = container.scrollHeight;
+                                    const heightDiff = scrollHeightAfter - scrollHeightBefore;
+                                    container.scrollTop = scrollTopBefore + heightDiff;
+                                });
                             });
                         } else {
                             hasMoreMessages.value = false;
