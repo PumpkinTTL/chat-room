@@ -1092,8 +1092,10 @@ try {
                             }, 300);
                         }
 
-                        // 检测新消息提示
-                        if (isAutoRefresh && roomMessages.length > oldMessageCount && !wasAtBottom) {
+                        // 检测新消息提示（只有当有滚动条且用户不在底部时才显示提示）
+                        // 如果没有滚动条（消息少），直接显示新消息不提示
+                        const shouldShowTip = hasScrollbar() && !wasAtBottom;
+                        if (isAutoRefresh && roomMessages.length > oldMessageCount && shouldShowTip) {
                             showNewMessageTip.value = true;
                             newMessageCount.value = roomMessages.length - oldMessageCount;
                         }
@@ -1508,6 +1510,13 @@ try {
                 if (container) {
                     container.scrollTop = container.scrollHeight;
                 }
+            };
+
+            // 检查容器是否有滚动条（内容是否超出可视区域）
+            const hasScrollbar = function() {
+                const container = messagesContainer.value;
+                if (!container) return false;
+                return container.scrollHeight > container.clientHeight;
             };
 
             // 检查用户是否在底部（距离底部50px以内算在底部）
