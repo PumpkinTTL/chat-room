@@ -101,10 +101,10 @@ try {
             const showNewMessageTip = ref(false);
             const newMessageCount = ref(0);
 
-            // 分页加载相关
-            const hasMoreMessages = ref(true);  // 是否还有更多历史消息
-            const loadingMore = ref(false);     // 是否正在加载更多
-            const currentPage = ref(1);         // 当前页码
+            // 分页相关
+            const currentPage = ref(1);
+            const hasMoreMessages = ref(true);
+            const loadingMore = ref(false);
 
             // 表情面板触摸滑动检测
             const emojiTouchStartPos = ref({ x: 0, y: 0 });
@@ -899,7 +899,7 @@ try {
             const loadRoomMessages = async (roomIdValue, shouldScroll = true, showLoading = true) => {
                 if (!roomIdValue) return;
 
-                // 重置分页状态
+                // 重置分页
                 currentPage.value = 1;
                 hasMoreMessages.value = true;
 
@@ -921,7 +921,7 @@ try {
 
                         // 加载历史消息
                         const roomMessages = result.data.messages || [];
-                        hasMoreMessages.value = result.data.has_more !== false;
+                        hasMoreMessages.value = result.data.has_more === true;
 
                         // 检查消息是否有变化 - 比较消息ID列表
                         const currentMessageIds = messages.value.map(function (m) { return m.id; }).join(',');
@@ -1061,28 +1061,28 @@ try {
                 }
             };
 
-            // 加载更多历史消息（上滑加载）
+            // 加载更多历史消息
             const loadMoreMessages = async () => {
                 if (!roomId.value || loadingMore.value || !hasMoreMessages.value) return;
 
-                try {
-                    loadingMore.value = true;
-                    const nextPage = currentPage.value + 1;
+                const container = messagesContainer.value;
+                if (!container) return;
 
+                loadingMore.value = true;
+
+                try {
+                    const nextPage = currentPage.value + 1;
                     const response = await apiRequest(`/api/message/list?room_id=${roomId.value}&page=${nextPage}&limit=50`);
                     const result = await response.json();
 
                     if (result.code === 0) {
                         const olderMessages = result.data.messages || [];
-                        hasMoreMessages.value = result.data.has_more !== false;
-                        currentPage.value = nextPage;
+                        hasMoreMessages.value = result.data.has_more === true;
 
                         if (olderMessages.length > 0) {
-                            // 记录当前滚动位置和容器高度
-                            const container = messagesContainer.value;
-                            const oldScrollHeight = container ? container.scrollHeight : 0;
+                            currentPage.value = nextPage;
 
-                            // 处理旧消息
+                            // 处理消息
                             const processedMessages = olderMessages.map(function (msg) {
                                 const isOwnMessage = msg.sender && msg.sender.id == currentUser.value.id;
                                 const processedMsg = {
@@ -1120,33 +1120,28 @@ try {
                                 return processedMsg;
                             });
 
-                            // 将旧消息插入到列表开头
+                            // 记录当前第一条消息的位置
+                            const firstMsg = container.querySelector('.msg-row');
+                            const firstMsgTop = firstMsg ? firstMsg.getBoundingClientRect().top : 0;
+
+                            // 插入到开头
                             messages.value = processedMessages.concat(messages.value);
 
-                            // 保持滚动位置
-                            nextTick(function () {
-                                if (container) {
-                                    const newScrollHeight = container.scrollHeight;
-                                    container.scrollTop = newScrollHeight - oldScrollHeight;
+                            // 恢复滚动位置
+                            nextTick(function() {
+                                if (firstMsg) {
+                                    const newTop = firstMsg.getBoundingClientRect().top;
+                                    container.scrollTop += (newTop - firstMsgTop);
                                 }
                             });
+                        } else {
+                            hasMoreMessages.value = false;
                         }
                     }
                 } catch (error) {
-                    console.error('加载更多消息失败:', error);
+                    console.error('加载更多失败:', error);
                 } finally {
                     loadingMore.value = false;
-                }
-            };
-
-            // 监听滚动事件，检测是否滚动到顶部
-            const handleScrollForLoadMore = () => {
-                const container = messagesContainer.value;
-                if (!container) return;
-
-                // 滚动到顶部附近时加载更多
-                if (container.scrollTop < 100 && hasMoreMessages.value && !loadingMore.value) {
-                    loadMoreMessages();
                 }
             };
 
@@ -2218,7 +2213,6 @@ try {
                 loadMoreMessages,
                 hasMoreMessages,
                 loadingMore,
-                handleScrollForLoadMore,
                 // 右键菜单相关
                 contextMenu,
                 showContextMenu,

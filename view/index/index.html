@@ -7,7 +7,7 @@
     <title>轻量聊天室</title>
     <link rel="stylesheet" href="/static/css/animate.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="/static/css/index.css?v=63">
+    <link rel="stylesheet" href="/static/css/index.css?v=67">
     <!-- 关键：在Vue加载前隐藏整个应用，防止模板闪现 -->
     <style>
         [v-cloak] {
@@ -147,7 +147,7 @@
                 </header>
 
                 <!-- 消息区域 -->
-                <div class="messages-container" ref="messagesContainer" @scroll="handleScrollForLoadMore">
+                <div class="messages-container" ref="messagesContainer">
                     <!-- 消息加载中 -->
                     <div v-if="messagesLoading" class="messages-loading">
                         <div class="loading-spinner-small">
@@ -157,19 +157,13 @@
                     </div>
 
                     <div class="messages-list" v-else>
-                        <!-- 加载更多提示 -->
-                        <div v-if="roomId && messages.length > 0" class="load-more-wrapper">
-                            <div v-if="loadingMore" class="load-more-loading">
-                                <i class="fas fa-spinner fa-spin"></i>
-                                <span>加载中...</span>
-                            </div>
-                            <div v-else-if="hasMoreMessages" class="load-more-btn" @click="loadMoreMessages">
-                                <i class="fas fa-chevron-up"></i>
-                                <span>上滑或点击加载更多</span>
-                            </div>
-                            <div v-else class="no-more-messages">
-                                <span>没有更多消息了</span>
-                            </div>
+                        <!-- 加载更多 -->
+                        <div v-if="roomId && messages.length > 0" class="load-more-area">
+                            <button v-if="hasMoreMessages" class="load-more-btn" @click="loadMoreMessages" :disabled="loadingMore">
+                                <i v-if="loadingMore" class="fas fa-spinner fa-spin"></i>
+                                <span v-else>加载更多历史消息</span>
+                            </button>
+                            <span v-else class="no-more-text">没有更多消息了</span>
                         </div>
 
                         <div v-if="roomId === ''" class="empty-messages">
@@ -413,7 +407,7 @@
         })();
     </script>
     <script src="/static/js/websocket.js?v=3"></script>
-    <script src="/static/js/index.js?v=46"></script>
+    <script src="/static/js/index.js?v=47"></script>
 </body>
 
 </html>
