@@ -271,4 +271,29 @@ class Message
         // TODO: 通过WebSocket广播已读状态给消息发送者
         // 这里可以通过Redis发布订阅或直接调用WebSocket服务
     }
+
+    /**
+     * 清理房间所有消息（仅限房间ID 3306）
+     * @param Request $request
+     * @return Response
+     */
+    public function clearRoom(Request $request)
+    {
+        $roomId = $request->param('room_id');
+        $userId = $request->userId; // 从中间件获取
+
+        // 验证参数
+        $validate = Validate::rule([
+            'room_id' => 'require|integer|min:1',
+        ]);
+
+        if (!$validate->check(['room_id' => $roomId])) {
+            return json(['code' => 1, 'msg' => $validate->getError()], 400);
+        }
+
+        $result = MessageService::clearRoomMessages($roomId, $userId);
+        $code = $result['code'] === 0 ? 200 : 400;
+
+        return json($result, $code);
+    }
 }

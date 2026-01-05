@@ -71,6 +71,7 @@ Route::group('api', function () {
         Route::get('latestTime', 'Message/latestTime');
         Route::get('unreadCount', 'Message/unreadCount');
         Route::post('markRead', 'Message/markRead');
+        Route::post('clearRoom', 'Message/clearRoom');
     });
 
 });

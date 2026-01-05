@@ -410,4 +410,129 @@ class MessageService
 
         return $message ? $message->create_time : null;
     }
+
+    /**
+     * 清理房间所有消息（物理删除，包括文件）
+     * @param int $roomId 房间ID
+     * @param int $userId 操作用户ID
+     * @return array
+     */
+    public static function clearRoomMessages($roomId, $userId)
+    {
+        if (empty($roomId) || empty($userId)) {
+            return ['code' => 1, 'msg' => '参数错误'];
+        }
+
+        // 只允许房间ID为3306的清理操作
+        if ($roomId != 3306) {
+            return ['code' => 1, 'msg' => '只有房间ID为3306的房间才允许清理'];
+        }
+
+        // 验证用户是否在房间内
+        if (!RoomUserService::isUserInRoom($roomId, $userId)) {
+            return ['code' => 1, 'msg' => '您不在此房间内'];
+        }
+
+        try {
+            Db::startTrans();
+
+            // 获取所有消息的总数（用于统计）
+            $totalMessages = Db::table('ch_messages')
+                ->where('room_id', $roomId)
+                ->count();
+
+            // 获取所有图片消息的文件路径
+            $imageMessages = Db::table('ch_messages')
+                ->where('room_id', $roomId)
+                ->where('message_type', Message::TYPE_IMAGE)
+                ->whereNotNull('file_info')
+                ->select()
+                ->toArray();
+
+            // 删除关联的已读记录
+            Db::table('ch_message_reads')
+                ->whereIn('message_id', function($query) use ($roomId) {
+                    $query->table('ch_messages')
+                        ->where('room_id', $roomId)
+                        ->field('id');
+                })
+                ->delete();
+
+            // 物理删除所有消息（包括软删除的记录）
+            Db::table('ch_messages')
+                ->where('room_id', $roomId)
+                ->delete();
+
+            Db::commit();
+
+            // 删除文件（在事务提交后）
+            $deletedFiles = 0;
+            $error_log_path = runtime_path() . 'log/file_deletion.log';
+
+            foreach ($imageMessages as $message) {
+                $filePath = null;
+
+                // 方法1: 优先使用 file_info 中的 path 字段
+                if (!empty($message['file_info'])) {
+                    if (is_string($message['file_info'])) {
+                        $fileInfo = json_decode($message['file_info'], true);
+                    } else {
+                        $fileInfo = $message['file_info'];
+                    }
+
+                    if (!empty($fileInfo['path'])) {
+                        $filePath = $fileInfo['path'];
+                    }
+                }
+
+                // 方法2: 如果 file_info 没有 path，从 content 字段提取
+                if (empty($filePath) && !empty($message['content'])) {
+                    $content = $message['content'];
+                    // content 格式可能是: /storage/images/xxx.jpg 或 images/xxx.jpg
+                    if (strpos($content, '/storage/') === 0) {
+                        $filePath = substr($content, 9); // 去掉 /storage/
+                    } elseif (strpos($content, '/') === 0) {
+                        $filePath = substr($content, 1); // 去掉开头的 /
+                    } else {
+                        $filePath = $content;
+                    }
+                }
+
+                // 删除文件
+                if (!empty($filePath)) {
+                    // 使用 error_log 记录调试信息
+                    $debugMsg = date('Y-m-d H:i:s') . " - 尝试删除文件: " . $filePath . "\n";
+                    $debugMsg .= "  file_info原始值: " . ($message['file_info'] ?? 'null') . "\n";
+                    $debugMsg .= "  content原始值: " . ($message['content'] ?? 'null') . "\n";
+                    error_log($debugMsg, 3, $error_log_path);
+
+                    $result = UploadService::deleteFile($filePath);
+
+                    $resultMsg = date('Y-m-d H:i:s') . " - 删除结果: " . json_encode($result, JSON_UNESCAPED_UNICODE) . "\n";
+                    error_log($resultMsg, 3, $error_log_path);
+
+                    if ($result['code'] === 0 && strpos($result['msg'], '删除成功') !== false) {
+                        $deletedFiles++;
+                    }
+                }
+            }
+
+            // 记录总体统计
+            $summaryMsg = date('Y-m-d H:i:s') . " - 清理完成: 找到 " . count($imageMessages) . " 条图片消息，实际删除 " . $deletedFiles . " 个文件\n";
+            error_log($summaryMsg, 3, $error_log_path);
+
+            return [
+                'code' => 0,
+                'msg' => '清理成功',
+                'data' => [
+                    'deleted_messages' => $totalMessages,
+                    'deleted_files' => $deletedFiles
+                ]
+            ];
+
+        } catch (\Exception $e) {
+            Db::rollback();
+            return ['code' => 1, 'msg' => '清理失败：' . $e->getMessage()];
+        }
+    }
 }

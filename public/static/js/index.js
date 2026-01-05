@@ -476,23 +476,27 @@ try {
 
                             // 别人发送的消息，添加新消息
                             const msgType = data.message_type || 'normal';
-                            const newMsg = {
+                            const rawMsg = {
                                 id: data.message_id,
-                                type: msgType === 'image' ? 'image' : 'normal',
+                                type: msgType === 'image' ? 'image' : (msgType === 'text' ? 'text' : 1),
                                 text: msgType === 'image' ? '' : data.content,
+                                content: data.content,
                                 imageUrl: msgType === 'image' ? data.content : '',
                                 username: data.from_nickname,
-                                time: new Date(),
+                                timestamp: new Date(),
                                 isOwn: isOwn,
-                                isRead: false, // 新消息默认未读
-                                readCount: 0,
-                                readUsers: [],
+                                is_read: false, // 新消息默认未读
+                                read_count: 0,
+                                read_users: [],
                                 sender: {
                                     id: data.from_user_id,
                                     nickname: data.from_nickname,
                                     avatar: data.from_avatar
                                 }
                             };
+
+                            // 使用 processMessage 处理消息（包括链接检测）
+                            const newMsg = processMessage(rawMsg, true, null);
 
                             // 先检查用户是否在底部
                             const wasAtBottom = isUserAtBottom();
@@ -741,6 +745,59 @@ try {
 
             // ========== 消息处理工具函数 ==========
 
+            // 检测并解析文本中的URL
+            const detectUrls = function(text) {
+                if (!text) return [];
+
+                const urlRegex = /(https?:\/\/[^\s]+)|(www\.[^\s]+)/gi;
+                const urls = [];
+                let match;
+
+                while ((match = urlRegex.exec(text)) !== null) {
+                    let url = match[0];
+                    // 补全 www 开头的链接
+                    if (url.startsWith('www.')) {
+                        url = 'http://' + url;
+                    }
+                    urls.push({
+                        url: url,
+                        original: match[0]
+                    });
+                }
+
+                return urls;
+            };
+
+            // 格式化文本中的链接为HTML（支持链接卡片）
+            const formatTextWithLinks = function(text, message) {
+                if (!text) return '';
+
+                const urls = detectUrls(text);
+                if (urls.length === 0) return text;
+
+                let result = text;
+                const urlCards = [];
+
+                // 为每个URL生成卡片HTML
+                urls.forEach(function(item, index) {
+                    const placeholder = '__URL_' + index + '__';
+                    urlCards.push({
+                        placeholder: placeholder,
+                        url: item.url
+                    });
+
+                    // 替换原文本中的URL
+                    result = result.replace(item.url, placeholder);
+                });
+
+                // 保存URL卡片信息到消息对象
+                if (message) {
+                    message.urlCards = urlCards;
+                }
+
+                return result;
+            };
+
             // 处理单条消息数据（提取公共逻辑，避免重复）
             const processMessage = function(msg, isNewMessage, oldMessageIds) {
                 const isOwnMessage = msg.sender && msg.sender.id == currentUser.value.id;
@@ -777,6 +834,23 @@ try {
                 for (const key in msg) {
                     if (msg.hasOwnProperty && msg.hasOwnProperty(key) && !processedMsg.hasOwnProperty(key)) {
                         processedMsg[key] = msg[key];
+                    }
+                }
+
+                // 处理文本消息中的链接
+                if (msg.type === 'text' || msg.type === 1) {
+                    if (processedMsg.text) {
+                        const urls = detectUrls(processedMsg.text);
+                        if (urls.length > 0) {
+                            processedMsg.urlCards = urls;
+                            // 处理文本，移除链接（将在模板中单独显示）
+                            processedMsg.displayText = processedMsg.text;
+                            urls.forEach(function(item) {
+                                processedMsg.displayText = processedMsg.displayText.replace(item.original, '');
+                            });
+                            // 清理多余的空格和换行
+                            processedMsg.displayText = processedMsg.displayText.trim().replace(/\s+/g, ' ');
+                        }
                     }
                 }
 
@@ -1904,6 +1978,23 @@ try {
                 return `${month}-${day} ${hour}:${minute}`;
             };
 
+            // 格式化URL显示（截取域名和路径）
+            const formatUrl = function(url) {
+                if (!url) return '';
+                try {
+                    const urlObj = new URL(url);
+                    // 返回 hostname + pathname 的前50个字符
+                    let display = urlObj.hostname + urlObj.pathname;
+                    if (display.length > 50) {
+                        display = display.substring(0, 47) + '...';
+                    }
+                    return display;
+                } catch (e) {
+                    // 如果URL解析失败，直接截取前50个字符
+                    return url.length > 50 ? url.substring(0, 47) + '...' : url;
+                }
+            };
+
             const formatFileSize = (bytes) => {
                 if (bytes === 0) return '0 B';
                 const k = 1024;
@@ -1951,6 +2042,63 @@ try {
                     window.Toast.error('清空消息失败：' + error.message);
                 }
             };
+
+            // 清理房间所有消息（仅房间ID 3306可用）
+            const clearRoomMessages = async () => {
+                if (!roomId.value) {
+                    window.Toast.error('请先加入房间');
+                    return;
+                }
+
+                // 只允许房间ID为3306
+                if (roomId.value != 3306) {
+                    window.Toast.error('只有房间ID为3306的房间才允许清理');
+                    return;
+                }
+
+                // 使用 confirm 对话框确认
+                const confirmed = confirm('警告：此操作将物理删除房间3306的所有消息和上传的图片文件！\n\n此操作不可恢复，确定要继续吗？');
+                if (!confirmed) {
+                    return;
+                }
+
+                try {
+                    globalLoading.value = true;
+                    loadingText.value = '正在清理...';
+
+                    // 调用后端API清理房间消息
+                    const response = await apiRequest('/api/message/clearRoom', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            room_id: roomId.value
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (result.code === 0) {
+                        // 清空前端消息列表
+                        messages.value = [];
+                        messageSendStatus.value = {};
+
+                        const deletedMsgs = result.data?.deleted_messages || 0;
+                        const deletedFiles = result.data?.deleted_files || 0;
+
+                        window.Toast.success(`清理成功！删除了${deletedMsgs}条消息和${deletedFiles}个文件`);
+                    } else {
+                        window.Toast.error(result.msg || '清理失败');
+                    }
+                } catch (error) {
+                    window.Toast.error('清理失败：' + error.message);
+                } finally {
+                    globalLoading.value = false;
+                }
+            };
+
+            // 计算属性：是否显示清理按钮（仅房间3306）
+            const canClearRoom = computed(() => {
+                return roomId.value == 3306;
+            });
 
             // 退出登录
             const handleLogout = () => {
@@ -2156,6 +2304,7 @@ try {
                 stopAutoRefresh,
                 manualRefresh,
                 formatTime,
+                formatUrl,
                 formatFileSize,
                 // 加入房间功能
                 loadUserInfo,
@@ -2201,6 +2350,9 @@ try {
                 // 清空消息
                 confirmClearMessages,
                 clearMessages,
+                // 清理房间消息
+                canClearRoom,
+                clearRoomMessages,
                 // 退出登录
                 handleLogout,
                 // WebSocket 相关

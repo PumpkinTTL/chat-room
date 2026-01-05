@@ -169,13 +169,13 @@ class UploadService
             $disk = Filesystem::disk('public');
             $fullPath = $disk->path($path);
 
-            // 检查文件是否存在
-            if (!$disk->exists($path)) {
+            // 检查文件是否存在（使用 file_exists 而不是 $disk->exists()）
+            if (!file_exists($fullPath)) {
                 return ['code' => 0, 'msg' => '文件不存在'];
             }
 
-            // 删除文件
-            if ($disk->delete($path)) {
+            // 删除文件（直接使用 unlink 而不是 $disk->delete()）
+            if (unlink($fullPath)) {
                 return ['code' => 0, 'msg' => '删除成功'];
             } else {
                 return ['code' => 1, 'msg' => '删除失败'];

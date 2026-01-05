@@ -7,7 +7,7 @@
     <title>轻量聊天室</title>
     <link rel="stylesheet" href="/static/css/animate.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="/static/css/index.css?v=67">
+    <link rel="stylesheet" href="/static/css/index.css?v=68">
     <!-- 关键：在Vue加载前隐藏整个应用，防止模板闪现 -->
     <style>
         [v-cloak] {
@@ -143,6 +143,10 @@
                         </div>
                     </div>
                     <div class="nav-right">
+                        <button v-if="canClearRoom" class="clear-room-btn" @click="clearRoomMessages" title="清理房间所有消息">
+                            <i class="fas fa-trash-alt"></i>
+                            <span>清理房间</span>
+                        </button>
                     </div>
                 </header>
 
@@ -181,9 +185,10 @@
                             <div class="empty-subtitle">开始新的对话吧</div>
                         </div>
                         <div v-for="(message, index) in messages" :key="message.id" class="msg-row"
-                            :class="{ 'msg-own': message.isOwn }" :data-msg-id="message.id">
+                            :class="{ 'msg-own': message.isOwn, 'time-separator': message.isTimeSeparator }" :data-msg-id="message.id">
 
-                            <div v-if="message.type === 'system'" class="msg-system">
+                            <div v-if="message.type === 'system' || message.type === 4" class="msg-system"
+                                :class="{ 'time-separator-badge': message.isTimeSeparator }">
                                 <span class="system-badge" v-text="message.text"></span>
                             </div>
 
@@ -199,11 +204,12 @@
                                     </div>
 
                                     <div class="msg-bubble" :class="{ 'msg-image': message.type === 'image' }">
+                                        <!-- 图片消息 -->
                                         <div v-if="message.type === 'image'" class="image-wrapper"
                                             @click="handleImageClick(message.imageUrl)">
                                             <img :src="message.imageUrl" loading="lazy" alt="Image">
                                             <!-- 上传进度遮罩 -->
-                                            <div v-if="messageSendStatus && messageSendStatus[message.id] === 'sending'" 
+                                            <div v-if="messageSendStatus && messageSendStatus[message.id] === 'sending'"
                                                 class="upload-progress-overlay">
                                                 <div class="progress-content">
                                                     <div class="progress-ring">
@@ -219,7 +225,34 @@
                                                 </div>
                                             </div>
                                         </div>
-                                        <div v-else class="text-wrapper" v-text="message.text"></div>
+                                        <!-- 文本消息 -->
+                                        <div v-else class="text-wrapper">
+                                            <!-- 普通文本内容 -->
+                                            <div v-if="message.displayText" class="text-content" v-text="message.displayText"></div>
+                                            <!-- 链接卡片 -->
+                                            <div v-if="message.urlCards && message.urlCards.length > 0" class="url-cards-container">
+                                                <a v-for="(urlCard, urlIndex) in message.urlCards" :key="urlIndex"
+                                                    class="url-card"
+                                                    :href="urlCard.url"
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    @click.stop>
+                                                    <div class="url-card-icon">
+                                                        <i class="fas fa-link"></i>
+                                                    </div>
+                                                    <div class="url-card-info">
+                                                        <div class="url-card-title">链接</div>
+                                                        <div class="url-card-url" v-text="formatUrl(urlCard.url)"></div>
+                                                    </div>
+                                                    <div class="url-card-arrow">
+                                                        <i class="fas fa-external-link-alt"></i>
+                                                    </div>
+                                                </a>
+                                            </div>
+                                            <!-- 没有链接也没有displayText的纯文本 -->
+                                            <div v-if="!message.displayText && !message.urlCards && message.text"
+                                                class="text-content" v-text="message.text"></div>
+                                        </div>
                                     </div>
 
                                     <div v-if="message.isOwn" class="msg-time-own">
@@ -407,7 +440,7 @@
         })();
     </script>
     <script src="/static/js/websocket.js?v=3"></script>
-    <script src="/static/js/index.js?v=49"></script>
+    <script src="/static/js/index.js?v=50"></script>
 </body>
 
 </html>
