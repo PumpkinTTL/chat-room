@@ -306,51 +306,47 @@ try {
                 }
             };
 
-            // 检测消息元素是否在可见区域内
-            const isMessageVisible = (msgElement) => {
-                const container = messagesContainer.value;
-                if (!container || !msgElement) return false;
-                
-                const containerRect = container.getBoundingClientRect();
-                const msgRect = msgElement.getBoundingClientRect();
-                
-                // 消息至少有一半在可见区域内才算可见
-                const msgCenter = msgRect.top + msgRect.height / 2;
-                return msgCenter >= containerRect.top && msgCenter <= containerRect.bottom;
-            };
-
-            // 检测并标记可见区域内的未读消息
+            // 检测并标记可见区域内的未读消息（优化版：减少 DOM 查询）
             const checkAndMarkVisibleMessages = () => {
                 if (!roomId.value || document.visibilityState !== 'visible') return;
-                
+
                 const container = messagesContainer.value;
                 if (!container) return;
-                
+
+                // 一次性获取容器位置，避免重复调用
+                const containerRect = container.getBoundingClientRect();
+                const containerTop = containerRect.top;
+                const containerBottom = containerRect.bottom;
+
                 // 获取所有消息元素
                 const msgElements = container.querySelectorAll('.msg-row[data-msg-id]');
                 const visibleUnreadIds = [];
-                
-                msgElements.forEach(function(el) {
+
+                // 使用普通 for 循环代替 forEach，性能更好
+                for (let i = 0; i < msgElements.length; i++) {
+                    const el = msgElements[i];
                     const msgId = el.getAttribute('data-msg-id');
-                    if (!msgId || msgId.startsWith('temp_')) return;
-                    
+                    if (!msgId || msgId.startsWith('temp_')) continue;
+
+                    // 检查是否已经标记过（快速检查）
+                    if (markedAsReadIds.value.has(msgId) || markedAsReadIds.value.has(Number(msgId))) continue;
+
                     // 查找对应的消息数据
                     const msg = messages.value.find(function(m) {
                         return m.id == msgId;
                     });
-                    
+
                     // 只处理别人发的消息
-                    if (!msg || msg.isOwn) return;
-                    
-                    // 检查是否已经标记过
-                    if (markedAsReadIds.value.has(msgId) || markedAsReadIds.value.has(Number(msgId))) return;
-                    
-                    // 检查是否在可见区域
-                    if (isMessageVisible(el)) {
+                    if (!msg || msg.isOwn) continue;
+
+                    // 检查是否在可见区域（内联计算，减少函数调用）
+                    const msgRect = el.getBoundingClientRect();
+                    const msgCenter = msgRect.top + msgRect.height / 2;
+                    if (msgCenter >= containerTop && msgCenter <= containerBottom) {
                         visibleUnreadIds.push(msgId);
                     }
-                });
-                
+                }
+
                 if (visibleUnreadIds.length > 0) {
                     markMessagesAsRead(visibleUnreadIds);
                 }
@@ -743,6 +739,64 @@ try {
                 }
             };
 
+            // ========== 消息处理工具函数 ==========
+
+            // 处理单条消息数据（提取公共逻辑，避免重复）
+            const processMessage = function(msg, isNewMessage, oldMessageIds) {
+                const isOwnMessage = msg.sender && msg.sender.id == currentUser.value.id;
+                const shouldShowNewAnimation = isNewMessage && !isOwnMessage && (!oldMessageIds || !oldMessageIds.has(msg.id));
+
+                // iOS Safari 兼容性：避免扩展运算符
+                const processedMsg = {
+                    id: msg.id,
+                    content: msg.content,
+                    type: msg.type,
+                    timestamp: msg.timestamp,
+                    sender: msg.sender,
+                    isOwn: isOwnMessage,
+                    username: (msg.sender && msg.sender.nickname) || '未知用户',
+                    isNewMessage: shouldShowNewAnimation,
+                    isRead: msg.is_read || false,
+                    readCount: msg.read_count || 0,
+                    readUsers: msg.read_users || []
+                };
+
+                // 时间戳处理（只在有值时处理）
+                if (msg.timestamp) {
+                    processedMsg.time = new Date(
+                        typeof msg.timestamp === 'string' ? msg.timestamp.replace(/-/g, '/') : msg.timestamp
+                    );
+                }
+
+                // 图片消息需要 imageUrl（从 content 字段获取）
+                if (msg.type === 'image' && msg.content) {
+                    processedMsg.imageUrl = msg.content;
+                }
+
+                // 复制其他所有属性（包括 text 等）
+                for (const key in msg) {
+                    if (msg.hasOwnProperty && msg.hasOwnProperty(key) && !processedMsg.hasOwnProperty(key)) {
+                        processedMsg[key] = msg[key];
+                    }
+                }
+
+                // 设置发送状态
+                if (isOwnMessage && msg.id) {
+                    messageSendStatus.value[msg.id] = 'success';
+                }
+
+                return processedMsg;
+            };
+
+            // 批量处理消息
+            const processMessages = function(messagesArray, isNewMessage = false, oldMessageIds = null) {
+                const result = [];
+                for (let i = 0; i < messagesArray.length; i++) {
+                    result.push(processMessage(messagesArray[i], isNewMessage, oldMessageIds));
+                }
+                return result;
+            };
+
             // ========== 原有函数 ==========
 
             // 获取用户信息和已加入的房间
@@ -908,7 +962,7 @@ try {
 
                 try {
                     if (showLoading) {
-                        messagesLoading.value = true; // 显示消息加载loading
+                        messagesLoading.value = true;
                     }
 
                     const response = await apiRequest(`/api/message/list?room_id=${roomIdValue}&page=1&limit=50`);
@@ -916,146 +970,79 @@ try {
 
                     if (result.code === 0) {
                         const oldMessageCount = messages.value.length;
-                        // iOS Safari 兼容性：避免箭头函数  
-                        const oldMessageIds = new Set(messages.value.map(function (m) { return m.id; })); // 记录旧消息ID
+                        const oldMessageIds = new Set(messages.value.map(function (m) { return m.id; }));
 
-                        // 加载历史消息
                         const roomMessages = result.data.messages || [];
                         hasMoreMessages.value = result.data.has_more === true;
 
-                        // 检查消息是否有变化 - 比较消息ID列表
-                        const currentMessageIds = messages.value.map(function (m) { return m.id; }).join(',');
-                        const newMessageIds = roomMessages.map(function (m) { return m.id; }).join(',');
-                        const hasChanges = currentMessageIds !== newMessageIds;
+                        // 快速检查是否有变化
+                        const currentIds = messages.value.map(function (m) { return m.id; }).join(',');
+                        const newIds = roomMessages.map(function (m) { return m.id; }).join(',');
+                        const hasChanges = currentIds !== newIds;
 
                         // 如果没有变化且不是首次加载，跳过渲染
                         if (!hasChanges && messages.value.length > 0 && !shouldScroll && !showLoading) {
-                            // 仍需要检查数量变化以更新新消息提示
-                            if (roomMessages.length > oldMessageCount) {
-                                const wasAtBottom = isUserAtBottom();
-                                if (!wasAtBottom) {
-                                    showNewMessageTip.value = true;
-                                    newMessageCount.value = roomMessages.length - oldMessageCount;
-                                }
+                            if (roomMessages.length > oldMessageCount && !wasAtBottom) {
+                                showNewMessageTip.value = true;
+                                newMessageCount.value = roomMessages.length - oldMessageCount;
                             }
                             return;
                         }
 
-                        // 在自动刷新前，先保存正在发送的消息
-                        // 避免自动刷新时导致正在发送的消息从列表中消失
-                        const pendingMessages = [];
-                        messages.value.forEach(function (msg) {
-                            if (msg.id && msg.id.indexOf('temp_') === 0 && messageSendStatus.value[msg.id] === 'sending') {
-                                pendingMessages.push(msg);
-                            }
+                        // 保存正在发送的消息（避免自动刷新时消失）
+                        const pendingMessages = messages.value.filter(function (msg) {
+                            return msg.id && msg.id.indexOf('temp_') === 0 && messageSendStatus.value[msg.id] === 'sending';
                         });
 
-                        // 重新判断isOwn逻辑，使用本地currentUser.id与sender.id比较
-                        // iOS Safari 兼容性：避免箭头函数
-                        const processedMessages = roomMessages.map(function (msg) {
-                            // 判断是否是新消息：自动刷新时 && 不在旧消息列表中 && 不是自己发的
-                            const isNewMessage = !shouldScroll && !showLoading && !oldMessageIds.has(msg.id);
-                            const isOwnMessage = msg.sender && msg.sender.id == currentUser.value.id;
-                            // iOS Safari 兼容性：避免扩展运算符
-                            const processedMsg = {
-                                id: msg.id,
-                                content: msg.content,
-                                type: msg.type,
-                                timestamp: msg.timestamp,
-                                sender: msg.sender,
-                                isOwn: isOwnMessage,
-                                username: (msg.sender && msg.sender.nickname) || '未知用户',
-                                isNewMessage: isNewMessage && !isOwnMessage, // 只为别人的新消息添加特效
-                                isRead: msg.is_read || false, // 已读状态
-                                readCount: msg.read_count || 0, // 已读人数
-                                readUsers: msg.read_users || [] // 已读用户列表
-                            };
+                        // 使用优化的消息处理函数
+                        const isAutoRefresh = !shouldScroll && !showLoading;
+                        messages.value = processMessages(roomMessages, isAutoRefresh, oldMessageIds);
 
-                            // iOS Safari 兼容性：确保时间格式正确
-                            if (msg.timestamp) {
-                                let safeTimestamp = msg.timestamp;
-                                if (typeof safeTimestamp === 'string') {
-                                    safeTimestamp = safeTimestamp.replace(/-/g, '/');
-                                }
-                                processedMsg.time = new Date(safeTimestamp);
-                            }
-
-                            // 复制其他所有属性
-                            for (const key in msg) {
-                                if (msg.hasOwnProperty && msg.hasOwnProperty(key) && !processedMsg.hasOwnProperty(key)) {
-                                    processedMsg[key] = msg[key];
-                                }
-                            }
-
-                            // 给自己发送的历史消息添加"成功"状态
-                            if (isOwnMessage && msg.id) {
-                                messageSendStatus.value[msg.id] = 'success';
-                            }
-
-                            return processedMsg;
-                        });
-
-                        // 只有在有变化时才更新消息列表
-                        messages.value = processedMessages;
-
-                        // 将正在发送的消息追加到列表末尾
-                        // 避免自动刷新时正在发送的消息消失
+                        // 追加正在发送的消息
                         if (pendingMessages.length > 0) {
                             pendingMessages.forEach(function (pendingMsg) {
-                                // 只有当消息列表中没有这条消息时才追加
                                 if (!messages.value.some(function (m) { return m.id === pendingMsg.id; })) {
                                     messages.value.push(pendingMsg);
                                 }
                             });
                         }
 
-                        // 动画播放后移除新消息标记
-                        if (!shouldScroll && !showLoading) {
+                        // 移除新消息标记（延迟一次执行）
+                        if (isAutoRefresh) {
                             setTimeout(function () {
                                 messages.value.forEach(function (msg) {
                                     if (msg.isNewMessage) {
                                         msg.isNewMessage = false;
                                     }
                                 });
-                            }, 300); // 动画时长是250ms，300ms后移除
+                            }, 300);
                         }
 
-                        // 检测是否有新消息（自动刷新时）
-                        if (!shouldScroll && !showLoading && roomMessages.length > oldMessageCount) {
-                            // 有新消息且用户不在底部，显示提示
-                            if (!wasAtBottom) {
-                                showNewMessageTip.value = true;
-                                newMessageCount.value = roomMessages.length - oldMessageCount;
-                            }
+                        // 检测新消息提示
+                        if (isAutoRefresh && roomMessages.length > oldMessageCount && !wasAtBottom) {
+                            showNewMessageTip.value = true;
+                            newMessageCount.value = roomMessages.length - oldMessageCount;
                         }
 
-                        // 加载完成后，检测并标记可见区域内的未读消息
-                        // 延迟执行，等待DOM更新
+                        // 检测可见消息（合并到一个 setTimeout）
                         setTimeout(function() {
                             checkAndMarkVisibleMessages();
                         }, 200);
-                    } else {
-                        // 加载历史消息失败
                     }
                 } catch (error) {
+                    console.error('加载消息失败:', error);
                 } finally {
                     if (showLoading) {
-                        messagesLoading.value = false; // 隐藏消息加载loading
+                        messagesLoading.value = false;
                     }
 
-                    // 智能滚动：
-                    // 1. 如果是手动操作（shouldScroll=true），总是滚动
-                    // 2. 如果是自动刷新（shouldScroll=false），只在用户原本就在底部时滚动
+                    // 智能滚动：减少 setTimeout 嵌套
                     if (shouldScroll || wasAtBottom) {
-                        showNewMessageTip.value = false; // 滚动时隐藏提示
+                        showNewMessageTip.value = false;
                         nextTick(function () {
-                            setTimeout(function () {
-                                scrollToBottom();
-                                // 滚动后再次检测可见消息
-                                setTimeout(function() {
-                                    checkAndMarkVisibleMessages();
-                                }, 150);
-                            }, 100);
+                            scrollToBottom();
+                            // 滚动后检测可见消息
+                            setTimeout(checkAndMarkVisibleMessages, 150);
                         });
                     }
                 }
@@ -1086,49 +1073,13 @@ try {
                         if (olderMessages.length > 0) {
                             currentPage.value = nextPage;
 
-                            // 处理消息
-                            const processedMessages = olderMessages.map(function (msg) {
-                                const isOwnMessage = msg.sender && msg.sender.id == currentUser.value.id;
-                                const processedMsg = {
-                                    id: msg.id,
-                                    content: msg.content,
-                                    type: msg.type,
-                                    timestamp: msg.timestamp,
-                                    sender: msg.sender,
-                                    isOwn: isOwnMessage,
-                                    username: (msg.sender && msg.sender.nickname) || '未知用户',
-                                    isNewMessage: false,
-                                    isRead: msg.is_read || false,
-                                    readCount: msg.read_count || 0,
-                                    readUsers: msg.read_users || []
-                                };
-
-                                if (msg.timestamp) {
-                                    let safeTimestamp = msg.timestamp;
-                                    if (typeof safeTimestamp === 'string') {
-                                        safeTimestamp = safeTimestamp.replace(/-/g, '/');
-                                    }
-                                    processedMsg.time = new Date(safeTimestamp);
-                                }
-
-                                for (const key in msg) {
-                                    if (msg.hasOwnProperty && msg.hasOwnProperty(key) && !processedMsg.hasOwnProperty(key)) {
-                                        processedMsg[key] = msg[key];
-                                    }
-                                }
-
-                                if (isOwnMessage && msg.id) {
-                                    messageSendStatus.value[msg.id] = 'success';
-                                }
-
-                                return processedMsg;
-                            });
+                            // 使用优化的消息处理函数
+                            const processedMessages = processMessages(olderMessages, false, null);
 
                             // 插入到开头
                             messages.value = processedMessages.concat(messages.value);
 
                             // DOM 更新后恢复滚动位置
-                            // 使用 requestAnimationFrame 确保 CSS 渲染完成后再设置
                             nextTick(function() {
                                 requestAnimationFrame(function() {
                                     const scrollHeightAfter = container.scrollHeight;
@@ -1321,10 +1272,10 @@ try {
                 
                 // 初始化上传进度
                 uploadProgress.value[tempId] = 0;
-                
+
                 // 启动模拟进度（快速到60%，然后慢慢增加到85%等待HTTP回调）
                 let progress = 0;
-                uploadProgressTimers.value[tempId] = setInterval(() => {
+                uploadProgressTimers.value[tempId] = setInterval(function () {
                     if (progress < 60) {
                         // 快速阶段：每100ms增加3-6%
                         progress += Math.random() * 3 + 3;
@@ -1338,49 +1289,49 @@ try {
                 }, 100);
 
                 // 动画播放后立即移除标记，避免后续更新时重复播放
-                setTimeout(() => {
-                    const msgIndex = messages.value.findIndex(m => m.id === tempId);
+                setTimeout(function () {
+                    const msgIndex = messages.value.findIndex(function (m) { return m.id === tempId; });
                     if (msgIndex > -1) {
                         messages.value[msgIndex].isNewMessage = false;
                     }
-                }, 300); // 动画时长是250ms，300ms后移除
+                }, 300);
 
-                nextTick(() => {
+                nextTick(function () {
                     scrollToBottom();
                 });
 
                 // 清理进度的辅助函数 - 平滑过渡到100%
-                const cleanupProgress = (msgId, newMsgId) => {
+                const cleanupProgress = function(msgId, newMsgId) {
                     // 停止模拟进度定时器
                     if (uploadProgressTimers.value[msgId]) {
                         clearInterval(uploadProgressTimers.value[msgId]);
                         delete uploadProgressTimers.value[msgId];
                     }
-                    
+
                     // 平滑过渡到100%
                     const currentProgress = uploadProgress.value[msgId] || 0;
                     const remaining = 100 - currentProgress;
                     const steps = 8; // 分8步完成
                     const stepValue = remaining / steps;
                     let step = 0;
-                    
-                    const smoothTimer = setInterval(() => {
+
+                    const smoothTimer = setInterval(function () {
                         step++;
                         uploadProgress.value[msgId] = Math.min(Math.round(currentProgress + stepValue * step), 100);
-                        
+
                         if (step >= steps) {
                             clearInterval(smoothTimer);
                             uploadProgress.value[msgId] = 100;
-                            
+
                             // 100%停留500ms后再清理
-                            setTimeout(() => {
+                            setTimeout(function () {
                                 delete uploadProgress.value[msgId];
                                 if (newMsgId && newMsgId !== msgId) {
                                     delete uploadProgress.value[newMsgId];
                                 }
                             }, 500);
                         }
-                    }, 25); // 每25ms一步，约200ms到100%，然后停留500ms
+                    }, 25);
                 };
 
                 try {
@@ -1411,29 +1362,29 @@ try {
                         cleanupProgress(tempId, result.data.id);
                         
                         // 更新消息ID和真实图片URL
-                        const msgIndex = messages.value.findIndex(m => m.id === tempId);
+                        const msgIndex = messages.value.findIndex(function (m) { return m.id === tempId; });
                         if (msgIndex > -1) {
                             messages.value[msgIndex].id = result.data.id;
-                            
+
                             // 预加载服务器返回的图片URL，避免切换时闪动
                             const serverImageUrl = result.data.imageUrl;
                             const preloadImg = new Image();
                             preloadImg.onload = function() {
                                 // 图片加载完成后再更新URL，避免闪动
-                                const idx = messages.value.findIndex(m => m.id === result.data.id);
+                                const idx = messages.value.findIndex(function (m) { return m.id === result.data.id; });
                                 if (idx > -1) {
                                     messages.value[idx].imageUrl = serverImageUrl;
                                 }
                             };
                             preloadImg.onerror = function() {
                                 // 加载失败也更新，使用服务器URL
-                                const idx = messages.value.findIndex(m => m.id === result.data.id);
+                                const idx = messages.value.findIndex(function (m) { return m.id === result.data.id; });
                                 if (idx > -1) {
                                     messages.value[idx].imageUrl = serverImageUrl;
                                 }
                             };
                             preloadImg.src = serverImageUrl;
-                            
+
                             // iOS Safari 兼容性：确保服务器时间格式正确
                             let serverTime = result.data.time;
                             if (typeof serverTime === 'string') {
@@ -1474,7 +1425,7 @@ try {
                 }
             };
 
-            const scrollToBottom = () => {
+            const scrollToBottom = function() {
                 const container = messagesContainer.value;
                 if (container) {
                     container.scrollTop = container.scrollHeight;
@@ -1482,7 +1433,7 @@ try {
             };
 
             // 检查用户是否在底部（距离底部50px以内算在底部）
-            const isUserAtBottom = () => {
+            const isUserAtBottom = function() {
                 const container = messagesContainer.value;
                 if (!container) return false;
 
@@ -1492,14 +1443,14 @@ try {
             };
 
             // 滚动到底部并隐藏提示
-            const scrollToBottomAndHideTip = () => {
+            const scrollToBottomAndHideTip = function() {
                 scrollToBottom();
                 showNewMessageTip.value = false;
                 newMessageCount.value = 0;
             };
 
             // 处理粘贴事件
-            const handlePaste = (e) => {
+            const handlePaste = function(e) {
                 // 检查是否有图片数据 - iOS Safari 兼容性
                 const items = e.clipboardData && e.clipboardData.items;
                 if (!items) return;
@@ -1518,10 +1469,10 @@ try {
 
                             // 生成预览
                             const reader = new FileReader();
-                            reader.onload = (e) => {
-                                imagePreview.value = e.target.result;
+                            reader.onload = function(evt) {
+                                imagePreview.value = evt.target.result;
                             };
-                            reader.onerror = () => {
+                            reader.onerror = function() {
                                 window.Toast.error('读取图片失败！');
                             };
                             reader.readAsDataURL(file);
@@ -1532,7 +1483,7 @@ try {
             };
 
             // 切换房间
-            const switchRoom = async (room) => {
+            const switchRoom = async function(room) {
                 messagesLoading.value = true; // 立即显示loading
 
                 roomName.value = room.name;
