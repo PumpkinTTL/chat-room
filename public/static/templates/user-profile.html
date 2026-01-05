@@ -1,0 +1,33 @@
+<!-- 用户资料弹窗模板 - 独立文件 -->
+<div class="user-profile-overlay" id="user-profile-overlay" style="display: none;">
+    <div class="user-profile-modal">
+        <!-- 关闭按钮 -->
+        <button class="user-profile-close" onclick="UserProfile.close()">
+            <i class="fas fa-times"></i>
+        </button>
+
+        <!-- 头部区域 -->
+        <div class="user-profile-header">
+            <div class="user-profile-avatar-large" id="profile-avatar-container">
+                <span id="profile-avatar-text">?</span>
+                <button class="user-profile-avatar-edit" onclick="UserProfile.selectAvatar()" title="更换头像">
+                    <i class="fas fa-camera"></i>
+                </button>
+            </div>
+            <h2 class="user-profile-name" id="profile-name">加载中...</h2>
+            <p class="user-profile-id" id="profile-id">ID: -</p>
+        </div>
+
+        <!-- 内容区域 -->
+        <div class="user-profile-content" id="profile-content">
+            <!-- 加载状态 -->
+            <div class="user-profile-loading">
+                <div class="user-profile-spinner"></div>
+                <p class="user-profile-loading-text">加载中...</p>
+            </div>
+        </div>
+
+        <!-- 隐藏的文件输入 -->
+        <input type="file" id="avatar-input" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp" style="display: none;" />
+    </div>
+</div>

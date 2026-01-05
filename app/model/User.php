@@ -18,6 +18,7 @@ class User extends Model
         'nick_name'   => 'string',
         'password'    => 'string',
         'avatar'      => 'string',
+        'sign'        => 'string',
         'status'      => 'int',
         'create_time' => 'datetime',
     ];

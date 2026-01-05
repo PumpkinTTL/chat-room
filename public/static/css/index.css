@@ -283,6 +283,8 @@ body {
     height: 36px;
     border-radius: 6px;
     background: var(--primary-color);
+    background-size: cover;
+    background-position: center;
     color: white;
     display: flex;
     align-items: center;
@@ -637,26 +639,6 @@ body {
 }
 
 /* ========== 旧样式兼容（保留但不使用）========== */
-.sidebar-user-section,
-.sidebar-action-group,
-.sidebar-scroll-area,
-.sidebar-nav-container,
-.nav-label,
-.room-items-list,
-.room-card,
-.room-icon,
-.room-info,
-.room-title,
-.room-subtitle,
-.room-badge,
-.empty-state,
-.sidebar-bottom-bar,
-.bottom-controls,
-.bottom-icon-btn,
-.connection-status {
-    display: none;
-}
-
 .chat-navbar {
     height: 60px;
     display: flex;
@@ -830,16 +812,6 @@ body {
 }
 
 /* 更多面板按钮 */
-.nav-icon-btn.more-actions-btn.active {
-    background: var(--primary-color);
-    color: white;
-    transform: rotate(90deg);
-}
-
-.nav-icon-btn.more-actions-btn {
-    transition: all 0.3s ease;
-}
-
 /* 更多功能面板 */
 .more-panel {
     position: absolute;
@@ -991,56 +963,6 @@ body {
     background: #b91c1c;
 }
 
-.nav-icon-btn {
-    width: 36px;
-    height: 36px;
-    border-radius: 8px;
-    background: transparent;
-    border: none;
-    color: var(--text-secondary);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-size: 16px;
-}
-
-.nav-icon-btn:hover {
-    background: var(--sidebar-hover);
-    color: var(--primary-color);
-}
-
-.nav-icon-btn.active {
-    background: var(--primary-color);
-    color: white;
-}
-
-.nav-icon-btn.active:hover {
-    background: var(--primary-color);
-    color: white;
-}
-
-/* 清空消息按钮 - 危险操作样式 */
-.nav-icon-btn.clear-msg-btn {
-    color: var(--text-secondary);
-}
-
-.nav-icon-btn.clear-msg-btn:hover {
-    background: rgba(239, 68, 68, 0.1);
-    color: #ef4444;
-}
-
-.nav-icon-btn.clear-msg-btn:active {
-    background: rgba(239, 68, 68, 0.15);
-    transform: scale(0.95);
-}
-
-/* 暗黑模式下的清空按钮 */
-.dark-mode .nav-icon-btn.clear-msg-btn:hover {
-    background: rgba(239, 68, 68, 0.2);
-}
-
 /* Messages */
 .messages-container {
     flex: 1;
@@ -1070,11 +992,6 @@ body {
     border-radius: 8px;
     width: 100%;
     box-sizing: border-box;
-}
-
-.msg-row:hover {
-    background: var(--sidebar-hover);
-    transition: background 0.15s;
 }
 
 
@@ -1163,15 +1080,6 @@ body {
                 inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
-.dark-mode .msg-avatar::before {
-    background: linear-gradient(90deg,
-        transparent 0%,
-        rgba(221, 180, 221, 0.5) 25%,
-        rgba(206, 174, 226, 0.4) 50%,
-        rgba(221, 180, 221, 0.5) 75%,
-        transparent 100%);
-}
-
 .msg-content-group {
     display: flex;
     gap: 12px;
@@ -1192,6 +1100,8 @@ body {
     height: 36px;
     border-radius: 50%;
     background: var(--slate-200);
+    background-size: cover;
+    background-position: center;
     color: var(--slate-600);
     display: flex;
     align-items: center;
@@ -1199,38 +1109,7 @@ body {
     font-size: 14px;
     font-weight: 600;
     flex-shrink: 0;
-    align-self: flex-end;
-    position: relative;
-    border: 1.5px solid rgba(148, 163, 184, 0.2);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04),
-                inset 0 1px 0 rgba(255, 255, 255, 0.5);
-    overflow: hidden;
-}
-
-/* 微妙的边框流动动画 - 浅粉紫色 */
-.msg-avatar::before {
-    content: '';
-    position: absolute;
-    inset: -1.5px;
-    border-radius: 50%;
-    padding: 1.5px;
-    background: linear-gradient(90deg,
-        transparent 0%,
-        rgba(232, 189, 232, 0.5) 25%,
-        rgba(216, 180, 234, 0.4) 50%,
-        rgba(232, 189, 232, 0.5) 75%,
-        transparent 100%);
-    background-size: 200% 100%;
-    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    mask-composite: exclude;
-    animation: borderRotate 4s linear infinite;
-}
-
-@keyframes borderRotate {
-    0% { background-position: 0% 50%; }
-    100% { background-position: 200% 50%; }
+    border: 1.5px solid rgba(0, 0, 0, 0.04);
 }
 
 .msg-bubble-wrapper {
@@ -1246,16 +1125,52 @@ body {
     align-items: flex-end;
 }
 
+/* 自己消息的右侧内容区域：包含气泡和元数据 */
+.msg-content-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    min-width: 0;
+    flex: 1;
+}
+
+.msg-own .msg-content-right {
+    align-items: flex-end;
+}
+
+/* 他人消息的左侧内容区域：包含气泡和元数据 */
+.msg-content-left {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    min-width: 0;
+    flex: 1;
+}
+
+/* 自己消息的元数据行：已读回执和时间 */
+.msg-meta-own {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--text-tertiary);
+    padding: 0 2px;
+    line-height: 1.2;
+    justify-content: flex-end;
+    width: 100%;
+}
+
 .msg-sender {
     font-size: 12px;
     font-weight: 500;
     color: var(--text-tertiary);
-    margin-bottom: 4px;
-    margin-left: 2px;
-}
-
-.msg-own .msg-sender {
-    margin-right: 2px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 2px;
+    padding-left: 2px;
 }
 
 .msg-bubble {
@@ -1266,11 +1181,12 @@ body {
     background: var(--msg-other-bg);
     color: var(--msg-other-text);
     position: relative;
-    word-break: break-word;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
+    word-wrap: normal;
+    overflow-wrap: normal;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
     max-width: 100%;
+    width: fit-content;
+    min-width: 0;
 }
 
 .msg-own .msg-bubble {
@@ -1383,19 +1299,6 @@ body {
     font-size: 11px;
     color: var(--text-tertiary);
     margin-left: 6px;
-}
-
-.msg-time-own {
-    font-size: 11px;
-    color: var(--text-tertiary);
-    margin-top: 4px;
-    text-align: right;
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 4px;
-    flex-wrap: nowrap;
-    white-space: nowrap;
 }
 
 /* 已读/未读状态 */
@@ -1813,7 +1716,7 @@ body {
         max-height: 250px;
     }
 
-    .msg-time-own {
+    .msg-meta-own {
         font-size: 10px;
         /* 移动端字体稍小 */
         gap: 3px;
@@ -2024,8 +1927,8 @@ body {
 
 /* 消息气泡文本优化 */
 .text-wrapper {
-    word-wrap: break-word;
-    word-break: break-word;
+    word-wrap: normal;
+    overflow-wrap: normal;
     white-space: pre-wrap;
 }
 
@@ -2687,7 +2590,7 @@ button:disabled {
         max-height: 200px;
     }
 
-    .msg-time-own {
+    .msg-meta-own {
         font-size: 9px;
         gap: 2px;
     }

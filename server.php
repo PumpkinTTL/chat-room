@@ -238,6 +238,7 @@ function handleAuth($connection, $msg, &$localConnections)
     // 只记录当前连接的用户信息
     $localConnections[$connection->id]['user_id'] = $userId;
     $localConnections[$connection->id]['nickname'] = $user->nick_name;
+    $localConnections[$connection->id]['avatar'] = $user->avatar;
     $localConnections[$connection->id]['authed'] = true;
 
     $connection->send(json_encode([
@@ -412,6 +413,7 @@ function handleMessage($connection, $msg, &$localConnections)
         'message_type' => $messageType,
         'from_user_id' => $connData['user_id'],
         'from_nickname' => $connData['nickname'],
+        'from_avatar' => $connData['avatar'],
         'content' => $content,
         'time' => date('H:i:s')
     ], $localConnections, $connection->id);

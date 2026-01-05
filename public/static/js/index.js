@@ -145,6 +145,11 @@ try {
                 pointerEvents: 'none' // 防止图片本身的事件干扰
             }));
 
+            // 工具函数：检查头像URL是否有效
+            const isValidAvatar = function(avatar) {
+                return avatar && avatar !== 'null' && avatar !== 'none' && avatar !== '';
+            };
+
             const imageContainerStyle = computed(() => ({
                 overflow: 'hidden',
                 display: 'flex',
@@ -2122,6 +2127,13 @@ try {
                 window.location.href = '/login';
             };
 
+            // 打开用户资料弹窗
+            const openUserProfile = () => {
+                if (window.UserProfile && currentUser.value && currentUser.value.id) {
+                    window.UserProfile.open(currentUser.value.id);
+                }
+            };
+
             // 生命周期
             // 从本地存储加载用户信息
             const loadCurrentUser = () => {
@@ -2245,6 +2257,12 @@ try {
                 // 监听页面可见性变化（解决移动端失焦后轮询失效问题）
                 document.addEventListener('visibilitychange', handleVisibilityChange);
 
+                // 监听用户资料更新事件
+                window.addEventListener('userProfileUpdated', function() {
+                    // 重新从localStorage加载用户信息
+                    loadCurrentUser();
+                });
+
                 // 监听消息容器滚动事件，检测可见消息并标记已读
                 nextTick(function() {
                     const container = messagesContainer.value;
@@ -2358,6 +2376,10 @@ try {
                 clearRoomMessages,
                 // 退出登录
                 handleLogout,
+                // 用户资料
+                openUserProfile,
+                // 工具函数
+                isValidAvatar,
                 // WebSocket 相关
                 wsConnected,
                 usePolling,

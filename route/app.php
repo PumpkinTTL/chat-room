@@ -40,6 +40,10 @@ Route::group('api', function () {
         Route::put('update/:id', 'User/update');
         Route::delete('delete/:id', 'User/delete');
         Route::post('login', 'User/login');
+        // 用户资料相关
+        Route::get('profile', 'User/profile');
+        Route::post('update', 'User/updateProfile');
+        Route::post('uploadAvatar', 'User/uploadAvatar');
     });
 
     // 房间模块

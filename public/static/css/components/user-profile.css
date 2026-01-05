@@ -1,0 +1,364 @@
+/**
+ * 用户资料弹窗组件 - 超精致极简风格
+ */
+
+/* ========== 弹窗遮罩层 ========== */
+.user-profile-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.15s ease;
+}
+
+.user-profile-overlay[style*="flex"] {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* ========== 弹窗主容器 ========== */
+.user-profile-modal {
+    background: #ffffff;
+    border-radius: 12px;
+    width: 85%;
+    max-width: 320px;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.1);
+    transform: scale(0.95);
+    opacity: 0;
+    transition: transform 0.2s ease-out, opacity 0.15s ease;
+}
+
+.user-profile-overlay[style*="flex"] .user-profile-modal {
+    transform: scale(1);
+    opacity: 1;
+}
+
+/* ========== 关闭按钮 ========== */
+.user-profile-close {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #cbd5e1;
+    transition: all 0.1s ease;
+    z-index: 10;
+}
+
+.user-profile-close:hover {
+    background: #f1f5f9;
+    color: #94a3b8;
+}
+
+.user-profile-close i {
+    font-size: 12px;
+}
+
+/* ========== 头部区域 ========== */
+.user-profile-header {
+    padding: 16px 14px 12px;
+    text-align: center;
+}
+
+/* ========== 头像 ========== */
+.user-profile-avatar-large {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--primary-light, #dbeafe);
+    color: var(--primary-color, #3b82f6);
+    font-size: 18px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 8px;
+    position: relative;
+}
+
+.user-profile-avatar-edit {
+    position: absolute;
+    bottom: -1px;
+    right: -1px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #cbd5e1;
+    transition: all 0.1s ease;
+}
+
+.user-profile-avatar-edit:hover {
+    color: var(--primary-color, #3b82f6);
+    border-color: var(--primary-color, #3b82f6);
+}
+
+.user-profile-avatar-edit i {
+    font-size: 8px;
+}
+
+/* ========== 用户信息 ========== */
+.user-profile-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0 0 2px;
+}
+
+.user-profile-id {
+    font-size: 10px;
+    color: #94a3b8;
+    margin: 0;
+}
+
+/* ========== 内容区域 ========== */
+.user-profile-content {
+    padding: 0 14px 14px;
+}
+
+/* ========== 统计信息 ========== */
+.user-profile-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    padding: 8px 10px;
+    background: #f8fafc;
+    border-radius: 8px;
+    margin-bottom: 12px;
+}
+
+.user-profile-stat-item {
+    text-align: center;
+}
+
+.user-profile-stat-value {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--primary-color, #3b82f6);
+    line-height: 1.2;
+}
+
+.user-profile-stat-label {
+    font-size: 9px;
+    color: #94a3b8;
+    margin-top: 1px;
+}
+
+/* ========== 表单分组 ========== */
+.user-profile-section {
+    margin-bottom: 10px;
+}
+
+.user-profile-section:last-child {
+    margin-bottom: 0;
+}
+
+.user-profile-section-title {
+    font-size: 10px;
+    font-weight: 600;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    margin-bottom: 8px;
+}
+
+/* ========== 表单字段 ========== */
+.user-profile-form-group {
+    margin-bottom: 8px;
+}
+
+.user-profile-form-group:last-child {
+    margin-bottom: 0;
+}
+
+.user-profile-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 500;
+    color: #64748b;
+    margin-bottom: 4px;
+}
+
+.user-profile-input {
+    width: 100%;
+    padding: 6px 9px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    font-size: 12px;
+    color: #1e293b;
+    background: #ffffff;
+    transition: all 0.1s ease;
+    outline: none;
+    font-family: inherit;
+}
+
+.user-profile-input:focus {
+    border-color: var(--primary-color, #3b82f6);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.08);
+}
+
+.user-profile-input::placeholder {
+    color: #cbd5e1;
+}
+
+.user-profile-textarea {
+    min-height: 48px;
+    resize: none;
+    line-height: 1.4;
+}
+
+/* ========== 按钮组 ========== */
+.user-profile-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 10px;
+}
+
+.user-profile-btn {
+    flex: 1;
+    padding: 7px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.1s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+
+.user-profile-btn-primary {
+    background: var(--primary-color, #3b82f6);
+    color: #ffffff;
+    border: none;
+}
+
+.user-profile-btn-primary:hover {
+    background: #2563eb;
+}
+
+.user-profile-btn-primary:active {
+    transform: scale(0.98);
+}
+
+.user-profile-btn-secondary {
+    background: transparent;
+    color: #94a3b8;
+    border: 1px solid #e2e8f0;
+}
+
+.user-profile-btn-secondary:hover {
+    background: #f8fafc;
+    color: #64748b;
+    border-color: #cbd5e1;
+}
+
+.user-profile-btn i {
+    font-size: 10px;
+}
+
+/* ========== 加载状态 ========== */
+.user-profile-loading {
+    padding: 30px 14px;
+    text-align: center;
+}
+
+.user-profile-spinner {
+    width: 24px;
+    height: 24px;
+    border: 2px solid #f1f5f9;
+    border-top-color: var(--primary-color, #3b82f6);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 8px;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.user-profile-loading-text {
+    font-size: 11px;
+    color: #94a3b8;
+}
+
+/* ========== 空状态 ========== */
+.user-profile-empty {
+    padding: 30px 14px;
+    text-align: center;
+}
+
+.user-profile-empty-icon {
+    font-size: 28px;
+    color: #e2e8f0;
+    margin-bottom: 8px;
+}
+
+.user-profile-empty-text {
+    font-size: 11px;
+    color: #94a3b8;
+}
+
+/* ========== 响应式设计 ========== */
+@media (max-width: 480px) {
+    .user-profile-modal {
+        width: 88%;
+        max-width: 300px;
+    }
+
+    .user-profile-header {
+        padding: 14px 12px 10px;
+    }
+
+    .user-profile-avatar-large {
+        width: 44px;
+        height: 44px;
+        font-size: 16px;
+    }
+
+    .user-profile-name {
+        font-size: 13px;
+    }
+
+    .user-profile-content {
+        padding: 0 12px 12px;
+    }
+
+    .user-profile-stats {
+        gap: 5px;
+        padding: 7px 8px;
+    }
+
+    .user-profile-stat-value {
+        font-size: 12px;
+    }
+
+    .user-profile-input {
+        padding: 6px 8px;
+        font-size: 12px;
+    }
+
+    .user-profile-textarea {
+        min-height: 44px;
+    }
+}

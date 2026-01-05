@@ -150,4 +150,69 @@ class User extends BaseController
 
         return json($result);
     }
+
+    /**
+     * 获取用户资料（用于个人中心）
+     * @param Request $request
+     * @return Response
+     */
+    public function profile(Request $request)
+    {
+        $userId = $request->param('user_id');
+        $currentUserId = $request->userId; // 从中间件获取
+
+        // 验证参数
+        if (empty($userId)) {
+            return json(['code' => 1, 'msg' => '用户ID不能为空'], 400);
+        }
+
+        $result = UserService::getProfile($userId, $currentUserId);
+        $code = $result['code'] === 0 ? 200 : 400;
+
+        return json($result, $code);
+    }
+
+    /**
+     * 更新用户资料
+     * @param Request $request
+     * @return Response
+     */
+    public function updateProfile(Request $request)
+    {
+        $userId = $request->param('user_id');
+        $currentUserId = $request->userId; // 从中间件获取
+        $data = $request->param();
+
+        // 验证参数
+        if (empty($userId)) {
+            return json(['code' => 1, 'msg' => '用户ID不能为空'], 400);
+        }
+
+        $result = UserService::updateProfile($userId, $currentUserId, $data);
+        $code = $result['code'] === 0 ? 200 : 400;
+
+        return json($result, $code);
+    }
+
+    /**
+     * 上传头像
+     * @param Request $request
+     * @return Response
+     */
+    public function uploadAvatar(Request $request)
+    {
+        $currentUserId = $request->userId; // 从中间件获取
+
+        // 获取上传的文件
+        $file = $request->file('avatar');
+
+        if (!$file) {
+            return json(['code' => 1, 'msg' => '请选择要上传的文件'], 400);
+        }
+
+        $result = UserService::uploadAvatar($currentUserId, $file);
+        $code = $result['code'] === 0 ? 200 : 400;
+
+        return json($result, $code);
+    }
 }

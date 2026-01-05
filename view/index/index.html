@@ -35,16 +35,16 @@
                     </div>
 
                     <!-- 用户信息 -->
-                    <div class="user-info" v-if="currentUser.id">
-                        <div class="user-avatar">
-                            <span v-text="currentUser.nick_name.charAt(0)"></span>
+                    <div class="user-info" v-if="currentUser.id" @click="openUserProfile" style="cursor: pointer;" title="点击查看个人资料">
+                        <div class="user-avatar" :style="isValidAvatar(currentUser.avatar) ? { backgroundImage: 'url(' + currentUser.avatar + ')' } : {}">
+                            <span v-if="!isValidAvatar(currentUser.avatar)" v-text="currentUser.nick_name.charAt(0)"></span>
                             <i class="user-status-dot"></i>
                         </div>
                         <div class="user-detail">
                             <span class="user-name" v-text="currentUser.nick_name"></span>
                             <span class="user-id">#<span v-text="currentUser.id"></span></span>
                         </div>
-                        <button class="logout-btn" @click="handleLogout" title="退出登录">
+                        <button class="logout-btn" @click.stop="handleLogout" title="退出登录">
                             <i class="fas fa-sign-out-alt"></i>
                         </button>
                     </div>
@@ -199,60 +199,102 @@
 
                             <div v-else class="msg-content-group"
                                 @contextmenu.prevent="showContextMenu($event, message)">
-                                <div v-if="!message.isOwn" class="msg-avatar" v-text="message.username.charAt(0)">
+                                <div v-if="!message.isOwn" class="msg-avatar" :style="message.sender && isValidAvatar(message.sender.avatar) ? { backgroundImage: 'url(' + message.sender.avatar + ')' } : {}">
+                                    <span v-if="!message.sender || !isValidAvatar(message.sender.avatar)" v-text="message.username.charAt(0)"></span>
+                                </div>
+                                <div v-else class="msg-avatar msg-avatar-own" :style="isValidAvatar(currentUser.avatar) ? { backgroundImage: 'url(' + currentUser.avatar + ')' } : {}">
+                                    <span v-if="!isValidAvatar(currentUser.avatar)" v-text="currentUser.nick_name.charAt(0)"></span>
                                 </div>
 
-                                <div class="msg-bubble-wrapper">
-                                    <div v-if="!message.isOwn" class="msg-sender">
+                                <!-- 他人的消息 -->
+                                <div v-if="!message.isOwn" class="msg-content-left">
+                                    <!-- 第一行：头像和气泡 -->
+                                    <div class="msg-bubble-wrapper">
+                                        <div class="msg-bubble" :class="{ 'msg-image': message.type === 'image' }">
+                                            <!-- 图片消息 -->
+                                            <div v-if="message.type === 'image'" class="image-wrapper"
+                                                @click="handleImageClick(message.imageUrl)">
+                                                <img :src="message.imageUrl" loading="lazy" alt="Image">
+                                            </div>
+                                            <!-- 文本消息 -->
+                                            <div v-else class="text-wrapper">
+                                                <!-- 普通文本内容 -->
+                                                <div v-if="message.displayText" class="text-content" v-text="message.displayText"></div>
+                                                <!-- 链接 -->
+                                                <div v-if="message.urlCards && message.urlCards.length > 0" class="url-cards-container">
+                                                    <a v-for="(urlCard, urlIndex) in message.urlCards" :key="urlIndex"
+                                                        class="url-card"
+                                                        :href="urlCard.url"
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        @click.stop>
+                                                        <i class="fas fa-link url-card-icon"></i>
+                                                        <span class="url-card-url" v-text="formatUrl(urlCard.url)"></span>
+                                                    </a>
+                                                </div>
+                                                <!-- 没有链接也没有displayText的纯文本 -->
+                                                <div v-if="!message.displayText && !message.urlCards && message.text"
+                                                    class="text-content" v-text="message.text"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- 第二行：昵称和时间 -->
+                                    <div class="msg-sender">
                                         <span v-text="message.username"></span>
                                         <span class="msg-time" v-text="formatTime(message.time)"></span>
                                     </div>
+                                </div>
 
-                                    <div class="msg-bubble" :class="{ 'msg-image': message.type === 'image' }">
-                                        <!-- 图片消息 -->
-                                        <div v-if="message.type === 'image'" class="image-wrapper"
-                                            @click="handleImageClick(message.imageUrl)">
-                                            <img :src="message.imageUrl" loading="lazy" alt="Image">
-                                            <!-- 上传进度遮罩 -->
-                                            <div v-if="messageSendStatus && messageSendStatus[message.id] === 'sending'"
-                                                class="upload-progress-overlay">
-                                                <div class="progress-content">
-                                                    <div class="progress-ring">
-                                                        <svg viewBox="0 0 36 36">
-                                                            <path class="progress-ring-bg"
-                                                                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                                                            <path class="progress-ring-fill"
-                                                                :stroke-dasharray="(uploadProgress[message.id] || 0) + ', 100'"
-                                                                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                                                        </svg>
-                                                        <span class="progress-text" v-text="(uploadProgress[message.id] || 0) + '%'"></span>
+                                <!-- 自己的消息：使用包装器包含气泡和元数据 -->
+                                <div v-else class="msg-content-right">
+                                    <div class="msg-bubble-wrapper">
+                                        <div class="msg-bubble" :class="{ 'msg-image': message.type === 'image' }">
+                                            <!-- 图片消息 -->
+                                            <div v-if="message.type === 'image'" class="image-wrapper"
+                                                @click="handleImageClick(message.imageUrl)">
+                                                <img :src="message.imageUrl" loading="lazy" alt="Image">
+                                                <!-- 上传进度遮罩 -->
+                                                <div v-if="messageSendStatus && messageSendStatus[message.id] === 'sending'"
+                                                    class="upload-progress-overlay">
+                                                    <div class="progress-content">
+                                                        <div class="progress-ring">
+                                                            <svg viewBox="0 0 36 36">
+                                                                <path class="progress-ring-bg"
+                                                                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                                                <path class="progress-ring-fill"
+                                                                    :stroke-dasharray="(uploadProgress[message.id] || 0) + ', 100'"
+                                                                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                                            </svg>
+                                                            <span class="progress-text" v-text="(uploadProgress[message.id] || 0) + '%'"></span>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                        <!-- 文本消息 -->
-                                        <div v-else class="text-wrapper">
-                                            <!-- 普通文本内容 -->
-                                            <div v-if="message.displayText" class="text-content" v-text="message.displayText"></div>
-                                            <!-- 链接 -->
-                                            <div v-if="message.urlCards && message.urlCards.length > 0" class="url-cards-container">
-                                                <a v-for="(urlCard, urlIndex) in message.urlCards" :key="urlIndex"
-                                                    class="url-card"
-                                                    :href="urlCard.url"
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    @click.stop>
-                                                    <i class="fas fa-link url-card-icon"></i>
-                                                    <span class="url-card-url" v-text="formatUrl(urlCard.url)"></span>
-                                                </a>
+                                            <!-- 文本消息 -->
+                                            <div v-else class="text-wrapper">
+                                                <!-- 普通文本内容 -->
+                                                <div v-if="message.displayText" class="text-content" v-text="message.displayText"></div>
+                                                <!-- 链接 -->
+                                                <div v-if="message.urlCards && message.urlCards.length > 0" class="url-cards-container">
+                                                    <a v-for="(urlCard, urlIndex) in message.urlCards" :key="urlIndex"
+                                                        class="url-card"
+                                                        :href="urlCard.url"
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        @click.stop>
+                                                        <i class="fas fa-link url-card-icon"></i>
+                                                        <span class="url-card-url" v-text="formatUrl(urlCard.url)"></span>
+                                                    </a>
+                                                </div>
+                                                <!-- 没有链接也没有displayText的纯文本 -->
+                                                <div v-if="!message.displayText && !message.urlCards && message.text"
+                                                    class="text-content" v-text="message.text"></div>
                                             </div>
-                                            <!-- 没有链接也没有displayText的纯文本 -->
-                                            <div v-if="!message.displayText && !message.urlCards && message.text"
-                                                class="text-content" v-text="message.text"></div>
                                         </div>
                                     </div>
 
-                                    <div v-if="message.isOwn" class="msg-time-own">
+                                    <!-- 已读回执和时间单独一行 -->
+                                    <div class="msg-meta-own">
                                         <span class="msg-read-status" :class="{ 'read': message.isRead }"
                                             :title="message.readUsers && message.readUsers.length > 0 ? message.readUsers.map(u => u.nickname).join(', ') + ' 已读' : ''">
                                             <span v-if="message.readCount > 0"
@@ -437,6 +479,8 @@
         })();
     </script>
     <script src="/static/js/websocket.js?v=3"></script>
+    <!-- 用户资料组件（独立组件） -->
+    <script src="/static/js/components/user-profile.js?v=1"></script>
     <script src="/static/js/index.js?v=50"></script>
 </body>
 
