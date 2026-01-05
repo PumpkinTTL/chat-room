@@ -837,8 +837,8 @@ try {
                     }
                 }
 
-                // 处理文本消息中的链接
-                if (msg.type === 'text' || msg.type === 1) {
+                // 处理文本消息中的链接（支持 'text', 'normal', 1 等多种类型）
+                if (msg.type === 'text' || msg.type === 'normal' || msg.type === 1) {
                     if (processedMsg.text) {
                         const urls = detectUrls(processedMsg.text);
                         if (urls.length > 0) {
@@ -1193,17 +1193,21 @@ try {
                 // 生成临时消息ID
                 const tempId = 'temp_' + Date.now();
 
-                // 立即添加消息到列表，状态为发送中
-                const newMsg = {
+                // 构造消息对象
+                const rawMsg = {
                     id: tempId,
                     type: 'normal',
-                    username: username.value,
                     text: messageText,
+                    content: messageText,
                     time: new Date(),
-                    isOwn: true,
-                    isRead: false,
-                    isNewMessage: true
+                    sender: {
+                        id: currentUser.value.id,
+                        nickname: username.value
+                    }
                 };
+
+                // 使用 processMessage 处理消息（包括链接检测）
+                const newMsg = processMessage(rawMsg, true, null);
 
                 messages.value.push(newMsg);
                 messageSendStatus.value[tempId] = 'sending';
@@ -1978,21 +1982,11 @@ try {
                 return `${month}-${day} ${hour}:${minute}`;
             };
 
-            // 格式化URL显示（截取域名和路径）
+            // 格式化URL显示（保留完整链接）
             const formatUrl = function(url) {
                 if (!url) return '';
-                try {
-                    const urlObj = new URL(url);
-                    // 返回 hostname + pathname 的前50个字符
-                    let display = urlObj.hostname + urlObj.pathname;
-                    if (display.length > 50) {
-                        display = display.substring(0, 47) + '...';
-                    }
-                    return display;
-                } catch (e) {
-                    // 如果URL解析失败，直接截取前50个字符
-                    return url.length > 50 ? url.substring(0, 47) + '...' : url;
-                }
+                // 直接返回完整URL
+                return url;
             };
 
             const formatFileSize = (bytes) => {

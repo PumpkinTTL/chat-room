@@ -229,7 +229,7 @@
                                         <div v-else class="text-wrapper">
                                             <!-- 普通文本内容 -->
                                             <div v-if="message.displayText" class="text-content" v-text="message.displayText"></div>
-                                            <!-- 链接卡片 -->
+                                            <!-- 链接 -->
                                             <div v-if="message.urlCards && message.urlCards.length > 0" class="url-cards-container">
                                                 <a v-for="(urlCard, urlIndex) in message.urlCards" :key="urlIndex"
                                                     class="url-card"
@@ -237,16 +237,8 @@
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                     @click.stop>
-                                                    <div class="url-card-icon">
-                                                        <i class="fas fa-link"></i>
-                                                    </div>
-                                                    <div class="url-card-info">
-                                                        <div class="url-card-title">链接</div>
-                                                        <div class="url-card-url" v-text="formatUrl(urlCard.url)"></div>
-                                                    </div>
-                                                    <div class="url-card-arrow">
-                                                        <i class="fas fa-external-link-alt"></i>
-                                                    </div>
+                                                    <i class="fas fa-link url-card-icon"></i>
+                                                    <span class="url-card-url" v-text="formatUrl(urlCard.url)"></span>
                                                 </a>
                                             </div>
                                             <!-- 没有链接也没有displayText的纯文本 -->
