@@ -1154,6 +1154,24 @@ body {
     background: rgba(255, 255, 255, 0.06);
 }
 
+/* 暗黑模式下的头像样式 */
+.dark-mode .msg-avatar {
+    background: rgba(71, 85, 105, 0.4);
+    color: #e2e8f0;
+    border-color: rgba(148, 163, 184, 0.15);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.dark-mode .msg-avatar::before {
+    background: linear-gradient(90deg,
+        transparent 0%,
+        rgba(221, 180, 221, 0.5) 25%,
+        rgba(206, 174, 226, 0.4) 50%,
+        rgba(221, 180, 221, 0.5) 75%,
+        transparent 100%);
+}
+
 .msg-content-group {
     display: flex;
     gap: 12px;
@@ -1182,7 +1200,37 @@ body {
     font-weight: 600;
     flex-shrink: 0;
     align-self: flex-end;
-    /* Avatar at bottom like modern apps */
+    position: relative;
+    border: 1.5px solid rgba(148, 163, 184, 0.2);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04),
+                inset 0 1px 0 rgba(255, 255, 255, 0.5);
+    overflow: hidden;
+}
+
+/* 微妙的边框流动动画 - 浅粉紫色 */
+.msg-avatar::before {
+    content: '';
+    position: absolute;
+    inset: -1.5px;
+    border-radius: 50%;
+    padding: 1.5px;
+    background: linear-gradient(90deg,
+        transparent 0%,
+        rgba(232, 189, 232, 0.5) 25%,
+        rgba(216, 180, 234, 0.4) 50%,
+        rgba(232, 189, 232, 0.5) 75%,
+        transparent 100%);
+    background-size: 200% 100%;
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    animation: borderRotate 4s linear infinite;
+}
+
+@keyframes borderRotate {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 200% 50%; }
 }
 
 .msg-bubble-wrapper {
@@ -3026,27 +3074,77 @@ button:disabled {
 }
 
 .load-more-btn {
-    padding: 8px 20px;
-    background: var(--primary-light);
-    border: none;
-    border-radius: 16px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: linear-gradient(135deg, var(--primary-light) 0%, rgba(59, 130, 246, 0.08) 100%);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    border-radius: 20px;
     color: var(--primary-color);
     font-size: 13px;
+    font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.08);
 }
 
 .load-more-btn:hover:not(:disabled) {
-    background: var(--primary-color);
+    background: linear-gradient(135deg, var(--primary-color) 0%, #2563eb 100%);
     color: white;
+    border-color: var(--primary-color);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+    transform: translateY(-1px);
+}
+
+.load-more-btn:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(59, 130, 246, 0.2);
 }
 
 .load-more-btn:disabled {
-    opacity: 0.6;
+    opacity: 0.5;
     cursor: not-allowed;
+    transform: none;
+}
+
+.load-more-btn i {
+    font-size: 12px;
+}
+
+/* 暗黑模式下的加载更多按钮 */
+.dark-mode .load-more-btn {
+    background: linear-gradient(135deg, rgba(96, 165, 250, 0.15) 0%, rgba(96, 165, 250, 0.08) 100%);
+    border-color: rgba(96, 165, 250, 0.3);
+    color: #60a5fa;
+    box-shadow: 0 2px 4px rgba(96, 165, 250, 0.12);
+}
+
+.dark-mode .load-more-btn:hover:not(:disabled) {
+    background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+    color: #0f172a;
+    border-color: #60a5fa;
+    box-shadow: 0 4px 12px rgba(96, 165, 250, 0.35);
+}
+
+.dark-mode .load-more-btn:active:not(:disabled) {
+    box-shadow: 0 2px 6px rgba(96, 165, 250, 0.25);
 }
 
 .no-more-text {
     font-size: 12px;
     color: var(--text-tertiary);
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.no-more-text i {
+    color: var(--success-color, #10b981);
+    font-size: 11px;
+}
+
+.dark-mode .no-more-text i {
+    color: #34d399;
 }

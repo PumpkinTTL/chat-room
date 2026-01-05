@@ -7,7 +7,7 @@
     <title>轻量聊天室</title>
     <link rel="stylesheet" href="/static/css/animate.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="/static/css/index.css?v=68">
+    <link rel="stylesheet" href="/static/css/index.css?v=71">
     <!-- 关键：在Vue加载前隐藏整个应用，防止模板闪现 -->
     <style>
         [v-cloak] {
@@ -165,9 +165,14 @@
                         <div v-if="roomId && messages.length > 0" class="load-more-area">
                             <button v-if="hasMoreMessages" class="load-more-btn" @click="loadMoreMessages" :disabled="loadingMore">
                                 <i v-if="loadingMore" class="fas fa-spinner fa-spin"></i>
-                                <span v-else>加载更多历史消息</span>
+                                <i v-else class="fas fa-history"></i>
+                                <span v-if="!loadingMore">加载更多历史消息</span>
+                                <span v-else>加载中...</span>
                             </button>
-                            <span v-else class="no-more-text">没有更多消息了</span>
+                            <span v-else class="no-more-text">
+                                <i class="fas fa-check-circle"></i>
+                                <span>没有更多消息了</span>
+                            </span>
                         </div>
 
                         <div v-if="roomId === ''" class="empty-messages">
