@@ -20,6 +20,7 @@ class User extends Model
         'avatar'      => 'string',
         'sign'        => 'string',
         'status'      => 'int',
+        'is_ban'      => 'int',
         'create_time' => 'datetime',
     ];
 

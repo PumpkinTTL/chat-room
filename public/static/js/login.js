@@ -175,6 +175,10 @@ createApp({
 
                 const result = await response.json();
 
+                console.log('🔍 后端返回的完整响应:', result);
+                console.log('🔍 响应状态码:', response.status);
+                console.log('🔍 result.code:', result.code);
+
                 if (result.code === 0) {
                     console.log('登录成功，前端接收到的数据:', result);
                     console.log('Token:', result.token);
@@ -224,6 +228,11 @@ createApp({
                     setTimeout(() => {
                         window.location.href = '/chat';
                     }, 100); // 延迟100ms确保cookie写入完成
+                } else if (result.code === 403) {
+                    // 账号已封禁，跳转到道别页面
+                   
+                    window.location.href = '/farewell.html';
+                    return; // 确保不继续执行
                 } else {
                     console.log('登录失败:', result.msg);
                     window.Toast.error(result.msg || '登录失败');

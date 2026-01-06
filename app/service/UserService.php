@@ -193,6 +193,11 @@ class UserService
             return ['code' => 1, 'msg' => '用户已被禁用'];
         }
 
+        // 检查账号是否被封禁
+        if (isset($userInfo['is_ban']) && $userInfo['is_ban'] == 1) {
+            return ['code' => 403, 'msg' => '账号无限期停用'];
+        }
+
         // 业务逻辑成功，生成token并记录登录IP
         $ip = isset($data['ip']) ? $data['ip'] : '';
         $token = TokenService::generateToken($userInfo['id'], 24, $ip);
