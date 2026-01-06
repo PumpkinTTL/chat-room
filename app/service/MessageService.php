@@ -121,6 +121,113 @@ class MessageService
     }
 
     /**
+     * 发送视频消息
+     * @param int $roomId 房间ID
+     * @param int $userId 用户ID
+     * @param array $fileInfo 文件信息
+     * @return array
+     */
+    public static function sendVideoMessage($roomId, $userId, $fileInfo)
+    {
+        if (empty($roomId) || empty($userId) || empty($fileInfo)) {
+            return ['code' => 1, 'msg' => '参数错误'];
+        }
+
+        // 验证用户是否在房间内
+        if (!RoomUserService::isUserInRoom($roomId, $userId)) {
+            return ['code' => 1, 'msg' => '您不在此房间内'];
+        }
+
+        try {
+            Db::startTrans();
+
+            $messageId = Message::insertGetId([
+                'room_id'      => $roomId,
+                'user_id'      => $userId,
+                'message_type' => Message::TYPE_VIDEO, // 使用TYPE_VIDEO类型
+                'content'      => $fileInfo['url'] ?? '',
+                'file_info'    => json_encode($fileInfo),
+                'create_time'  => date('Y-m-d H:i:s'),
+                'update_time'  => date('Y-m-d H:i:s'),
+            ]);
+
+            Db::commit();
+
+            // 返回消息信息
+            return [
+                'code' => 0,
+                'msg' => '发送成功',
+                'data' => [
+                    'id' => $messageId,
+                    'type' => 'video',
+                    'videoUrl' => $fileInfo['url'] ?? '',
+                    'videoThumbnail' => $fileInfo['thumbnail'] ?? null,
+                    'videoDuration' => $fileInfo['duration'] ?? null,
+                    'time' => date('Y-m-d H:i:s'),
+                ]
+            ];
+
+        } catch (\Exception $e) {
+            Db::rollback();
+            return ['code' => 1, 'msg' => '发送失败：' . $e->getMessage()];
+        }
+    }
+
+    /**
+     * 发送文件消息
+     * @param int $roomId 房间ID
+     * @param int $userId 用户ID
+     * @param array $fileInfo 文件信息
+     * @return array
+     */
+    public static function sendFileMessage($roomId, $userId, $fileInfo)
+    {
+        if (empty($roomId) || empty($userId) || empty($fileInfo)) {
+            return ['code' => 1, 'msg' => '参数错误'];
+        }
+
+        // 验证用户是否在房间内
+        if (!RoomUserService::isUserInRoom($roomId, $userId)) {
+            return ['code' => 1, 'msg' => '您不在此房间内'];
+        }
+
+        try {
+            Db::startTrans();
+
+            $messageId = Message::insertGetId([
+                'room_id'      => $roomId,
+                'user_id'      => $userId,
+                'message_type' => Message::TYPE_FILE, // 使用TYPE_FILE类型
+                'content'      => $fileInfo['original_name'] ?? '',
+                'file_info'    => json_encode($fileInfo),
+                'create_time'  => date('Y-m-d H:i:s'),
+                'update_time'  => date('Y-m-d H:i:s'),
+            ]);
+
+            Db::commit();
+
+            // 返回消息信息
+            return [
+                'code' => 0,
+                'msg' => '发送成功',
+                'data' => [
+                    'id' => $messageId,
+                    'type' => 'file',
+                    'fileName' => $fileInfo['original_name'] ?? '',
+                    'fileSize' => $fileInfo['file_size'] ?? 0,
+                    'fileExtension' => $fileInfo['extension'] ?? '',
+                    'fileUrl' => $fileInfo['url'] ?? '',
+                    'time' => date('Y-m-d H:i:s'),
+                ]
+            ];
+
+        } catch (\Exception $e) {
+            Db::rollback();
+            return ['code' => 1, 'msg' => '发送失败：' . $e->getMessage()];
+        }
+    }
+
+    /**
      * 发送系统消息
      * @param int $roomId 房间ID
      * @param string $content 消息内容
@@ -387,15 +494,23 @@ class MessageService
             $type = 'system';
         } elseif ($message['message_type'] == Message::TYPE_IMAGE) {
             $type = 'image';
+        } elseif ($message['message_type'] == Message::TYPE_VIDEO) {
+            $type = 'video';
+        } elseif ($message['message_type'] == Message::TYPE_FILE) {
+            $type = 'file';
         }
 
-        return [
+        $fileInfo = $message['file_info'] ?? null;
+        if (is_string($fileInfo)) {
+            $fileInfo = json_decode($fileInfo, true);
+        }
+
+        // 根据不同类型设置不同的字段
+        $result = [
             'id'           => $message['id'],
             'room_id'      => $message['room_id'],
             'type'         => $type,
             'text'         => $message['content'],
-            'imageUrl'     => $message['message_type'] == Message::TYPE_IMAGE ? $message['content'] : null,
-            'fileInfo'     => $message['file_info'] ?? null,
             'time'         => $message['create_time'],
             'isOwn'        => $message['user_id'] == $currentUserId,
             'sender'       => [
@@ -404,6 +519,26 @@ class MessageService
                 'avatar'     => $message['user']['avatar'] ?? null,
             ],
         ];
+
+        // 图片消息
+        if ($message['message_type'] == Message::TYPE_IMAGE) {
+            $result['imageUrl'] = $message['content'];
+        }
+        // 视频消息
+        elseif ($message['message_type'] == Message::TYPE_VIDEO && $fileInfo) {
+            $result['videoUrl'] = $fileInfo['url'] ?? $message['content'];
+            $result['videoThumbnail'] = $fileInfo['thumbnail'] ?? null;
+            $result['videoDuration'] = $fileInfo['duration'] ?? null;
+        }
+        // 文件消息
+        elseif ($message['message_type'] == Message::TYPE_FILE && $fileInfo) {
+            $result['fileName'] = $fileInfo['original_name'] ?? $message['content'];
+            $result['fileSize'] = $fileInfo['file_size'] ?? 0;
+            $result['fileExtension'] = $fileInfo['extension'] ?? '';
+            $result['fileUrl'] = $fileInfo['url'] ?? '';
+        }
+
+        return $result;
     }
 
     /**
@@ -463,10 +598,10 @@ class MessageService
                 ->where('room_id', $roomId)
                 ->count();
 
-            // 获取所有图片消息的文件路径
-            $imageMessages = Db::table('ch_messages')
+            // 获取所有包含文件的消息（图片、视频、文件）
+            $fileMessages = Db::table('ch_messages')
                 ->where('room_id', $roomId)
-                ->where('message_type', Message::TYPE_IMAGE)
+                ->where('message_type', 'in', [Message::TYPE_IMAGE, Message::TYPE_FILE])
                 ->whereNotNull('file_info')
                 ->select()
                 ->toArray();
@@ -491,7 +626,7 @@ class MessageService
             $deletedFiles = 0;
             $error_log_path = runtime_path() . 'log/file_deletion.log';
 
-            foreach ($imageMessages as $message) {
+            foreach ($fileMessages as $message) {
                 $filePath = null;
 
                 // 方法1: 优先使用 file_info 中的 path 字段
@@ -540,7 +675,7 @@ class MessageService
             }
 
             // 记录总体统计
-            $summaryMsg = date('Y-m-d H:i:s') . " - 清理完成: 找到 " . count($imageMessages) . " 条图片消息，实际删除 " . $deletedFiles . " 个文件\n";
+            $summaryMsg = date('Y-m-d H:i:s') . " - 清理完成: 找到 " . count($fileMessages) . " 条文件消息（图片/视频/文件），实际删除 " . $deletedFiles . " 个文件\n";
             error_log($summaryMsg, 3, $error_log_path);
 
             return [

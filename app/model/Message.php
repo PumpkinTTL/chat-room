@@ -30,6 +30,7 @@ class Message extends Model
     public const TYPE_IMAGE = 2;    // 图片消息
     public const TYPE_FILE = 3;     // 文件消息
     public const TYPE_SYSTEM = 4;   // 系统消息
+    public const TYPE_VIDEO = 5;    // 视频消息
 
     /**
      * 关联用户模型

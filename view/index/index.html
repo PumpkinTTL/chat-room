@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="/static/css/animate.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/static/css/index.css?v=78">
+    <link rel="stylesheet" href="/static/css/message-types.css?v=1">
     <!-- 关键：在Vue加载前隐藏整个应用，防止模板闪现 -->
     <style>
         [v-cloak] {
@@ -264,6 +265,32 @@
                                             @click="handleImageClick(message.imageUrl)">
                                             <img :src="message.imageUrl" loading="lazy" alt="Image">
                                         </div>
+                                        <!-- 视频消息 -->
+                                        <div v-else-if="message.type === 'video'" class="video-wrapper">
+                                            <div v-if="message.videoThumbnail" class="video-thumbnail"
+                                                @click="handleVideoClick(message.videoUrl)">
+                                                <img :src="message.videoThumbnail" alt="Video thumbnail">
+                                                <div class="video-play-btn">
+                                                    <i class="fas fa-play"></i>
+                                                </div>
+                                                <div class="video-duration" v-if="message.videoDuration"
+                                                    v-text="formatDuration(message.videoDuration)"></div>
+                                            </div>
+                                            <video v-else :src="message.videoUrl" controls preload="metadata"
+                                                style="max-width: 280px; max-height: 400px; border-radius: 12px;"></video>
+                                        </div>
+                                        <!-- 文件消息 -->
+                                        <div v-else-if="message.type === 'file'" class="file-message">
+                                            <div class="file-icon"
+                                                :class="getFileIconClass(message.fileExtension || message.fileName)">
+                                                <i :class="getFileIcon(message.fileExtension || message.fileName)"></i>
+                                            </div>
+                                            <div class="file-info">
+                                                <div class="file-name" v-text="message.fileName || '未知文件'"></div>
+                                                <div class="file-size" v-if="message.fileSize"
+                                                    v-text="formatFileSize(message.fileSize)"></div>
+                                            </div>
+                                        </div>
                                         <!-- 文本消息 -->
                                         <div v-else class="text-wrapper">
                                             <!-- 普通文本内容 -->
@@ -303,6 +330,68 @@
                                             <!-- 上传进度遮罩 -->
                                             <div v-if="messageSendStatus && messageSendStatus[message.id] === 'sending'"
                                                 class="upload-progress-overlay">
+                                                <div class="progress-content">
+                                                    <div class="progress-ring">
+                                                        <svg viewBox="0 0 36 36">
+                                                            <path class="progress-ring-bg"
+                                                                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                                            <path class="progress-ring-fill"
+                                                                :stroke-dasharray="(uploadProgress[message.id] || 0) + ', 100'"
+                                                                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                                        </svg>
+                                                        <span class="progress-text"
+                                                            v-text="(uploadProgress[message.id] || 0) + '%'"></span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <!-- 视频消息 -->
+                                        <div v-else-if="message.type === 'video'" class="video-wrapper"
+                                            style="position: relative;">
+                                            <div v-if="message.videoThumbnail" class="video-thumbnail"
+                                                @click="handleVideoClick(message.videoUrl)">
+                                                <img :src="message.videoThumbnail" alt="Video thumbnail">
+                                                <div class="video-play-btn">
+                                                    <i class="fas fa-play"></i>
+                                                </div>
+                                                <div class="video-duration" v-if="message.videoDuration"
+                                                    v-text="formatDuration(message.videoDuration)"></div>
+                                                <!-- 上传进度遮罩 -->
+                                                <div v-if="messageSendStatus && messageSendStatus[message.id] === 'sending'"
+                                                    class="upload-progress-overlay">
+                                                    <div class="progress-content">
+                                                        <div class="progress-ring">
+                                                            <svg viewBox="0 0 36 36">
+                                                                <path class="progress-ring-bg"
+                                                                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                                                <path class="progress-ring-fill"
+                                                                    :stroke-dasharray="(uploadProgress[message.id] || 0) + ', 100'"
+                                                                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                                            </svg>
+                                                            <span class="progress-text"
+                                                                v-text="(uploadProgress[message.id] || 0) + '%'"></span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <video v-else :src="message.videoUrl" controls preload="metadata"
+                                                style="max-width: 280px; max-height: 400px; border-radius: 12px;"></video>
+                                        </div>
+                                        <!-- 文件消息 -->
+                                        <div v-else-if="message.type === 'file'" class="file-message"
+                                            style="position: relative;">
+                                            <div class="file-icon"
+                                                :class="getFileIconClass(message.fileExtension || message.fileName)">
+                                                <i :class="getFileIcon(message.fileExtension || message.fileName)"></i>
+                                            </div>
+                                            <div class="file-info">
+                                                <div class="file-name" v-text="message.fileName || '未知文件'"></div>
+                                                <div class="file-size" v-if="message.fileSize"
+                                                    v-text="formatFileSize(message.fileSize)"></div>
+                                            </div>
+                                            <!-- 上传进度遮罩 -->
+                                            <div v-if="messageSendStatus && messageSendStatus[message.id] === 'sending'"
+                                                style="position: absolute; inset: 0; background: rgba(0,0,0,0.5); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
                                                 <div class="progress-content">
                                                     <div class="progress-ring">
                                                         <svg viewBox="0 0 36 36">
@@ -565,7 +654,18 @@
     <script src="/static/js/websocket.js?v=3"></script>
     <!-- 用户资料组件（独立组件） -->
     <script src="/static/js/components/user-profile.js?v=3"></script>
-    <script src="/static/js/index.js?v=65"></script>
+
+    <!-- 文件上传模块 -->
+    <script src="/static/js/upload/config.js?v=1"></script>
+    <script src="/static/js/upload/utils/validator.js?v=1"></script>
+    <script src="/static/js/upload/utils/preview-generator.js?v=1"></script>
+    <script src="/static/js/upload/handlers/base-handler.js?v=1"></script>
+    <script src="/static/js/upload/handlers/image-handler.js?v=1"></script>
+    <script src="/static/js/upload/handlers/video-handler.js?v=1"></script>
+    <script src="/static/js/upload/handlers/file-handler.js?v=1"></script>
+    <script src="/static/js/upload/upload-manager.js?v=1"></script>
+
+    <script src="/static/js/index.js?v=66"></script>
 </body>
 
 </html>

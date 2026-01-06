@@ -1,0 +1,368 @@
+/**
+ * 消息类型样式
+ * 专门处理图片、视频、文件等不同类型消息的UI渲染
+ */
+
+/* ==================== 视频消息样式 ==================== */
+.video-message {
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #000;
+}
+
+.video-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 280px;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.video-wrapper video {
+    width: 100%;
+    display: block;
+    border-radius: 12px;
+    max-height: 400px;
+    object-fit: cover;
+}
+
+/* 视频缩略图封面 */
+.video-thumbnail {
+    position: relative;
+    width: 100%;
+    padding-top: 56.25%; /* 16:9 比例 */
+    background: #1a1a1a;
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: pointer;
+}
+
+.video-thumbnail img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.video-play-btn {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 60px;
+    height: 60px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+}
+
+.video-play-btn:hover {
+    transform: translate(-50%, -50%) scale(1.1);
+    background: #fff;
+}
+
+.video-play-btn i {
+    font-size: 24px;
+    color: #000;
+    margin-left: 3px;
+}
+
+/* 视频时长标签 */
+.video-duration {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    background: rgba(0, 0, 0, 0.75);
+    color: #fff;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+/* 视频大小标签 */
+.video-size {
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    background: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+}
+
+/* ==================== 文件消息样式 ==================== */
+.file-message {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    min-width: 240px;
+    max-width: 320px;
+    transition: background 0.2s ease;
+}
+
+.file-message:hover {
+    background: #e9ecef;
+}
+
+/* 文件图标容器 */
+.file-icon {
+    flex-shrink: 0;
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: #fff;
+}
+
+/* 不同文件类型的图标背景 */
+.file-icon.image {
+    background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.file-icon.video {
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+}
+
+.file-icon.audio {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.file-icon.document {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+
+.file-icon.archive {
+    background: linear-gradient(135deg, #6b7280, #4b5563);
+}
+
+.file-icon.code {
+    background: linear-gradient(135deg, #ec4899, #db2777);
+}
+
+.file-icon.default {
+    background: linear-gradient(135deg, #9ca3af, #6b7280);
+}
+
+/* 文件信息容器 */
+.file-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+/* 文件名 */
+.file-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: #1f2937;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* 文件大小 */
+.file-size {
+    font-size: 12px;
+    color: #6b7280;
+}
+
+/* 文件扩展名标签 */
+.file-extension {
+    display: inline-block;
+    padding: 2px 6px;
+    background: #e5e7eb;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    color: #4b5563;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* ==================== 文件预览卡片 ==================== */
+.file-preview-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.file-preview-card .file-icon {
+    width: 56px;
+    height: 56px;
+    font-size: 28px;
+}
+
+/* ==================== 上传进度叠加层 ==================== */
+.upload-progress-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+}
+
+.progress-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.progress-ring {
+    position: relative;
+    width: 48px;
+    height: 48px;
+}
+
+.progress-ring svg {
+    transform: rotate(-90deg);
+    width: 48px;
+    height: 48px;
+}
+
+.progress-ring-bg {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.2);
+    stroke-width: 3;
+}
+
+.progress-ring-fill {
+    fill: none;
+    stroke: #fff;
+    stroke-width: 3;
+    stroke-linecap: round;
+    transition: stroke-dasharray 0.3s ease;
+}
+
+.progress-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 12px;
+    font-weight: 600;
+    color: #fff;
+}
+
+/* ==================== 响应式适配 ==================== */
+
+/* 平板端 */
+@media (max-width: 768px) {
+    .video-wrapper {
+        max-width: 240px;
+    }
+
+    .file-message {
+        min-width: 200px;
+        max-width: 280px;
+    }
+
+    .file-icon {
+        width: 42px;
+        height: 42px;
+        font-size: 20px;
+    }
+
+    .video-play-btn {
+        width: 50px;
+        height: 50px;
+    }
+
+    .video-play-btn i {
+        font-size: 20px;
+    }
+}
+
+/* 手机端 */
+@media (max-width: 480px) {
+    .video-wrapper {
+        max-width: 200px;
+    }
+
+    .file-message {
+        min-width: 180px;
+        max-width: 240px;
+        padding: 10px;
+    }
+
+    .file-icon {
+        width: 38px;
+        height: 38px;
+        font-size: 18px;
+    }
+
+    .file-name {
+        font-size: 13px;
+    }
+
+    .file-size {
+        font-size: 11px;
+    }
+
+    .video-play-btn {
+        width: 44px;
+        height: 44px;
+    }
+
+    .video-play-btn i {
+        font-size: 16px;
+    }
+}
+
+/* ==================== 暗黑模式适配 ==================== */
+.dark-mode .file-message {
+    background: #374151;
+}
+
+.dark-mode .file-message:hover {
+    background: #4b5563;
+}
+
+.dark-mode .file-name {
+    color: #f9fafb;
+}
+
+.dark-mode .file-size {
+    color: #9ca3af;
+}
+
+.dark-mode .file-extension {
+    background: #4b5563;
+    color: #d1d5db;
+}
+
+.dark-mode .video-thumbnail {
+    background: #111827;
+}
+
+.dark-mode .file-preview-card {
+    background: #1f2937;
+    border-color: #374151;
+}

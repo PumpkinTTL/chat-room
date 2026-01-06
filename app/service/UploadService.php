@@ -150,6 +150,178 @@ class UploadService
     }
 
     /**
+     * 上传视频文件
+     * @param \think\file\UploadedFile $file 上传的文件
+     * @return array
+     */
+    public static function uploadVideo($file)
+    {
+        if (!$file) {
+            return ['code' => 1, 'msg' => '请选择文件'];
+        }
+
+        try {
+            // 验证文件类型
+            $allowedTypes = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime'];
+            $mimeType = $file->getMime();
+            if (!in_array($mimeType, $allowedTypes)) {
+                return ['code' => 1, 'msg' => '只支持 MP4、WebM、OGG、MOV 格式的视频'];
+            }
+
+            // 验证文件大小（200MB）
+            $maxSize = 200 * 1024 * 1024;
+            if ($file->getSize() > $maxSize) {
+                return ['code' => 1, 'msg' => '视频大小不能超过200MB'];
+            }
+
+            // 生成文件名
+            $extension = strtolower($file->getOriginalExtension());
+            if (!$extension) {
+                // 根据MIME类型推断扩展名
+                $mimeToExt = [
+                    'video/mp4' => 'mp4',
+                    'video/webm' => 'webm',
+                    'video/ogg' => 'ogv',
+                    'video/quicktime' => 'mov',
+                ];
+                $extension = $mimeToExt[$mimeType] ?? 'mp4';
+            }
+
+            $fileName = date('Y/m/d') . '/' . md5(uniqid(mt_rand(), true)) . '.' . $extension;
+
+            // 保存文件
+            $disk = Filesystem::disk('public');
+            $path = $disk->putFileAs('videos', $file, $fileName);
+
+            if (!$path) {
+                return ['code' => 1, 'msg' => '文件保存失败'];
+            }
+
+            // 获取访问URL
+            $url = '/storage/' . $path;
+
+            // 获取视频信息（可选：使用ffmpeg获取时长、分辨率等）
+            $videoInfo = self::getVideoInfo($file->getPathname());
+
+            // 返回文件信息
+            $fileInfo = [
+                'original_name' => $file->getOriginalName(),
+                'file_size' => $file->getSize(),
+                'mime_type' => $mimeType,
+                'extension' => $extension,
+                'url' => $url,
+                'path' => $path,
+                'duration' => $videoInfo['duration'] ?? null,
+                'width' => $videoInfo['width'] ?? null,
+                'height' => $videoInfo['height'] ?? null,
+            ];
+
+            return ['code' => 0, 'msg' => '上传成功', 'data' => $fileInfo];
+
+        } catch (\Exception $e) {
+            return ['code' => 1, 'msg' => '上传失败：' . $e->getMessage()];
+        }
+    }
+
+    /**
+     * 获取视频信息（需要ffmpeg扩展）
+     * @param string $filePath 文件路径
+     * @return array
+     */
+    private static function getVideoInfo($filePath)
+    {
+        $info = [
+            'duration' => null,
+            'width' => null,
+            'height' => null,
+        ];
+
+        // 如果有ffmpeg扩展，可以使用getid3或其他库
+        // 这里只是预留接口，避免强制依赖
+
+        try {
+            // 尝试使用ffprobe（如果系统安装了）
+            if (function_exists('exec')) {
+                $cmd = 'ffprobe -v quiet -print_format json -show_format -show_streams ' . escapeshellarg($filePath) . ' 2>&1';
+                $output = [];
+                exec($cmd, $output, $returnCode);
+
+                if ($returnCode === 0 && !empty($output)) {
+                    $json = implode('', $output);
+                    $data = json_decode($json, true);
+
+                    if (isset($data['format']['duration'])) {
+                        $info['duration'] = (int)$data['format']['duration'];
+                    }
+
+                    if (isset($data['streams'][0]['width'])) {
+                        $info['width'] = $data['streams'][0]['width'];
+                        $info['height'] = $data['streams'][0]['height'];
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            // 静默失败，返回默认值
+        }
+
+        return $info;
+    }
+
+    /**
+     * 上传文件（文档等）
+     * @param \think\file\UploadedFile $file 上传的文件
+     * @return array
+     */
+    public static function uploadDocument($file)
+    {
+        if (!$file) {
+            return ['code' => 1, 'msg' => '请选择文件'];
+        }
+
+        try {
+            // 验证文件大小（100MB）
+            $maxSize = 100 * 1024 * 1024;
+            if ($file->getSize() > $maxSize) {
+                return ['code' => 1, 'msg' => '文件大小不能超过100MB'];
+            }
+
+            // 生成文件名
+            $extension = strtolower($file->getOriginalExtension());
+            if (!$extension) {
+                return ['code' => 1, 'msg' => '无法获取文件扩展名'];
+            }
+
+            $fileName = date('Y/m/d') . '/' . md5(uniqid(mt_rand(), true)) . '.' . $extension;
+
+            // 保存文件
+            $disk = Filesystem::disk('public');
+            $path = $disk->putFileAs('documents', $file, $fileName);
+
+            if (!$path) {
+                return ['code' => 1, 'msg' => '文件保存失败'];
+            }
+
+            // 获取访问URL
+            $url = '/storage/' . $path;
+
+            // 返回文件信息
+            $fileInfo = [
+                'original_name' => $file->getOriginalName(),
+                'file_size' => $file->getSize(),
+                'mime_type' => $file->getMime(),
+                'extension' => $extension,
+                'url' => $url,
+                'path' => $path,
+            ];
+
+            return ['code' => 0, 'msg' => '上传成功', 'data' => $fileInfo];
+
+        } catch (\Exception $e) {
+            return ['code' => 1, 'msg' => '上传失败：' . $e->getMessage()];
+        }
+    }
+
+    /**
      * 删除文件
      * @param string $path 文件路径（相对于uploads目录）
      * @return array

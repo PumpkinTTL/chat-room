@@ -113,6 +113,79 @@ try {
             // 发送状态
             const isSending = ref(false);
 
+            // 设置uploadManager的回调
+            if (window.uploadManager) {
+                window.uploadManager.setCallbacks({
+                    onProgress: (tempId, progress) => {
+                        uploadProgress.value[tempId] = progress;
+                    },
+                    onSuccess: (data) => {
+                        const { tempId, messageId, message, tempMessage } = data;
+
+                        // 更新消息ID：将临时ID替换为真实ID
+                        const msgIndex = messages.value.findIndex(m => m.id === tempId);
+                        if (msgIndex !== -1) {
+                            // 更新消息为真实数据
+                            messages.value[msgIndex] = {
+                                ...message,
+                                isOwn: true,
+                                sender: {
+                                    id: currentUser.value.id,
+                                    nickname: currentUser.value.nick_name,
+                                    avatar: currentUser.value.avatar
+                                }
+                            };
+
+                            // 如果是视频消息，补充前端预览URL
+                            if (message.type === 'video' && tempMessage.videoUrl) {
+                                messages.value[msgIndex].videoUrl = tempMessage.videoUrl;
+                            }
+
+                            // 更新发送状态
+                            messageSendStatus.value[tempId] = 'success';
+                            delete messageSendStatus.value[tempId];
+                            messageSendStatus.value[messageId] = 'success';
+                        }
+
+                        // 通过 WebSocket 广播通知其他用户（使用统一函数）
+                        broadcastMessageViaWebSocket(messageId, message.type, message.content);
+                    },
+                    onFailed: (data) => {
+                        const { tempId, error, cancelled } = data;
+
+                        // 更新发送状态
+                        messageSendStatus.value[tempId] = 'failed';
+
+                        // 移除临时消息或标记为失败
+                        if (!cancelled) {
+                            const msgIndex = messages.value.findIndex(m => m.id === tempId);
+                            if (msgIndex !== -1) {
+                                // 标记为失败，可以重试
+                                messages.value[msgIndex].sendError = error;
+                            }
+                        }
+                    },
+                    onStatusChange: (tempId, status, tempMessage) => {
+                        messageSendStatus.value[tempId] = status;
+
+                        // 当状态变为sending时，添加临时消息到列表
+                        if (status === 'sending' && tempMessage) {
+                            // 检查是否已经添加过
+                            const exists = messages.value.some(m => m.id === tempMessage.id);
+                            if (!exists) {
+                                messages.value.push(tempMessage);
+                                uploadProgress.value[tempMessage.id] = 0;
+
+                                // 滚动到底部
+                                nextTick(function () {
+                                    scrollToBottom();
+                                });
+                            }
+                        }
+                    }
+                });
+            }
+
             // 语音录制相关
             const isRecording = ref(false);
             const mediaRecorder = ref(null);
@@ -163,7 +236,7 @@ try {
             }));
 
             // 工具函数：检查头像URL是否有效
-            const isValidAvatar = function(avatar) {
+            const isValidAvatar = function (avatar) {
                 return avatar && avatar !== 'null' && avatar !== 'none' && avatar !== '';
             };
 
@@ -296,7 +369,7 @@ try {
 
             // 模板引用（提前定义，供已读检测函数使用）
             const messagesContainer = ref(null);
-            
+
             // 消息列表（提前定义，供已读检测函数使用）
             const messages = ref([]);
 
@@ -306,23 +379,23 @@ try {
             // 标记指定消息为已读（通过WebSocket）
             const markMessagesAsRead = (messageIds) => {
                 if (!messageIds || messageIds.length === 0) return;
-                
+
                 // 过滤掉临时消息ID和已经标记过的消息
-                const validIds = messageIds.filter(function(id) {
+                const validIds = messageIds.filter(function (id) {
                     if (!id || id.toString().startsWith('temp_')) return false;
                     if (markedAsReadIds.value.has(id)) return false;
                     return true;
                 });
-                
+
                 if (validIds.length === 0) return;
-                
+
                 // 记录已标记的消息ID
-                validIds.forEach(function(id) {
+                validIds.forEach(function (id) {
                     markedAsReadIds.value.add(id);
                 });
-                
+
                 console.log('[已读] 标记消息已读:', validIds);
-                
+
                 // 通过WebSocket发送已读标记
                 if (wsClient.value && wsConnected.value) {
                     wsClient.value.send({
@@ -364,7 +437,7 @@ try {
                     if (markedAsReadIds.value.has(msgId) || markedAsReadIds.value.has(Number(msgId))) continue;
 
                     // 查找对应的消息数据
-                    const msg = messages.value.find(function(m) {
+                    const msg = messages.value.find(function (m) {
                         return m.id == msgId;
                     });
 
@@ -388,11 +461,11 @@ try {
             let scrollCheckTimer = null;
             const handleMessagesScroll = () => {
                 if (scrollCheckTimer) return;
-                
-                scrollCheckTimer = setTimeout(function() {
+
+                scrollCheckTimer = setTimeout(function () {
                     scrollCheckTimer = null;
                     checkAndMarkVisibleMessages();
-                    
+
                     // 如果用户滚动到底部，隐藏新消息提示
                     if (isUserAtBottom() && showNewMessageTip.value) {
                         showNewMessageTip.value = false;
@@ -514,12 +587,22 @@ try {
 
                             // 别人发送的消息，添加新消息
                             const msgType = data.message_type || 'normal';
+
+                            // 确定消息类型（支持字符串和数字）
+                            let normalizedType = 'text';
+                            if (msgType === 'image' || msgType === 2) normalizedType = 'image';
+                            else if (msgType === 'video' || msgType === 5) normalizedType = 'video';
+                            else if (msgType === 'file' || msgType === 3) normalizedType = 'file';
+                            else if (msgType === 'text' || msgType === 1 || msgType === 'normal') normalizedType = 'text';
+
                             const rawMsg = {
                                 id: data.message_id,
-                                type: msgType === 'image' ? 'image' : (msgType === 'text' ? 'text' : 1),
-                                text: msgType === 'image' ? '' : data.content,
+                                type: normalizedType,
+                                text: (normalizedType === 'image' || normalizedType === 'video' || normalizedType === 'file') ? '' : data.content,
                                 content: data.content,
-                                imageUrl: msgType === 'image' ? data.content : '',
+                                imageUrl: normalizedType === 'image' ? data.content : '',
+                                videoUrl: normalizedType === 'video' ? data.content : '',
+                                fileName: normalizedType === 'file' ? data.content : '',
                                 username: data.from_nickname,
                                 timestamp: new Date(),
                                 isOwn: isOwn,
@@ -550,10 +633,10 @@ try {
                                     showNewMessageTip.value = true;
                                     newMessageCount.value = (newMessageCount.value || 0) + 1;
                                 }
-                                
+
                                 // 如果是别人的消息，延迟检测可见性并标记已读
                                 if (!isOwn && document.visibilityState === 'visible') {
-                                    setTimeout(function() {
+                                    setTimeout(function () {
                                         checkAndMarkVisibleMessages();
                                     }, 100);
                                 }
@@ -644,10 +727,10 @@ try {
 
                         messages.value.forEach(function (msg) {
                             // 使用宽松比较，避免类型不匹配
-                            const msgIdMatches = messageIds.some(function(id) {
+                            const msgIdMatches = messageIds.some(function (id) {
                                 return id == msg.id;
                             });
-                            
+
                             if (msg.isOwn && msgIdMatches) {
                                 // 更新已读状态
                                 msg.isRead = true;
@@ -664,7 +747,7 @@ try {
                                 if (!exists && msg.readUsers.length < 5) {
                                     msg.readUsers.unshift(readerInfo);
                                 }
-                                
+
                                 console.log('[WebSocket] 更新消息已读状态:', msg.id, '已读人数:', msg.readCount);
                             }
                         });
@@ -784,7 +867,7 @@ try {
             // ========== 消息处理工具函数 ==========
 
             // 检测并解析文本中的URL
-            const detectUrls = function(text) {
+            const detectUrls = function (text) {
                 if (!text) return [];
 
                 const urlRegex = /(https?:\/\/[^\s]+)|(www\.[^\s]+)/gi;
@@ -807,7 +890,7 @@ try {
             };
 
             // 格式化文本中的链接为HTML（支持链接卡片）
-            const formatTextWithLinks = function(text, message) {
+            const formatTextWithLinks = function (text, message) {
                 if (!text) return '';
 
                 const urls = detectUrls(text);
@@ -817,7 +900,7 @@ try {
                 const urlCards = [];
 
                 // 为每个URL生成卡片HTML
-                urls.forEach(function(item, index) {
+                urls.forEach(function (item, index) {
                     const placeholder = '__URL_' + index + '__';
                     urlCards.push({
                         placeholder: placeholder,
@@ -837,15 +920,29 @@ try {
             };
 
             // 处理单条消息数据（提取公共逻辑，避免重复）
-            const processMessage = function(msg, isNewMessage, oldMessageIds) {
+            const processMessage = function (msg, isNewMessage, oldMessageIds) {
                 const isOwnMessage = msg.sender && msg.sender.id == currentUser.value.id;
                 const shouldShowNewAnimation = isNewMessage && !isOwnMessage && (!oldMessageIds || !oldMessageIds.has(msg.id));
+
+                // 消息类型映射：数字 -> 字符串
+                // 1=文本(text), 2=图片(image), 3=文件(file), 4=系统(system), 5=视频(video)
+                let messageType = msg.type;
+                if (typeof messageType === 'number') {
+                    const typeMap = {
+                        1: 'text',
+                        2: 'image',
+                        3: 'file',
+                        4: 'system',
+                        5: 'video'
+                    };
+                    messageType = typeMap[messageType] || 'text';
+                }
 
                 // iOS Safari 兼容性：避免扩展运算符
                 const processedMsg = {
                     id: msg.id,
                     content: msg.content,
-                    type: msg.type,
+                    type: messageType, // 使用转换后的字符串类型
                     timestamp: msg.timestamp,
                     sender: msg.sender,
                     isOwn: isOwnMessage,
@@ -864,8 +961,47 @@ try {
                 }
 
                 // 图片消息需要 imageUrl（从 content 字段获取）
-                if (msg.type === 'image' && msg.content) {
+                if (messageType === 'image' && msg.content) {
                     processedMsg.imageUrl = msg.content;
+                }
+
+                // 视频消息需要videoUrl和videoThumbnail（从file_info或content获取）
+                if (messageType === 'video') {
+                    if (msg.videoUrl) {
+                        processedMsg.videoUrl = msg.videoUrl;
+                    } else if (msg.content) {
+                        processedMsg.videoUrl = msg.content;
+                    }
+                    if (msg.videoThumbnail) {
+                        processedMsg.videoThumbnail = msg.videoThumbnail;
+                    }
+                    if (msg.videoDuration !== undefined) {
+                        processedMsg.videoDuration = msg.videoDuration;
+                    }
+                }
+
+                // 文件消息需要fileName、fileSize、fileExtension（从file_info或content获取）
+                if (messageType === 'file') {
+                    if (msg.fileName) {
+                        processedMsg.fileName = msg.fileName;
+                    } else if (msg.content) {
+                        processedMsg.fileName = msg.content;
+                    }
+                    if (msg.fileSize !== undefined) {
+                        processedMsg.fileSize = msg.fileSize;
+                    }
+                    if (msg.fileExtension) {
+                        processedMsg.fileExtension = msg.fileExtension;
+                    } else if (msg.content) {
+                        // 从文件名中提取扩展名
+                        const match = msg.content.match(/\.([^.]+)$/);
+                        if (match) {
+                            processedMsg.fileExtension = match[1];
+                        }
+                    }
+                    if (msg.fileUrl) {
+                        processedMsg.fileUrl = msg.fileUrl;
+                    }
                 }
 
                 // 复制其他所有属性（包括 text 等）
@@ -883,7 +1019,7 @@ try {
                             processedMsg.urlCards = urls;
                             // 处理文本，移除链接（将在模板中单独显示）
                             processedMsg.displayText = processedMsg.text;
-                            urls.forEach(function(item) {
+                            urls.forEach(function (item) {
                                 processedMsg.displayText = processedMsg.displayText.replace(item.original, '');
                             });
                             // 清理多余的空格和换行
@@ -901,7 +1037,7 @@ try {
             };
 
             // 批量处理消息
-            const processMessages = function(messagesArray, isNewMessage = false, oldMessageIds = null) {
+            const processMessages = function (messagesArray, isNewMessage = false, oldMessageIds = null) {
                 const result = [];
                 for (let i = 0; i < messagesArray.length; i++) {
                     result.push(processMessage(messagesArray[i], isNewMessage, oldMessageIds));
@@ -986,7 +1122,7 @@ try {
             const createRoom = async (newRoomName) => {
                 try {
                     showLoading('正在创建房间...');
-                    
+
                     const response = await apiRequest('/api/room/create', {
                         method: 'POST',
                         body: JSON.stringify({
@@ -1000,16 +1136,16 @@ try {
                     if (result.code === 0) {
                         const roomData = result.data;
                         const newRoomId = roomData.id;
-                        
+
                         console.log('[创建房间] 房间ID:', newRoomId);
-                        
+
                         if (!newRoomId) {
                             window.Toast.error('创建成功但无法获取房间ID');
                             // 刷新房间列表
                             await loadUserInfo();
                             return;
                         }
-                        
+
                         // 后端已自动加入房间，前端直接切换
                         roomName.value = newRoomName;
                         roomId.value = newRoomId;
@@ -1090,11 +1226,11 @@ try {
                     // 获取房间详情（包含owner_id）
                     const roomResponse = await apiRequest(`/api/room/${roomIdValue}`);
                     const roomResult = await roomResponse.json();
-                    
+
                     if (roomResult.code === 0 && roomResult.data) {
                         currentRoomOwnerId.value = roomResult.data.owner_id;
                     }
-                    
+
                     // 获取在线人数和群成员总数
                     const countResponse = await apiRequest(`/api/roomUser/count/${roomIdValue}`);
                     const countResult = await countResponse.json();
@@ -1216,7 +1352,7 @@ try {
                         }
 
                         // 检测可见消息（合并到一个 setTimeout）
-                        setTimeout(function() {
+                        setTimeout(function () {
                             checkAndMarkVisibleMessages();
                         }, 200);
                     }
@@ -1271,8 +1407,8 @@ try {
                             messages.value = processedMessages.concat(messages.value);
 
                             // DOM 更新后恢复滚动位置
-                            nextTick(function() {
-                                requestAnimationFrame(function() {
+                            nextTick(function () {
+                                requestAnimationFrame(function () {
                                     const scrollHeightAfter = container.scrollHeight;
                                     const heightDiff = scrollHeightAfter - scrollHeightBefore;
                                     container.scrollTop = scrollTopBefore + heightDiff;
@@ -1370,15 +1506,8 @@ try {
                             delete messageSendStatus.value[tempId];
                             messageSendStatus.value[result.data.id] = 'success';
 
-                            // 通过 WebSocket 广播通知其他用户
-                            if (wsClient.value && wsClient.value.isConnected) {
-                                wsClient.value.send({
-                                    type: 'message',
-                                    message_id: result.data.id,
-                                    message_type: 'text',
-                                    content: messageText
-                                });
-                            }
+                            // 通过 WebSocket 广播通知其他用户（使用统一函数）
+                            broadcastMessageViaWebSocket(result.data.id, 'text', messageText);
                         }
                     } else {
                         messageSendStatus.value[tempId] = 'failed';
@@ -1416,22 +1545,85 @@ try {
 
             const selectVideo = () => {
                 hideAttachPanel();
-                // 暂时提示功能开发中
-                window.Toast.info('视频上传功能开发中');
+                fileInput.value.accept = 'video/*';
+                fileInput.value.click();
             };
 
             const selectFile = () => {
                 hideAttachPanel();
-                // 暂时提示功能开发中
-                window.Toast.info('文件上传功能开发中');
+                fileInput.value.accept = '*/*';
+                fileInput.value.click();
             };
 
-            const handleFileSelect = (event) => {
+            const handleFileSelect = async (event) => {
                 const file = event.target.files[0];
                 if (!file) return;
-                // 暂时提示功能开发中
-                window.Toast.info('文件上传功能开发中');
-                event.target.value = '';
+
+                if (!roomId.value) {
+                    window.Toast.error('请先加入房间');
+                    event.target.value = '';
+                    return;
+                }
+
+                if (isSending.value) return; // 防止重复发送
+
+                // 检测文件类型
+                const fileType = FileValidator.detectFileType(file);
+
+                // 创建临时消息（根据文件类型）
+                let tempMessage = {
+                    isOwn: true,
+                    time: new Date().toISOString(),
+                    isNew: true,
+                    sender: {
+                        id: currentUser.value.id,
+                        nickname: currentUser.value.nick_name,
+                        avatar: currentUser.value.avatar
+                    }
+                };
+
+                // 根据文件类型创建不同的临时消息
+                if (fileType === 'image') {
+                    // 图片预览
+                    const previewUrl = URL.createObjectURL(file);
+                    tempMessage.type = 'image';
+                    tempMessage.imageUrl = previewUrl;
+                } else if (fileType === 'video') {
+                    // 视频预览
+                    const previewUrl = URL.createObjectURL(file);
+                    tempMessage.type = 'video';
+                    tempMessage.videoUrl = previewUrl;
+                    tempMessage.videoThumbnail = previewUrl;
+                    tempMessage.videoDuration = 0;
+                } else {
+                    // 文件消息
+                    tempMessage.type = 'file';
+                    tempMessage.fileName = file.name;
+                    tempMessage.fileSize = file.size;
+                    tempMessage.fileExtension = file.name.split('.').pop();
+                }
+
+                try {
+                    // 清空文件输入
+                    event.target.value = '';
+
+                    // 使用UploadManager上传（不在这里添加消息，让onSuccess回调处理）
+                    const result = await uploadManager.upload(file, fileType, {
+                        roomId: roomId.value,
+                        token: currentUser.value.token,
+                        userInfo: {
+                            id: currentUser.value.id,
+                            nick_name: currentUser.value.nick_name,
+                            avatar: currentUser.value.avatar
+                        }
+                    });
+
+                    // 上传成功后，onSuccess回调已经处理了消息更新
+
+                } catch (error) {
+                    console.error('[上传] 失败:', error);
+                    window.Toast.error(error.message || '上传失败，请重试');
+                }
             };
 
             const clearRoomMessagesFromPanel = () => {
@@ -1497,7 +1689,7 @@ try {
 
                 try {
                     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    
+
                     // 检查MediaRecorder支持
                     if (!window.MediaRecorder) {
                         window.Toast.error('您的浏览器不支持录音功能');
@@ -1581,7 +1773,7 @@ try {
 
                         // 创建音频Blob
                         const audioBlob = new Blob(audioChunks.value, { type: mediaRecorder.value.mimeType });
-                        
+
                         // 发送语音消息
                         await sendVoiceMessage(audioBlob, duration);
                         resolve();
@@ -1613,7 +1805,7 @@ try {
                 }
 
                 const tempId = 'temp_voice_' + Date.now();
-                
+
                 // 创建FormData上传
                 const formData = new FormData();
                 formData.append('file', audioBlob, 'voice.webm');
@@ -1622,7 +1814,7 @@ try {
 
                 try {
                     window.Toast.info('正在发送语音...');
-                    
+
                     const response = await fetch('/api/message/sendVoice', {
                         method: 'POST',
                         body: formData,
@@ -1637,7 +1829,7 @@ try {
                     }
 
                     const result = await response.json();
-                    
+
                     if (result.code === 0) {
                         window.Toast.success('语音发送成功');
                         // 刷新消息列表
@@ -1719,7 +1911,7 @@ try {
 
                 messages.value.push(newMsg);
                 messageSendStatus.value[tempId] = 'sending';
-                
+
                 // 初始化上传进度
                 uploadProgress.value[tempId] = 0;
 
@@ -1751,7 +1943,7 @@ try {
                 });
 
                 // 清理进度的辅助函数 - 平滑过渡到100%
-                const cleanupProgress = function(msgId, newMsgId) {
+                const cleanupProgress = function (msgId, newMsgId) {
                     // 停止模拟进度定时器
                     if (uploadProgressTimers.value[msgId]) {
                         clearInterval(uploadProgressTimers.value[msgId]);
@@ -1810,7 +2002,7 @@ try {
                     if (result.code === 0 && result.data) {
                         // 发送成功，清理进度
                         cleanupProgress(tempId, result.data.id);
-                        
+
                         // 更新消息ID和真实图片URL
                         const msgIndex = messages.value.findIndex(function (m) { return m.id === tempId; });
                         if (msgIndex > -1) {
@@ -1819,14 +2011,14 @@ try {
                             // 预加载服务器返回的图片URL，避免切换时闪动
                             const serverImageUrl = result.data.imageUrl;
                             const preloadImg = new Image();
-                            preloadImg.onload = function() {
+                            preloadImg.onload = function () {
                                 // 图片加载完成后再更新URL，避免闪动
                                 const idx = messages.value.findIndex(function (m) { return m.id === result.data.id; });
                                 if (idx > -1) {
                                     messages.value[idx].imageUrl = serverImageUrl;
                                 }
                             };
-                            preloadImg.onerror = function() {
+                            preloadImg.onerror = function () {
                                 // 加载失败也更新，使用服务器URL
                                 const idx = messages.value.findIndex(function (m) { return m.id === result.data.id; });
                                 if (idx > -1) {
@@ -1846,15 +2038,8 @@ try {
                             delete messageSendStatus.value[tempId];
                             messageSendStatus.value[result.data.id] = 'success';
 
-                            // 通过 WebSocket 通知其他用户有新图片消息
-                            if (wsClient.value && wsClient.value.isConnected) {
-                                wsClient.value.send({
-                                    type: 'message',
-                                    message_id: result.data.id,
-                                    message_type: 'image',
-                                    content: result.data.imageUrl
-                                });
-                            }
+                            // 通过 WebSocket 通知其他用户有新图片消息（使用统一函数）
+                            broadcastMessageViaWebSocket(result.data.id, 'image', result.data.imageUrl);
                         }
                     } else {
                         // 发送失败，清理进度
@@ -1875,7 +2060,7 @@ try {
                 }
             };
 
-            const scrollToBottom = function() {
+            const scrollToBottom = function () {
                 const container = messagesContainer.value;
                 if (container) {
                     container.scrollTop = container.scrollHeight;
@@ -1883,14 +2068,14 @@ try {
             };
 
             // 检查容器是否有滚动条（内容是否超出可视区域）
-            const hasScrollbar = function() {
+            const hasScrollbar = function () {
                 const container = messagesContainer.value;
                 if (!container) return false;
                 return container.scrollHeight > container.clientHeight;
             };
 
             // 检查用户是否在底部（距离底部50px以内算在底部）
-            const isUserAtBottom = function() {
+            const isUserAtBottom = function () {
                 const container = messagesContainer.value;
                 if (!container) return false;
 
@@ -1900,14 +2085,14 @@ try {
             };
 
             // 滚动到底部并隐藏提示
-            const scrollToBottomAndHideTip = function() {
+            const scrollToBottomAndHideTip = function () {
                 scrollToBottom();
                 showNewMessageTip.value = false;
                 newMessageCount.value = 0;
             };
 
             // 处理粘贴事件
-            const handlePaste = function(e) {
+            const handlePaste = function (e) {
                 // 检查是否有图片数据 - iOS Safari 兼容性
                 const items = e.clipboardData && e.clipboardData.items;
                 if (!items) return;
@@ -1926,10 +2111,10 @@ try {
 
                             // 生成预览
                             const reader = new FileReader();
-                            reader.onload = function(evt) {
+                            reader.onload = function (evt) {
                                 imagePreview.value = evt.target.result;
                             };
-                            reader.onerror = function() {
+                            reader.onerror = function () {
                                 window.Toast.error('读取图片失败！');
                             };
                             reader.readAsDataURL(file);
@@ -1940,7 +2125,7 @@ try {
             };
 
             // 切换房间
-            const switchRoom = async function(room) {
+            const switchRoom = async function (room) {
                 messagesLoading.value = true; // 立即显示loading
 
                 roomName.value = room.name;
@@ -2244,9 +2429,9 @@ try {
                             // 立即刷新一次获取最新消息
                             loadRoomMessages(roomId.value, false, false);
                         }
-                        
+
                         // 页面重新可见时，检测并标记可见区域内的未读消息
-                        setTimeout(function() {
+                        setTimeout(function () {
                             checkAndMarkVisibleMessages();
                         }, 200);
                     }
@@ -2389,7 +2574,7 @@ try {
             };
 
             // 格式化URL显示（保留完整链接）
-            const formatUrl = function(url) {
+            const formatUrl = function (url) {
                 if (!url) return '';
                 // 直接返回完整URL
                 return url;
@@ -2401,6 +2586,136 @@ try {
                 const sizes = ['B', 'KB', 'MB', 'GB'];
                 const i = Math.floor(Math.log(bytes) / Math.log(k));
                 return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            };
+
+            // 格式化视频时长（秒 -> MM:SS 或 HH:MM:SS）
+            const formatDuration = (seconds) => {
+                if (!seconds || seconds < 0) return '0:00';
+                const hours = Math.floor(seconds / 3600);
+                const minutes = Math.floor((seconds % 3600) / 60);
+                const secs = Math.floor(seconds % 60);
+
+                if (hours > 0) {
+                    return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                }
+                return `${minutes}:${secs.toString().padStart(2, '0')}`;
+            };
+
+            // 获取文件图标（根据文件扩展名）
+            const getFileIcon = (fileNameOrExtension) => {
+                const ext = (fileNameOrExtension || '').toString().toLowerCase().replace('.', '').split('.').pop();
+                const iconMap = {
+                    // 图片
+                    'jpg': 'fas fa-file-image', 'jpeg': 'fas fa-file-image', 'png': 'fas fa-file-image',
+                    'gif': 'fas fa-file-image', 'webp': 'fas fa-file-image', 'svg': 'fas fa-file-image',
+                    'bmp': 'fas fa-file-image', 'ico': 'fas fa-file-image', 'tiff': 'fas fa-file-image',
+                    'psd': 'fas fa-file-image', 'ai': 'fas fa-file-image', 'eps': 'fas fa-file-image',
+                    // 视频
+                    'mp4': 'fas fa-file-video', 'webm': 'fas fa-file-video', 'ogg': 'fas fa-file-video',
+                    'mov': 'fas fa-file-video', 'avi': 'fas fa-file-video', 'mkv': 'fas fa-file-video',
+                    'flv': 'fas fa-file-video', 'wmv': 'fas fa-file-video', 'm4v': 'fas fa-file-video',
+                    '3gp': 'fas fa-file-video', 'ts': 'fas fa-file-video', 'mts': 'fas fa-file-video',
+                    // 音频
+                    'mp3': 'fas fa-file-audio', 'wav': 'fas fa-file-audio', 'ogg': 'fas fa-file-audio',
+                    'flac': 'fas fa-file-audio', 'aac': 'fas fa-file-audio', 'm4a': 'fas fa-file-audio',
+                    'wma': 'fas fa-file-audio', 'opus': 'fas fa-file-audio',
+                    // 文档
+                    'pdf': 'fas fa-file-pdf', 'doc': 'fas fa-file-word', 'docx': 'fas fa-file-word',
+                    'xls': 'fas fa-file-excel', 'xlsx': 'fas fa-file-excel', 'ppt': 'fas fa-file-powerpoint',
+                    'pptx': 'fas fa-file-powerpoint', 'txt': 'fas fa-file-alt', 'md': 'fas fa-file-alt',
+                    'rtf': 'fas fa-file-alt', 'odt': 'fas fa-file-word', 'ods': 'fas fa-file-excel',
+                    'odp': 'fas fa-file-powerpoint', 'csv': 'fas fa-file-csv',
+                    // 压缩包
+                    'zip': 'fas fa-file-archive', 'rar': 'fas fa-file-archive', '7z': 'fas fa-file-archive',
+                    'tar': 'fas fa-file-archive', 'gz': 'fas fa-file-archive', 'bz2': 'fas fa-file-archive',
+                    'xz': 'fas fa-file-archive', 'cab': 'fas fa-file-archive', 'iso': 'fas fa-file-archive',
+                    // 代码
+                    'js': 'fas fa-file-code', 'ts': 'fas fa-file-code', 'html': 'fas fa-file-code',
+                    'css': 'fas fa-file-code', 'json': 'fas fa-file-code', 'xml': 'fas fa-file-code',
+                    'py': 'fas fa-file-code', 'java': 'fas fa-file-code', 'php': 'fas fa-file-code',
+                    'cpp': 'fas fa-file-code', 'c': 'fas fa-file-code', 'h': 'fas fa-file-code',
+                    'go': 'fas fa-file-code', 'rs': 'fas fa-file-code', 'swift': 'fas fa-file-code',
+                    'kt': 'fas fa-file-code', 'dart': 'fas fa-file-code', 'vue': 'fas fa-file-code',
+                    'jsx': 'fas fa-file-code', 'tsx': 'fas fa-file-code', 'sql': 'fas fa-file-code',
+                    'sh': 'fas fa-file-code', 'bash': 'fas fa-file-code', 'yml': 'fas fa-file-code',
+                    'yaml': 'fas fa-file-code', 'toml': 'fas fa-file-code', 'ini': 'fas fa-file-code',
+                    'conf': 'fas fa-file-code', 'cfg': 'fas fa-file-code', 'rb': 'fas fa-file-code',
+                    'pl': 'fas fa-file-code', 'scala': 'fas fa-file-code', 'r': 'fas fa-file-code',
+                    'm': 'fas fa-file-code', 'mm': 'fas fa-file-code', 'swift': 'fas fa-file-code',
+                    // 可执行文件
+                    'exe': 'fas fa-file', 'msi': 'fas fa-file', 'app': 'fas fa-file',
+                    'dmg': 'fas fa-file', 'deb': 'fas fa-file', 'rpm': 'fas fa-file',
+                    'apk': 'fas fa-file', 'ipa': 'fas fa-file', 'bin': 'fas fa-file',
+                    'elf': 'fas fa-file', 'so': 'fas fa-file', 'dll': 'fas fa-file',
+                    'sys': 'fas fa-file', 'drv': 'fas fa-file',
+                    // 数据库
+                    'db': 'fas fa-database', 'sqlite': 'fas fa-database', 'mdb': 'fas fa-database',
+                    'accdb': 'fas fa-database',
+                    // 其他常见格式
+                    'key': 'fas fa-key', 'pem': 'fas fa-key', 'cert': 'fas fa-certificate',
+                    'torrent': 'fas fa-download', 'jar': 'fas fa-file-archive'
+                };
+                return iconMap[ext] || 'fas fa-file';
+            };
+
+            // 获取文件图标CSS类（用于着色）
+            const getFileIconClass = (fileNameOrExtension) => {
+                const ext = (fileNameOrExtension || '').toString().toLowerCase().replace('.', '').split('.').pop();
+
+                if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico', 'tiff', 'psd', 'ai', 'eps'].includes(ext)) {
+                    return 'image';
+                }
+                if (['mp4', 'webm', 'ogg', 'mov', 'avi', 'mkv', 'flv', 'wmv', 'm4v', '3gp', 'ts', 'mts'].includes(ext)) {
+                    return 'video';
+                }
+                if (['mp3', 'wav', 'flac', 'aac', 'm4a', 'wma', 'opus'].includes(ext)) {
+                    return 'audio';
+                }
+                if (['zip', 'rar', '7z', 'tar', 'gz', 'bz2', 'xz', 'cab', 'iso', 'jar'].includes(ext)) {
+                    return 'archive';
+                }
+                if (['js', 'ts', 'html', 'css', 'json', 'py', 'java', 'php', 'cpp', 'go', 'vue', 'jsx', 'tsx',
+                    'sh', 'bash', 'yml', 'yaml', 'toml', 'ini', 'conf', 'cfg', 'rb', 'pl', 'scala', 'r'].includes(ext)) {
+                    return 'code';
+                }
+                if (['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'md', 'rtf', 'odt', 'ods', 'odp', 'csv'].includes(ext)) {
+                    return 'document';
+                }
+                if (['exe', 'msi', 'app', 'dmg', 'deb', 'rpm', 'apk', 'ipa', 'bin', 'elf', 'so', 'dll', 'sys', 'drv'].includes(ext)) {
+                    return 'default';
+                }
+                if (['db', 'sqlite', 'mdb', 'accdb'].includes(ext)) {
+                    return 'document';
+                }
+                return 'default';
+            };
+
+            // 处理视频点击（播放视频）
+            const handleVideoClick = (videoUrl) => {
+                if (!videoUrl) return;
+                // 可以扩展为打开视频播放器模态框
+                window.open(videoUrl, '_blank');
+            };
+
+            // 统一的WebSocket消息广播函数
+            const broadcastMessageViaWebSocket = (messageId, messageType, content) => {
+                if (!wsClient.value || !wsClient.value.isConnected || !messageId) {
+                    return;
+                }
+
+                // 确定message_type（字符串格式）
+                let wsMessageType = 'text';
+                if (messageType === 'image' || messageType === 2) wsMessageType = 'image';
+                else if (messageType === 'video' || messageType === 5) wsMessageType = 'video';
+                else if (messageType === 'file' || messageType === 3) wsMessageType = 'file';
+                else if (messageType === 'text' || messageType === 1 || messageType === 'normal') wsMessageType = 'text';
+
+                wsClient.value.send({
+                    type: 'message',
+                    message_id: messageId,
+                    message_type: wsMessageType,
+                    content: content || ''
+                });
             };
 
             // 显示功能开发中提示
@@ -2494,7 +2809,7 @@ try {
                 const ADMIN_ID = 3306;
                 const userId = currentUser.value.id;
                 const ownerId = currentRoomOwnerId.value;
-                
+
                 // 管理员或房主可以清理
                 return userId == ADMIN_ID || (ownerId && userId == ownerId);
             });
@@ -2579,23 +2894,23 @@ try {
                     },
                     credentials: 'include'
                 })
-                .then(response => response.json())
-                .then(result => {
-                    if (result.code === 0 && result.data.profile) {
-                        const profile = result.data.profile;
-                        // 更新全局用户状态
-                        Object.assign(currentUser.value, {
-                            id: profile.id,
-                            nick_name: profile.nickname,
-                            avatar: profile.avatar
-                        });
-                        username.value = profile.nickname;
-                        console.log('[init] 从服务器获取最新用户信息成功');
-                    }
-                })
-                .catch(error => {
-                    console.error('[init] 获取用户信息失败:', error);
-                });
+                    .then(response => response.json())
+                    .then(result => {
+                        if (result.code === 0 && result.data.profile) {
+                            const profile = result.data.profile;
+                            // 更新全局用户状态
+                            Object.assign(currentUser.value, {
+                                id: profile.id,
+                                nick_name: profile.nickname,
+                                avatar: profile.avatar
+                            });
+                            username.value = profile.nickname;
+                            console.log('[init] 从服务器获取最新用户信息成功');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('[init] 获取用户信息失败:', error);
+                    });
 
                 // 加载表情数据
                 fetch('/static/js/emoji-data.json')
@@ -2618,7 +2933,7 @@ try {
 
                     // WebSocket 连接需要时间，延迟检查是否需要启动轮询
                     // 如果3秒后 WebSocket 还没连接成功，才启动轮询
-                    setTimeout(function() {
+                    setTimeout(function () {
                         if (autoRefresh.value && roomId.value && !wsConnected.value) {
                             console.log('[轮询] WebSocket未连接，启动轮询');
                             startAutoRefresh();
@@ -2679,7 +2994,7 @@ try {
                 document.addEventListener('visibilitychange', handleVisibilityChange);
 
                 // 监听消息容器滚动事件，检测可见消息并标记已读
-                nextTick(function() {
+                nextTick(function () {
                     const container = messagesContainer.value;
                     if (container) {
                         container.addEventListener('scroll', handleMessagesScroll);
@@ -2758,6 +3073,11 @@ try {
                 formatTime,
                 formatUrl,
                 formatFileSize,
+                formatDuration,
+                getFileIcon,
+                getFileIconClass,
+                handleVideoClick,
+                broadcastMessageViaWebSocket,
                 // 加入房间功能
                 loadUserInfo,
                 showJoinRoomDialog,

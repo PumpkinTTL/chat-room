@@ -116,6 +116,92 @@ class Message
     }
 
     /**
+     * 发送视频消息
+     * @param Request $request
+     * @return Response
+     */
+    public function sendVideo(Request $request)
+    {
+        $roomId = $request->param('room_id');
+        $file = $request->file('video');
+
+        $userId = $request->userId; // 从中间件获取
+
+        // 验证参数
+        $validate = Validate::rule([
+            'room_id' => 'require|integer|min:1',
+        ]);
+
+        if (!$validate->check(['room_id' => $roomId])) {
+            return json(['code' => 1, 'msg' => $validate->getError()], 400);
+        }
+
+        // 检查文件
+        if (!$file) {
+            return json(['code' => 1, 'msg' => '请选择视频文件'], 400);
+        }
+
+        try {
+            // 上传视频
+            $uploadResult = UploadService::uploadVideo($file);
+            if ($uploadResult['code'] !== 0) {
+                return json($uploadResult, 400);
+            }
+
+            // 发送消息
+            $result = MessageService::sendVideoMessage($roomId, $userId, $uploadResult['data']);
+            $code = $result['code'] === 0 ? 200 : 400;
+
+            return json($result, $code);
+        } catch (\Exception $e) {
+            return json(['code' => 1, 'msg' => '上传失败：' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * 发送文件消息
+     * @param Request $request
+     * @return Response
+     */
+    public function sendFile(Request $request)
+    {
+        $roomId = $request->param('room_id');
+        $file = $request->file('file');
+
+        $userId = $request->userId; // 从中间件获取
+
+        // 验证参数
+        $validate = Validate::rule([
+            'room_id' => 'require|integer|min:1',
+        ]);
+
+        if (!$validate->check(['room_id' => $roomId])) {
+            return json(['code' => 1, 'msg' => $validate->getError()], 400);
+        }
+
+        // 检查文件
+        if (!$file) {
+            return json(['code' => 1, 'msg' => '请选择文件'], 400);
+        }
+
+        try {
+            // 上传文件
+            $uploadResult = UploadService::uploadDocument($file);
+            if ($uploadResult['code'] !== 0) {
+                return json($uploadResult, 400);
+            }
+
+            // 发送消息
+            $result = MessageService::sendFileMessage($roomId, $userId, $uploadResult['data']);
+            $code = $result['code'] === 0 ? 200 : 400;
+
+            return json($result, $code);
+        } catch (\Exception $e) {
+            return json(['code' => 1, 'msg' => '上传失败：' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
      * 撤回消息
      * @param Request $request
      * @return Response
