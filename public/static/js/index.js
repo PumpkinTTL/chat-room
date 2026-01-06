@@ -382,6 +382,12 @@ try {
                 scrollCheckTimer = setTimeout(function() {
                     scrollCheckTimer = null;
                     checkAndMarkVisibleMessages();
+                    
+                    // 如果用户滚动到底部，隐藏新消息提示
+                    if (isUserAtBottom() && showNewMessageTip.value) {
+                        showNewMessageTip.value = false;
+                        newMessageCount.value = 0;
+                    }
                 }, 200); // 200ms节流
             };
 
@@ -2138,8 +2144,8 @@ try {
                 } else {
                     // 页面重新可见时
                     if (roomId.value) {
-                        // 如果开启了自动刷新则重启
-                        if (autoRefresh.value) {
+                        // 如果开启了自动刷新且 WebSocket 未连接，则重启轮询
+                        if (autoRefresh.value && !wsConnected.value) {
                             startAutoRefresh();
                             // 立即刷新一次获取最新消息
                             loadRoomMessages(roomId.value, false, false);
@@ -2517,10 +2523,14 @@ try {
                     // 初始化 WebSocket
                     initWebSocket();
 
-                    // 加载用户信息后启动自动刷新（如果 WebSocket 未连接）
-                    if (autoRefresh.value && roomId.value && !wsConnected.value) {
-                        startAutoRefresh();
-                    }
+                    // WebSocket 连接需要时间，延迟检查是否需要启动轮询
+                    // 如果3秒后 WebSocket 还没连接成功，才启动轮询
+                    setTimeout(function() {
+                        if (autoRefresh.value && roomId.value && !wsConnected.value) {
+                            console.log('[轮询] WebSocket未连接，启动轮询');
+                            startAutoRefresh();
+                        }
+                    }, 3000);
                 });
 
                 nextTick(() => {

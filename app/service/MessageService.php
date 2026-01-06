@@ -180,9 +180,19 @@ class MessageService
                 $messages = $query->select()->toArray();
                 // 增量消息需要按时间正序
                 $messages = array_reverse($messages);
+                $hasMore = false; // 增量消息不需要分页
             } else {
-                // 分页获取历史消息
-                $messages = $query->page($page, $limit)->select()->toArray();
+                // 分页获取历史消息，多查一条用于判断是否还有更多
+                $messages = $query->page($page, $limit + 1)->select()->toArray();
+                
+                // 判断是否还有更多
+                $hasMore = count($messages) > $limit;
+                
+                // 如果超过limit条，去掉最后一条
+                if ($hasMore) {
+                    array_pop($messages);
+                }
+                
                 // 历史消息需要按时间正序
                 $messages = array_reverse($messages);
             }
@@ -264,7 +274,7 @@ class MessageService
                 'msg'  => '获取成功',
                 'data' => [
                     'messages' => $formattedMessages,
-                    'has_more' => count($formattedMessages) >= $limit,
+                    'has_more' => $hasMore,
                 ]
             ];
 

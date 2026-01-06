@@ -2605,17 +2605,18 @@ button:disabled {
 }
 
 
-/* ==================== 新消息提�?==================== */
+/* ==================== 新消息提示 ==================== */
 .new-message-tip {
     position: absolute;
     bottom: 80px;
     left: 50%;
     transform: translateX(-50%);
-    background: var(--blue-600);
-    color: white;
+    background: rgba(255, 255, 255, 0.95);
+    color: var(--primary-color);
     padding: 8px 16px;
     border-radius: 20px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border: 1px solid var(--primary-color);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -2624,12 +2625,14 @@ button:disabled {
     font-weight: 500;
     z-index: 100;
     transition: all 0.3s ease;
+    backdrop-filter: blur(8px);
 }
 
 .new-message-tip:hover {
-    background: var(--blue-700);
+    background: var(--primary-color);
+    color: white;
     transform: translateX(-50%) translateY(-2px);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.3);
 }
 
 .new-message-tip i {
@@ -2651,11 +2654,15 @@ button:disabled {
 
 /* 暗黑模式 */
 .dark-mode .new-message-tip {
-    background: var(--blue-500);
+    background: rgba(30, 41, 59, 0.95);
+    color: #60a5fa;
+    border-color: #60a5fa;
 }
 
 .dark-mode .new-message-tip:hover {
-    background: var(--blue-600);
+    background: #3b82f6;
+    color: white;
+    border-color: #3b82f6;
 }
 
 /* 滑入滑出动画 */
