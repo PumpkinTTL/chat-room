@@ -273,7 +273,7 @@ class Message
     }
 
     /**
-     * 清理房间所有消息（仅限房间ID 3306）
+     * 清理房间所有消息（房主或管理员可用）
      * @param Request $request
      * @return Response
      */

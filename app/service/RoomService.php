@@ -64,7 +64,7 @@ class RoomService
         
         try {
             // 使用Db直接插入
-            Db::name('rooms')->insert([
+            Db::name('ch_rooms')->insert([
                 'id' => $roomId,
                 'name' => $data['name'],
                 'description' => $data['description'] ?? '',

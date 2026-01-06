@@ -184,10 +184,20 @@ try {
             // 表情相关方法
             const toggleEmojiPicker = () => {
                 showEmojiPicker.value = !showEmojiPicker.value;
+                // 关闭附件面板
+                if (showEmojiPicker.value) {
+                    showAttachPanel.value = false;
+                }
             };
 
             const hideEmojiPicker = () => {
                 showEmojiPicker.value = false;
+            };
+
+            // 隐藏所有弹出面板
+            const hideAllPanels = () => {
+                showEmojiPicker.value = false;
+                showAttachPanel.value = false;
             };
 
             const insertEmoji = (emoji) => {
@@ -1077,6 +1087,14 @@ try {
             // 获取房间信息
             const getRoomInfo = async (roomIdValue) => {
                 try {
+                    // 获取房间详情（包含owner_id）
+                    const roomResponse = await apiRequest(`/api/room/${roomIdValue}`);
+                    const roomResult = await roomResponse.json();
+                    
+                    if (roomResult.code === 0 && roomResult.data) {
+                        currentRoomOwnerId.value = roomResult.data.owner_id;
+                    }
+                    
                     // 获取在线人数和群成员总数
                     const countResponse = await apiRequest(`/api/roomUser/count/${roomIdValue}`);
                     const countResult = await countResponse.json();
@@ -1108,8 +1126,11 @@ try {
             // 聊天数据
             const onlineUsers = ref(0);      // 实时在线人数（Redis）
             const totalUsers = ref(0);       // 群成员总数（SQL）
+            const currentRoomOwnerId = ref(null); // 当前房间的房主ID
             const onlineUsersList = ref([]);
             const roomList = ref([]);
+            const contactList = ref([]);     // 联系人列表
+            const activeTab = ref('rooms');  // 当前激活的标签: 'contacts' 或 'rooms'，默认选中群聊
             // messages 已在前面定义
 
             const newMessage = ref('');
@@ -1370,6 +1391,52 @@ try {
                 } finally {
                     isSending.value = false;
                 }
+            };
+
+            // ========== 附件面板相关 ==========
+            const showAttachPanel = ref(false);
+            const fileInput = ref(null);
+
+            const toggleAttachPanel = () => {
+                showAttachPanel.value = !showAttachPanel.value;
+                // 关闭其他面板
+                if (showAttachPanel.value) {
+                    showEmojiPicker.value = false;
+                }
+            };
+
+            const hideAttachPanel = () => {
+                showAttachPanel.value = false;
+            };
+
+            const selectImage = () => {
+                hideAttachPanel();
+                imageInput.value.click();
+            };
+
+            const selectVideo = () => {
+                hideAttachPanel();
+                // 暂时提示功能开发中
+                window.Toast.info('视频上传功能开发中');
+            };
+
+            const selectFile = () => {
+                hideAttachPanel();
+                // 暂时提示功能开发中
+                window.Toast.info('文件上传功能开发中');
+            };
+
+            const handleFileSelect = (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+                // 暂时提示功能开发中
+                window.Toast.info('文件上传功能开发中');
+                event.target.value = '';
+            };
+
+            const clearRoomMessagesFromPanel = () => {
+                hideAttachPanel();
+                clearRoomMessages();
             };
 
             const triggerImageUpload = () => {
@@ -2085,6 +2152,33 @@ try {
                 sidebarOpen.value = !sidebarOpen.value;
             };
 
+            // 切换标签（联系人/群聊）
+            const switchTab = (tab) => {
+                activeTab.value = tab;
+                if (tab === 'contacts') {
+                    loadContactList();
+                }
+            };
+
+            // 加载联系人列表
+            const loadContactList = async () => {
+                try {
+                    const response = await apiRequest('/api/contact/list');
+                    const result = await response.json();
+                    if (result.code === 0) {
+                        contactList.value = result.data.contacts || [];
+                    }
+                } catch (error) {
+                    console.error('[loadContactList] 加载联系人列表失败:', error);
+                }
+            };
+
+            // 显示添加联系人对话框
+            const showAddContactDialog = () => {
+                // TODO: 实现添加联系人对话框
+                window.Toast?.info('添加联系人功能开发中...');
+            };
+
             const toggleTheme = () => {
                 isDarkMode.value = !isDarkMode.value;
                 // 手动操作DOM class（因为Vue的:class绑定不生效）
@@ -2349,21 +2443,15 @@ try {
                 }
             };
 
-            // 清理房间所有消息（仅房间ID 3306可用）
+            // 清理房间所有消息（房主或管理员可用）
             const clearRoomMessages = async () => {
                 if (!roomId.value) {
                     window.Toast.error('请先加入房间');
                     return;
                 }
 
-                // 只允许房间ID为3306
-                if (roomId.value != 3306) {
-                    window.Toast.error('只有房间ID为3306的房间才允许清理');
-                    return;
-                }
-
                 // 使用 confirm 对话框确认
-                const confirmed = confirm('警告：此操作将物理删除房间3306的所有消息和上传的图片文件！\n\n此操作不可恢复，确定要继续吗？');
+                const confirmed = confirm('警告：此操作将物理删除房间的所有消息和上传的图片文件！\n\n此操作不可恢复，确定要继续吗？');
                 if (!confirmed) {
                     return;
                 }
@@ -2372,7 +2460,7 @@ try {
                     globalLoading.value = true;
                     loadingText.value = '正在清理...';
 
-                    // 调用后端API清理房间消息
+                    // 调用后端API清理房间消息（后端会验证权限）
                     const response = await apiRequest('/api/message/clearRoom', {
                         method: 'POST',
                         body: JSON.stringify({
@@ -2401,9 +2489,14 @@ try {
                 }
             };
 
-            // 计算属性：是否显示清理按钮（仅房间3306）
+            // 计算属性：是否显示清理按钮（房主或管理员3306）
             const canClearRoom = computed(() => {
-                return roomId.value == 3306;
+                const ADMIN_ID = 3306;
+                const userId = currentUser.value.id;
+                const ownerId = currentRoomOwnerId.value;
+                
+                // 管理员或房主可以清理
+                return userId == ADMIN_ID || (ownerId && userId == ownerId);
             });
 
             // 退出登录
@@ -2613,17 +2706,30 @@ try {
                 selectedImageFile,
                 onlineUsers,
                 totalUsers,
+                currentRoomOwnerId,
                 onlineUsersList,
                 roomList,
+                contactList,
+                activeTab,
                 messages,
                 newMessage,
                 messagesContainer,
                 imageInput,
+                fileInput,
                 sendMessage,
                 triggerImageUpload,
                 handleImageSelect,
+                handleFileSelect,
                 clearImagePreview,
                 sendImageMessage,
+                // 附件面板
+                showAttachPanel,
+                toggleAttachPanel,
+                hideAttachPanel,
+                selectImage,
+                selectVideo,
+                selectFile,
+                clearRoomMessagesFromPanel,
                 scrollToBottom,
                 switchRoom,
                 handleImageClick,
@@ -2641,6 +2747,9 @@ try {
                 handleMouseUp,
                 handleWheel,
                 toggleSidebar,
+                switchTab,
+                showAddContactDialog,
+                loadContactList,
                 toggleTheme,
                 toggleAutoRefresh,
                 startAutoRefresh,
@@ -2678,6 +2787,7 @@ try {
                 // 表情相关
                 toggleEmojiPicker,
                 hideEmojiPicker,
+                hideAllPanels,
                 insertEmoji,
                 // 更多面板
                 showMorePanel,

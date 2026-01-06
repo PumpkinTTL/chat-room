@@ -433,9 +433,21 @@ class MessageService
             return ['code' => 1, 'msg' => '参数错误'];
         }
 
-        // 只允许房间ID为3306的清理操作
-        if ($roomId != 3306) {
-            return ['code' => 1, 'msg' => '只有房间ID为3306的房间才允许清理'];
+        // 管理员ID
+        $ADMIN_ID = 3306;
+        
+        // 获取房间信息
+        $room = \app\model\Room::find($roomId);
+        if (!$room) {
+            return ['code' => 1, 'msg' => '房间不存在'];
+        }
+        
+        // 权限检查：只有管理员(3306)或房主可以清理
+        $isAdmin = ($userId == $ADMIN_ID);
+        $isOwner = ($room->owner_id && $userId == $room->owner_id);
+        
+        if (!$isAdmin && !$isOwner) {
+            return ['code' => 1, 'msg' => '权限不足，只有管理员或房主可以清理房间'];
         }
 
         // 验证用户是否在房间内

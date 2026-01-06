@@ -1,19 +1,20 @@
 /**
- * 用户资料弹窗组件 - 超精致极简风格
+ * 用户资料弹窗组件 - 简约现代风格
  */
 
 /* ========== 弹窗遮罩层 ========== */
 .user-profile-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.35);
+    background: rgba(15, 23, 42, 0.4);
+    backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 2000;
     opacity: 0;
     visibility: hidden;
-    transition: opacity 0.15s ease;
+    transition: all 0.2s ease;
 }
 
 .user-profile-overlay[style*="flex"] {
@@ -24,28 +25,29 @@
 /* ========== 弹窗主容器 ========== */
 .user-profile-modal {
     background: #ffffff;
-    border-radius: 12px;
-    width: 85%;
-    max-width: 320px;
-    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.1);
-    transform: scale(0.95);
+    border-radius: 16px;
+    width: 90%;
+    max-width: 380px;
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    position: relative;
+    transform: scale(0.96) translateY(10px);
     opacity: 0;
-    transition: transform 0.2s ease-out, opacity 0.15s ease;
+    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .user-profile-overlay[style*="flex"] .user-profile-modal {
-    transform: scale(1);
+    transform: scale(1) translateY(0);
     opacity: 1;
 }
 
 /* ========== 关闭按钮 ========== */
 .user-profile-close {
     position: absolute;
-    top: 8px;
-    right: 8px;
-    width: 24px;
-    height: 24px;
-    border-radius: 4px;
+    top: 12px;
+    right: 12px;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
     background: transparent;
     border: none;
     cursor: pointer;
@@ -53,117 +55,145 @@
     align-items: center;
     justify-content: center;
     color: #cbd5e1;
-    transition: all 0.1s ease;
+    transition: all 0.15s ease;
     z-index: 10;
 }
 
 .user-profile-close:hover {
     background: #f1f5f9;
-    color: #94a3b8;
+    color: #64748b;
+}
+
+.user-profile-close:active {
+    transform: scale(0.95);
 }
 
 .user-profile-close i {
-    font-size: 12px;
+    font-size: 14px;
 }
 
 /* ========== 头部区域 ========== */
 .user-profile-header {
-    padding: 16px 14px 12px;
+    padding: 32px 24px 20px;
     text-align: center;
+    border-bottom: 1px solid #f1f5f9;
 }
 
 /* ========== 头像 ========== */
 .user-profile-avatar-large {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    background: var(--primary-light, #dbeafe);
-    color: var(--primary-color, #3b82f6);
-    font-size: 18px;
+    width: 72px;
+    height: 72px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #ffffff;
+    font-size: 28px;
     font-weight: 600;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin: 0 auto 8px;
+    margin: 0 auto 16px;
     position: relative;
+    border: 3px solid #ffffff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .user-profile-avatar-edit {
     position: absolute;
-    bottom: -1px;
-    right: -1px;
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
+    bottom: -4px;
+    right: -4px;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: var(--primary-color, #3b82f6);
+    border: 2px solid #ffffff;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #cbd5e1;
-    transition: all 0.1s ease;
+    color: #ffffff;
+    transition: all 0.2s ease;
 }
 
 .user-profile-avatar-edit:hover {
-    color: var(--primary-color, #3b82f6);
-    border-color: var(--primary-color, #3b82f6);
+    transform: scale(1.1);
+    background: #2563eb;
+}
+
+.user-profile-avatar-edit:active {
+    transform: scale(0.95);
 }
 
 .user-profile-avatar-edit i {
-    font-size: 8px;
+    font-size: 12px;
 }
 
 /* ========== 用户信息 ========== */
 .user-profile-name {
-    font-size: 14px;
+    font-size: 18px;
     font-weight: 600;
-    color: #1e293b;
-    margin: 0 0 2px;
+    color: #0f172a;
+    margin: 0 0 8px;
+    letter-spacing: -0.3px;
 }
 
 .user-profile-id {
-    font-size: 10px;
-    color: #94a3b8;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    background: rgba(59, 130, 246, 0.08);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    border-radius: 6px;
+    font-size: 11px;
+    color: var(--primary-color, #3b82f6);
+    font-weight: 600;
     margin: 0;
 }
 
 /* ========== 内容区域 ========== */
 .user-profile-content {
-    padding: 0 14px 14px;
+    padding: 20px 24px 24px;
 }
 
 /* ========== 统计信息 ========== */
 .user-profile-stats {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 6px;
-    padding: 8px 10px;
-    background: #f8fafc;
-    border-radius: 8px;
-    margin-bottom: 12px;
+    gap: 12px;
+    margin-bottom: 24px;
 }
 
 .user-profile-stat-item {
     text-align: center;
+    padding: 16px 12px;
+    background: #f8fafc;
+    border-radius: 12px;
+    border: 1px solid #f1f5f9;
+    transition: all 0.2s ease;
+}
+
+.user-profile-stat-item:hover {
+    background: #f1f5f9;
+    border-color: #e2e8f0;
 }
 
 .user-profile-stat-value {
-    font-size: 13px;
-    font-weight: 600;
+    font-size: 20px;
+    font-weight: 700;
     color: var(--primary-color, #3b82f6);
-    line-height: 1.2;
+    line-height: 1;
+    margin-bottom: 6px;
 }
 
 .user-profile-stat-label {
-    font-size: 9px;
+    font-size: 11px;
     color: #94a3b8;
-    margin-top: 1px;
+    font-weight: 500;
 }
 
 /* ========== 表单分组 ========== */
 .user-profile-section {
-    margin-bottom: 10px;
+    margin-bottom: 20px;
 }
 
 .user-profile-section:last-child {
@@ -171,17 +201,26 @@
 }
 
 .user-profile-section-title {
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 600;
-    color: #94a3b8;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-    margin-bottom: 8px;
+    color: #64748b;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.user-profile-section-title::before {
+    content: '';
+    width: 3px;
+    height: 14px;
+    background: var(--primary-color, #3b82f6);
+    border-radius: 2px;
 }
 
 /* ========== 表单字段 ========== */
 .user-profile-form-group {
-    margin-bottom: 8px;
+    margin-bottom: 16px;
 }
 
 .user-profile-form-group:last-child {
@@ -190,28 +229,32 @@
 
 .user-profile-label {
     display: block;
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 500;
-    color: #64748b;
-    margin-bottom: 4px;
+    color: #475569;
+    margin-bottom: 8px;
 }
 
 .user-profile-input {
     width: 100%;
-    padding: 6px 9px;
+    padding: 12px 14px;
     border: 1px solid #e2e8f0;
-    border-radius: 6px;
-    font-size: 12px;
-    color: #1e293b;
+    border-radius: 10px;
+    font-size: 14px;
+    color: #0f172a;
     background: #ffffff;
-    transition: all 0.1s ease;
+    transition: all 0.2s ease;
     outline: none;
     font-family: inherit;
 }
 
+.user-profile-input:hover {
+    border-color: #cbd5e1;
+}
+
 .user-profile-input:focus {
     border-color: var(--primary-color, #3b82f6);
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.08);
+    background: #fafbfc;
 }
 
 .user-profile-input::placeholder {
@@ -219,76 +262,80 @@
 }
 
 .user-profile-textarea {
-    min-height: 48px;
-    resize: none;
-    line-height: 1.4;
+    min-height: 80px;
+    resize: vertical;
+    line-height: 1.5;
 }
 
 /* ========== 按钮组 ========== */
 .user-profile-actions {
     display: flex;
-    gap: 6px;
-    margin-top: 10px;
+    gap: 12px;
+    margin-top: 24px;
 }
 
 .user-profile-btn {
     flex: 1;
-    padding: 7px 10px;
-    border-radius: 6px;
-    font-size: 12px;
-    font-weight: 500;
+    padding: 12px 16px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
     cursor: pointer;
-    transition: all 0.1s ease;
+    transition: all 0.2s ease;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 4px;
+    gap: 6px;
+    border: none;
 }
 
 .user-profile-btn-primary {
     background: var(--primary-color, #3b82f6);
     color: #ffffff;
-    border: none;
 }
 
 .user-profile-btn-primary:hover {
     background: #2563eb;
+    transform: translateY(-1px);
 }
 
 .user-profile-btn-primary:active {
-    transform: scale(0.98);
+    transform: translateY(0);
 }
 
 .user-profile-btn-secondary {
-    background: transparent;
-    color: #94a3b8;
+    background: #f8fafc;
+    color: #64748b;
     border: 1px solid #e2e8f0;
 }
 
 .user-profile-btn-secondary:hover {
-    background: #f8fafc;
-    color: #64748b;
+    background: #f1f5f9;
     border-color: #cbd5e1;
 }
 
+.user-profile-btn-secondary:active {
+    transform: scale(0.98);
+}
+
 .user-profile-btn i {
-    font-size: 10px;
+    font-size: 12px;
 }
 
 /* ========== 加载状态 ========== */
 .user-profile-loading {
-    padding: 30px 14px;
+    padding: 48px 24px;
     text-align: center;
 }
 
 .user-profile-spinner {
-    width: 24px;
-    height: 24px;
-    border: 2px solid #f1f5f9;
+    width: 32px;
+    height: 32px;
+    border: 3px solid #f1f5f9;
     border-top-color: var(--primary-color, #3b82f6);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
-    margin: 0 auto 8px;
+    margin: 0 auto 12px;
 }
 
 @keyframes spin {
@@ -298,67 +345,156 @@
 }
 
 .user-profile-loading-text {
-    font-size: 11px;
+    font-size: 13px;
     color: #94a3b8;
+    font-weight: 500;
 }
 
 /* ========== 空状态 ========== */
 .user-profile-empty {
-    padding: 30px 14px;
+    padding: 48px 24px;
     text-align: center;
 }
 
 .user-profile-empty-icon {
-    font-size: 28px;
+    font-size: 40px;
     color: #e2e8f0;
-    margin-bottom: 8px;
+    margin-bottom: 12px;
 }
 
 .user-profile-empty-text {
-    font-size: 11px;
+    font-size: 13px;
     color: #94a3b8;
+}
+
+/* ========== 暗黑模式支持 ========== */
+.dark-mode .user-profile-modal {
+    background: #0f172a;
+    border-color: #1e293b;
+}
+
+.dark-mode .user-profile-close:hover {
+    background: #1e293b;
+    color: #94a3b8;
+}
+
+.dark-mode .user-profile-header {
+    border-bottom-color: #1e293b;
+}
+
+.dark-mode .user-profile-name {
+    color: #f1f5f9;
+}
+
+.dark-mode .user-profile-id {
+    background: rgba(96, 165, 250, 0.12);
+    border-color: rgba(96, 165, 250, 0.25);
+    color: #60a5fa;
+}
+
+.dark-mode .user-profile-stat-item {
+    background: #1e293b;
+    border-color: #334155;
+}
+
+.dark-mode .user-profile-stat-item:hover {
+    background: #334155;
+}
+
+.dark-mode .user-profile-stat-value {
+    color: #60a5fa;
+}
+
+.dark-mode .user-profile-section-title {
+    color: #94a3b8;
+}
+
+.dark-mode .user-profile-label {
+    color: #cbd5e1;
+}
+
+.dark-mode .user-profile-input {
+    background: #1e293b;
+    border-color: #334155;
+    color: #f1f5f9;
+}
+
+.dark-mode .user-profile-input:hover {
+    border-color: #475569;
+}
+
+.dark-mode .user-profile-input:focus {
+    background: #334155;
+    border-color: #60a5fa;
+}
+
+.dark-mode .user-profile-btn-secondary {
+    background: #1e293b;
+    border-color: #334155;
+    color: #94a3b8;
+}
+
+.dark-mode .user-profile-btn-secondary:hover {
+    background: #334155;
+    border-color: #475569;
 }
 
 /* ========== 响应式设计 ========== */
 @media (max-width: 480px) {
     .user-profile-modal {
-        width: 88%;
-        max-width: 300px;
+        width: 92%;
+        max-width: 340px;
     }
 
     .user-profile-header {
-        padding: 14px 12px 10px;
+        padding: 28px 20px 16px;
     }
 
     .user-profile-avatar-large {
-        width: 44px;
-        height: 44px;
-        font-size: 16px;
+        width: 64px;
+        height: 64px;
+        font-size: 24px;
     }
 
     .user-profile-name {
-        font-size: 13px;
+        font-size: 16px;
     }
 
     .user-profile-content {
-        padding: 0 12px 12px;
+        padding: 16px 20px 20px;
     }
 
     .user-profile-stats {
-        gap: 5px;
-        padding: 7px 8px;
+        gap: 8px;
+    }
+
+    .user-profile-stat-item {
+        padding: 12px 8px;
     }
 
     .user-profile-stat-value {
-        font-size: 12px;
+        font-size: 18px;
+    }
+
+    .user-profile-stat-label {
+        font-size: 10px;
     }
 
     .user-profile-input {
-        padding: 6px 8px;
-        font-size: 12px;
+        padding: 10px 12px;
+        font-size: 14px;
     }
 
     .user-profile-textarea {
-        min-height: 44px;
+        min-height: 70px;
+    }
+
+    .user-profile-actions {
+        gap: 10px;
+    }
+
+    .user-profile-btn {
+        padding: 10px 14px;
+        font-size: 13px;
     }
 }
