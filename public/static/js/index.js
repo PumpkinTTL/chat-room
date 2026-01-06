@@ -147,8 +147,25 @@ try {
                             messageSendStatus.value[messageId] = 'success';
                         }
 
-                        // 通过 WebSocket 广播通知其他用户（使用统一函数）
-                        broadcastMessageViaWebSocket(messageId, message.type, message.content);
+                        // 构建文件信息用于 WebSocket 广播
+                        let fileInfo = null;
+                        if (message.type === 'video') {
+                            fileInfo = {
+                                videoUrl: message.videoUrl || message.content,
+                                videoThumbnail: message.videoThumbnail || null,
+                                videoDuration: message.videoDuration || null
+                            };
+                        } else if (message.type === 'file') {
+                            fileInfo = {
+                                fileName: message.fileName || message.content,
+                                fileSize: message.fileSize || 0,
+                                fileExtension: message.fileExtension || '',
+                                fileUrl: message.fileUrl || ''
+                            };
+                        }
+
+                        // 通过 WebSocket 广播通知其他用户（携带完整文件信息）
+                        broadcastMessageViaWebSocket(messageId, message.type, message.content, fileInfo);
                     },
                     onFailed: (data) => {
                         const { tempId, error, cancelled } = data;
@@ -601,8 +618,15 @@ try {
                                 text: (normalizedType === 'image' || normalizedType === 'video' || normalizedType === 'file') ? '' : data.content,
                                 content: data.content,
                                 imageUrl: normalizedType === 'image' ? data.content : '',
-                                videoUrl: normalizedType === 'video' ? data.content : '',
-                                fileName: normalizedType === 'file' ? data.content : '',
+                                // 视频消息：优先使用 WebSocket 传递的元数据
+                                videoUrl: normalizedType === 'video' ? (data.video_url || data.content) : '',
+                                videoThumbnail: normalizedType === 'video' ? (data.video_thumbnail || null) : null,
+                                videoDuration: normalizedType === 'video' ? (data.video_duration || null) : null,
+                                // 文件消息：优先使用 WebSocket 传递的元数据
+                                fileName: normalizedType === 'file' ? (data.file_name || data.content) : '',
+                                fileSize: normalizedType === 'file' ? (data.file_size || 0) : 0,
+                                fileExtension: normalizedType === 'file' ? (data.file_extension || '') : '',
+                                fileUrl: normalizedType === 'file' ? (data.file_url || '') : '',
                                 username: data.from_nickname,
                                 timestamp: new Date(),
                                 isOwn: isOwn,
@@ -2698,7 +2722,8 @@ try {
             };
 
             // 统一的WebSocket消息广播函数
-            const broadcastMessageViaWebSocket = (messageId, messageType, content) => {
+            // fileInfo 参数用于视频/文件消息，包含完整的元数据
+            const broadcastMessageViaWebSocket = (messageId, messageType, content, fileInfo = null) => {
                 if (!wsClient.value || !wsClient.value.isConnected || !messageId) {
                     return;
                 }
@@ -2710,12 +2735,29 @@ try {
                 else if (messageType === 'file' || messageType === 3) wsMessageType = 'file';
                 else if (messageType === 'text' || messageType === 1 || messageType === 'normal') wsMessageType = 'text';
 
-                wsClient.value.send({
+                const messageData = {
                     type: 'message',
                     message_id: messageId,
                     message_type: wsMessageType,
                     content: content || ''
-                });
+                };
+
+                // 视频消息：附加视频元数据
+                if (wsMessageType === 'video' && fileInfo) {
+                    messageData.video_url = fileInfo.videoUrl || content;
+                    messageData.video_thumbnail = fileInfo.videoThumbnail || null;
+                    messageData.video_duration = fileInfo.videoDuration || null;
+                }
+
+                // 文件消息：附加文件元数据
+                if (wsMessageType === 'file' && fileInfo) {
+                    messageData.file_name = fileInfo.fileName || content;
+                    messageData.file_size = fileInfo.fileSize || 0;
+                    messageData.file_extension = fileInfo.fileExtension || '';
+                    messageData.file_url = fileInfo.fileUrl || '';
+                }
+
+                wsClient.value.send(messageData);
             };
 
             // 显示功能开发中提示
