@@ -273,8 +273,11 @@ class UploadManager {
      * @param {Object} data - 成功数据
      */
     triggerSuccess(data) {
+        console.log('[UploadManager] triggerSuccess called:', data);
         if (this.callbacks.onSuccess) {
             this.callbacks.onSuccess(data);
+        } else {
+            console.warn('[UploadManager] onSuccess callback not set!');
         }
     }
 

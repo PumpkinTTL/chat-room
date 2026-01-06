@@ -405,8 +405,8 @@ function handleMessage($connection, $msg, &$localConnections)
 
     echo "[" . date('H:i:s') . "] 广播消息: {$connData['nickname']} 发送了 {$messageType} (ID:{$messageId})\n";
     
-    // 广播给房间内所有用户（排除当前连接，但包括发送者的其他设备）
-    broadcastToRoom($connData['room_id'], [
+    // 构建广播数据
+    $broadcastData = [
         'type' => 'message',
         'room_id' => $connData['room_id'],
         'message_id' => $messageId,
@@ -416,7 +416,25 @@ function handleMessage($connection, $msg, &$localConnections)
         'from_avatar' => $connData['avatar'],
         'content' => $content,
         'time' => date('H:i:s')
-    ], $localConnections, $connection->id);
+    ];
+
+    // 视频消息：附加视频元数据
+    if ($messageType === 'video') {
+        $broadcastData['video_url'] = $msg['video_url'] ?? $content;
+        $broadcastData['video_thumbnail'] = $msg['video_thumbnail'] ?? null;
+        $broadcastData['video_duration'] = $msg['video_duration'] ?? null;
+    }
+
+    // 文件消息：附加文件元数据
+    if ($messageType === 'file') {
+        $broadcastData['file_name'] = $msg['file_name'] ?? $content;
+        $broadcastData['file_size'] = $msg['file_size'] ?? 0;
+        $broadcastData['file_extension'] = $msg['file_extension'] ?? '';
+        $broadcastData['file_url'] = $msg['file_url'] ?? '';
+    }
+
+    // 广播给房间内所有用户（排除当前连接，但包括发送者的其他设备）
+    broadcastToRoom($connData['room_id'], $broadcastData, $localConnections, $connection->id);
 }
 
 // 正在输入

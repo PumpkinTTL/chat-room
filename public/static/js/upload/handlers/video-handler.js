@@ -103,7 +103,7 @@ class VideoHandler extends BaseHandler {
             id: tempId,
             type: 'video',
             videoUrl: preview.url,
-            videoThumbnail: preview.thumbnail,
+            videoThumbnail: null, // 不使用 base64 缩略图，让 video 标签自动显示封面
             videoDuration: preview.duration,
             isOwn: true,
             time: new Date().toISOString(),

@@ -122,13 +122,22 @@ try {
                     onSuccess: (data) => {
                         const { tempId, messageId, message, tempMessage } = data;
 
+                        console.log('[Upload] onSuccess - message:', JSON.stringify(message));
+                        console.log('[Upload] onSuccess - tempMessage:', JSON.stringify(tempMessage));
+
                         // 更新消息ID：将临时ID替换为真实ID
                         const msgIndex = messages.value.findIndex(m => m.id === tempId);
+                        console.log('[Upload] Looking for tempId:', tempId, 'found at index:', msgIndex);
+                        console.log('[Upload] Current messages ids:', messages.value.map(m => m.id));
+                        
                         if (msgIndex !== -1) {
-                            // 更新消息为真实数据
-                            messages.value[msgIndex] = {
-                                ...message,
+                            // 构建完整的消息对象
+                            const updatedMessage = {
+                                id: messageId,
+                                type: message.type,
+                                content: message.content || '',
                                 isOwn: true,
+                                time: message.time,
                                 sender: {
                                     id: currentUser.value.id,
                                     nickname: currentUser.value.nick_name,
@@ -136,15 +145,37 @@ try {
                                 }
                             };
 
-                            // 如果是视频消息，补充前端预览URL
-                            if (message.type === 'video' && tempMessage.videoUrl) {
-                                messages.value[msgIndex].videoUrl = tempMessage.videoUrl;
+                            // 视频消息：确保 videoUrl 正确设置
+                            if (message.type === 'video') {
+                                // 优先使用服务器返回的 URL，其次使用临时消息的预览 URL
+                                updatedMessage.videoUrl = message.videoUrl || tempMessage.videoUrl || message.content;
+                                updatedMessage.videoThumbnail = null; // 不使用缩略图，让 video 标签自动显示封面
+                                updatedMessage.videoDuration = message.videoDuration || tempMessage.videoDuration || null;
+                                console.log('[Upload] Video message updated - videoUrl:', updatedMessage.videoUrl);
                             }
 
+                            // 文件消息：确保文件信息正确设置
+                            if (message.type === 'file') {
+                                updatedMessage.fileName = message.fileName || tempMessage.fileName || '';
+                                updatedMessage.fileSize = message.fileSize || tempMessage.fileSize || 0;
+                                updatedMessage.fileExtension = message.fileExtension || tempMessage.fileExtension || '';
+                                updatedMessage.fileUrl = message.fileUrl || '';
+                            }
+
+                            // 图片消息
+                            if (message.type === 'image') {
+                                updatedMessage.imageUrl = message.imageUrl || message.content;
+                            }
+
+                            // 使用 splice 确保 Vue 响应式更新
+                            messages.value.splice(msgIndex, 1, updatedMessage);
+                            console.log('[Upload] Message updated at index:', msgIndex, 'new message:', JSON.stringify(updatedMessage));
+
                             // 更新发送状态
-                            messageSendStatus.value[tempId] = 'success';
                             delete messageSendStatus.value[tempId];
                             messageSendStatus.value[messageId] = 'success';
+                        } else {
+                            console.warn('[Upload] Could not find message with tempId:', tempId);
                         }
 
                         // 构建文件信息用于 WebSocket 广播
@@ -187,10 +218,18 @@ try {
 
                         // 当状态变为sending时，添加临时消息到列表
                         if (status === 'sending' && tempMessage) {
+                            console.log('[Upload] Adding temp message:', JSON.stringify(tempMessage));
                             // 检查是否已经添加过
                             const exists = messages.value.some(m => m.id === tempMessage.id);
                             if (!exists) {
-                                messages.value.push(tempMessage);
+                                // 补充模板需要的字段
+                                const completeMessage = {
+                                    ...tempMessage,
+                                    username: tempMessage.sender?.nickname || currentUser.value.nick_name,
+                                    content: '',
+                                    text: ''
+                                };
+                                messages.value.push(completeMessage);
                                 uploadProgress.value[tempMessage.id] = 0;
 
                                 // 滚动到底部
@@ -1014,17 +1053,19 @@ try {
                     if (msg.fileSize !== undefined) {
                         processedMsg.fileSize = msg.fileSize;
                     }
-                    if (msg.fileExtension) {
-                        processedMsg.fileExtension = msg.fileExtension;
-                    } else if (msg.content) {
-                        // 从文件名中提取扩展名
-                        const match = msg.content.match(/\.([^.]+)$/);
-                        if (match) {
-                            processedMsg.fileExtension = match[1];
-                        }
-                    }
                     if (msg.fileUrl) {
                         processedMsg.fileUrl = msg.fileUrl;
+                    }
+                    // 提取扩展名：优先用已有的，否则从 fileName 或 fileUrl 提取
+                    if (msg.fileExtension && msg.fileExtension.length > 0) {
+                        processedMsg.fileExtension = msg.fileExtension;
+                    } else {
+                        // 从 fileName 或 fileUrl 提取
+                        const source = processedMsg.fileName || msg.fileUrl || '';
+                        const lastDot = source.lastIndexOf('.');
+                        if (lastDot > -1 && lastDot < source.length - 1) {
+                            processedMsg.fileExtension = source.substring(lastDot + 1).toLowerCase();
+                        }
                     }
                 }
 
@@ -2625,6 +2666,16 @@ try {
                 return `${minutes}:${secs.toString().padStart(2, '0')}`;
             };
 
+            // 获取文件扩展名（从文件名提取）
+            const getFileExtension = (fileName) => {
+                if (!fileName) return '';
+                const lastDot = fileName.lastIndexOf('.');
+                if (lastDot > -1 && lastDot < fileName.length - 1) {
+                    return fileName.substring(lastDot + 1).toUpperCase();
+                }
+                return '';
+            };
+
             // 获取文件图标（根据文件扩展名）
             const getFileIcon = (fileNameOrExtension) => {
                 const ext = (fileNameOrExtension || '').toString().toLowerCase().replace('.', '').split('.').pop();
@@ -3117,6 +3168,7 @@ try {
                 formatFileSize,
                 formatDuration,
                 getFileIcon,
+                getFileExtension,
                 getFileIconClass,
                 handleVideoClick,
                 broadcastMessageViaWebSocket,
