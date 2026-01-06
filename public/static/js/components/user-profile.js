@@ -59,7 +59,7 @@
             const link = document.createElement('link');
             link.id = 'user-profile-styles';
             link.rel = 'stylesheet';
-            link.href = '/static/css/components/user-profile.css?v=1';
+            link.href = '/static/css/components/user-profile.css?v=3';
 
             link.onload = resolve;
             link.onerror = reject;
@@ -71,7 +71,7 @@
     // ==================== 加载模板 ====================
     async function loadTemplate() {
         try {
-            const response = await fetch('/static/templates/user-profile.html?v=2');
+            const response = await fetch('/static/templates/user-profile.html?v=3');
             if (!response.ok) {
                 throw new Error('Failed to load template');
             }
