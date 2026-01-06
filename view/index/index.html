@@ -7,7 +7,7 @@
     <title>轻量聊天室</title>
     <link rel="stylesheet" href="/static/css/animate.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="/static/css/index.css?v=71">
+    <link rel="stylesheet" href="/static/css/index.css?v=73">
     <!-- 关键：在Vue加载前隐藏整个应用，防止模板闪现 -->
     <style>
         [v-cloak] {
@@ -50,6 +50,18 @@
                     </div>
                 </div>
 
+                <!-- 操作按钮 -->
+                <div class="sidebar-actions">
+                    <button class="action-btn-secondary" @click="showCreateRoomDialog">
+                        <i class="fas fa-plus-square"></i>
+                        <span>创建房间</span>
+                    </button>
+                    <button class="action-btn-primary" @click="showJoinRoomDialog">
+                        <i class="fas fa-sign-in-alt"></i>
+                        <span>加入房间</span>
+                    </button>
+                </div>
+
                 <!-- 导航标签 -->
                 <div class="sidebar-tabs">
                     <div class="sidebar-tab active">
@@ -60,14 +72,6 @@
                         <i class="fas fa-user"></i>
                         <span>联系人</span>
                     </div>
-                </div>
-
-                <!-- 操作按钮 -->
-                <div class="sidebar-actions">
-                    <button class="action-btn-primary" @click="showJoinRoomDialog">
-                        <i class="fas fa-plus"></i>
-                        <span>加入房间</span>
-                    </button>
                 </div>
 
                 <!-- 房间列表 -->
@@ -362,6 +366,18 @@
                         <button class="attach-btn" @click="triggerImageUpload">
                             <i class="fas fa-plus-circle"></i>
                         </button>
+                        <button class="voice-btn" 
+                            :class="{ 'recording': isRecording }" 
+                            @mousedown="startVoiceRecord" 
+                            @mouseup="stopVoiceRecord" 
+                            @mouseleave="cancelVoiceRecord"
+                            @touchstart.prevent="startVoiceRecord" 
+                            @touchend.prevent="stopVoiceRecord"
+                            @touchcancel.prevent="cancelVoiceRecord"
+                            :title="isRecording ? '松开发送' : '按住说话'">
+                            <i class="fas" :class="isRecording ? 'fa-stop' : 'fa-microphone'"></i>
+                            <span v-if="isRecording" class="recording-time" v-text="recordingTimeText"></span>
+                        </button>
                         <div class="text-input-wrapper">
                             <input v-model="newMessage" type="text" placeholder="说点什么..." @keyup.enter="sendMessage"
                                 @focus="onInputFocus" @blur="onInputBlur" @input="onInputChange" class="text-input">
@@ -481,7 +497,7 @@
     <script src="/static/js/websocket.js?v=3"></script>
     <!-- 用户资料组件（独立组件） -->
     <script src="/static/js/components/user-profile.js?v=1"></script>
-    <script src="/static/js/index.js?v=50"></script>
+    <script src="/static/js/index.js?v=57"></script>
 </body>
 
 </html>

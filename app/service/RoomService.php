@@ -3,6 +3,8 @@
 namespace app\service;
 
 use app\model\Room;
+use app\service\RoomUserService;
+use think\facade\Db;
 
 /**
  * 房间服务层 - 静态方法
@@ -43,45 +45,69 @@ class RoomService
     /**
      * 创建房间
      * @param array $data 房间数据
+     * @param int $userId 创建者ID
      * @return array
      */
-    public static function createRoom($data)
+    public static function createRoom($data, $userId = null)
     {
         // 数据验证
         if (empty($data['name'])) {
             return ['code' => 1, 'msg' => '房间名称不能为空'];
         }
 
-        // 验证房间名称长度
         if (strlen($data['name']) > 100) {
             return ['code' => 1, 'msg' => '房间名称不能超过100个字符'];
         }
 
-        // 验证描述长度
-        if (!empty($data['description']) && strlen($data['description']) > 500) {
-            return ['code' => 1, 'msg' => '房间描述不能超过500个字符'];
-        }
-
-        // 验证状态值
-        if (isset($data['status']) && !in_array($data['status'], [0, 1])) {
-            return ['code' => 1, 'msg' => '状态值无效'];
-        }
-
-        // 设置默认值
-        if (!isset($data['status'])) {
-            $data['status'] = Room::STATUS_NORMAL;
-        }
-
+        // 生成随机5位数ID（10000-99999）
+        $roomId = self::generateUniqueRoomId();
+        
         try {
-            $room = Room::create($data);
+            // 使用Db直接插入
+            Db::table('ch_rooms')->insert([
+                'id' => $roomId,
+                'name' => $data['name'],
+                'description' => $data['description'] ?? '',
+                'owner_id' => $userId,
+                'status' => Room::STATUS_NORMAL,
+                'create_time' => date('Y-m-d H:i:s'),
+            ]);
+            
+            // 创建者自动加入房间
+            if ($userId) {
+                RoomUserService::joinRoom($roomId, $userId);
+            }
+            
             return [
                 'code' => 0,
                 'msg'  => '创建成功',
-                'data' => $room,
+                'data' => [
+                    'id' => $roomId,
+                    'name' => $data['name'],
+                ],
             ];
         } catch (\Exception $e) {
             return ['code' => 1, 'msg' => '创建失败：' . $e->getMessage()];
         }
+    }
+    
+    /**
+     * 生成唯一的房间ID（5位数）
+     * @return int
+     */
+    private static function generateUniqueRoomId()
+    {
+        $maxAttempts = 10;
+        for ($i = 0; $i < $maxAttempts; $i++) {
+            $roomId = rand(10000, 99999);
+            // 检查是否已存在
+            $exists = Db::table('ch_rooms')->where('id', $roomId)->find();
+            if (!$exists) {
+                return $roomId;
+            }
+        }
+        // 如果10次都重复，用时间戳后5位
+        return (int)(time() % 100000);
     }
 
     /**

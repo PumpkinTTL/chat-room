@@ -113,6 +113,23 @@ try {
             // 发送状态
             const isSending = ref(false);
 
+            // 语音录制相关
+            const isRecording = ref(false);
+            const mediaRecorder = ref(null);
+            const audioChunks = ref([]);
+            const recordingStartTime = ref(0);
+            const recordingTimer = ref(null);
+            const recordingDuration = ref(0);
+            const hasVoicePermission = ref(false);
+
+            // 计算录制时间显示文本
+            const recordingTimeText = computed(() => {
+                const seconds = Math.floor(recordingDuration.value / 1000);
+                const mins = Math.floor(seconds / 60);
+                const secs = seconds % 60;
+                return mins + ':' + (secs < 10 ? '0' : '') + secs;
+            });
+
             // 正在输入状态 - 支持多人
             const typingUsers = ref({});  // { oderId: { nickname, timer } }
             const typingTimer = ref(null);
@@ -941,6 +958,72 @@ try {
                 }
             };
 
+            // 创建房间对话框
+            const showCreateRoomDialog = () => {
+                const roomNameInput = prompt('请输入房间名称：');
+                if (roomNameInput && roomNameInput.trim()) {
+                    createRoom(roomNameInput.trim());
+                }
+            };
+
+            // 创建房间API调用
+            const createRoom = async (newRoomName) => {
+                try {
+                    showLoading('正在创建房间...');
+                    
+                    const response = await apiRequest('/api/room/create', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            name: newRoomName
+                        })
+                    });
+
+                    const result = await response.json();
+                    console.log('[创建房间] 返回数据:', result);
+
+                    if (result.code === 0) {
+                        const roomData = result.data;
+                        const newRoomId = roomData.id;
+                        
+                        console.log('[创建房间] 房间ID:', newRoomId);
+                        
+                        if (!newRoomId) {
+                            window.Toast.error('创建成功但无法获取房间ID');
+                            // 刷新房间列表
+                            await loadUserInfo();
+                            return;
+                        }
+                        
+                        // 后端已自动加入房间，前端直接切换
+                        roomName.value = newRoomName;
+                        roomId.value = newRoomId;
+
+                        // 获取房间信息
+                        await getRoomInfo(newRoomId);
+
+                        // 加载历史消息（新房间应该是空的）
+                        await loadRoomMessages(newRoomId);
+
+                        // 重新加载房间列表
+                        await loadUserInfo();
+
+                        // 加入 WebSocket 房间
+                        if (wsClient.value && wsConnected.value) {
+                            wsClient.value.joinRoom(newRoomId);
+                        }
+
+                        window.Toast.success('房间创建成功：' + newRoomName);
+                    } else {
+                        window.Toast.error('创建房间失败：' + result.msg);
+                    }
+                } catch (error) {
+                    console.error('[创建房间] 失败:', error);
+                    window.Toast.error('创建房间失败：' + error.message);
+                } finally {
+                    hideLoading();
+                }
+            };
+
             // 加入房间API调用
             const joinRoom = async (roomIdValue) => {
                 try {
@@ -1285,6 +1368,215 @@ try {
 
             const triggerImageUpload = () => {
                 imageInput.value.click();
+            };
+
+            // ========== 语音录制相关函数 ==========
+
+            // 请求麦克风权限
+            const requestVoicePermission = async () => {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    // 获取权限后立即停止流
+                    stream.getTracks().forEach(track => track.stop());
+                    hasVoicePermission.value = true;
+                    return true;
+                } catch (error) {
+                    console.error('[语音] 权限请求失败:', error);
+                    if (error.name === 'NotAllowedError') {
+                        window.Toast.error('麦克风权限被拒绝，请在浏览器设置中允许');
+                    } else if (error.name === 'NotFoundError') {
+                        window.Toast.error('未检测到麦克风设备');
+                    } else {
+                        window.Toast.error('无法访问麦克风: ' + error.message);
+                    }
+                    hasVoicePermission.value = false;
+                    return false;
+                }
+            };
+
+            // 开始录音
+            const startVoiceRecord = async () => {
+                if (!roomId.value) {
+                    window.Toast.error('请先加入房间');
+                    return;
+                }
+
+                // 检查是否为安全上下文（HTTPS 或 localhost）
+                if (!window.isSecureContext) {
+                    window.Toast.error('语音功能需要 HTTPS 安全连接');
+                    console.error('[语音] 当前不是安全上下文，需要 HTTPS 或 localhost');
+                    return;
+                }
+
+                // 检查浏览器支持
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    window.Toast.error('您的浏览器不支持语音录制，请使用最新版 Chrome/Firefox/Edge');
+                    console.error('[语音] navigator.mediaDevices 不可用');
+                    return;
+                }
+
+                // 如果没有权限，先请求权限
+                if (!hasVoicePermission.value) {
+                    window.Toast.info('正在请求麦克风权限...');
+                    const granted = await requestVoicePermission();
+                    if (!granted) return;
+                }
+
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    
+                    // 检查MediaRecorder支持
+                    if (!window.MediaRecorder) {
+                        window.Toast.error('您的浏览器不支持录音功能');
+                        stream.getTracks().forEach(track => track.stop());
+                        return;
+                    }
+
+                    // 选择支持的音频格式
+                    let mimeType = 'audio/webm';
+                    if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+                        mimeType = 'audio/webm;codecs=opus';
+                    } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+                        mimeType = 'audio/mp4';
+                    } else if (MediaRecorder.isTypeSupported('audio/ogg')) {
+                        mimeType = 'audio/ogg';
+                    }
+
+                    mediaRecorder.value = new MediaRecorder(stream, { mimeType });
+                    audioChunks.value = [];
+
+                    mediaRecorder.value.ondataavailable = (event) => {
+                        if (event.data.size > 0) {
+                            audioChunks.value.push(event.data);
+                        }
+                    };
+
+                    mediaRecorder.value.onstop = () => {
+                        // 停止所有音轨
+                        stream.getTracks().forEach(track => track.stop());
+                    };
+
+                    mediaRecorder.value.start();
+                    isRecording.value = true;
+                    recordingStartTime.value = Date.now();
+                    recordingDuration.value = 0;
+
+                    // 更新录制时间
+                    recordingTimer.value = setInterval(() => {
+                        recordingDuration.value = Date.now() - recordingStartTime.value;
+                        // 最长录制60秒
+                        if (recordingDuration.value >= 60000) {
+                            stopVoiceRecord();
+                        }
+                    }, 100);
+
+                    window.Toast.info('开始录音，松开发送');
+                } catch (error) {
+                    console.error('[语音] 录音启动失败:', error);
+                    window.Toast.error('录音启动失败: ' + error.message);
+                    isRecording.value = false;
+                }
+            };
+
+            // 停止录音并发送
+            const stopVoiceRecord = async () => {
+                if (!isRecording.value || !mediaRecorder.value) return;
+
+                // 清除计时器
+                if (recordingTimer.value) {
+                    clearInterval(recordingTimer.value);
+                    recordingTimer.value = null;
+                }
+
+                const duration = recordingDuration.value;
+                isRecording.value = false;
+
+                // 录音时间太短
+                if (duration < 1000) {
+                    mediaRecorder.value.stop();
+                    window.Toast.warning('录音时间太短');
+                    return;
+                }
+
+                // 停止录音
+                return new Promise((resolve) => {
+                    mediaRecorder.value.onstop = async () => {
+                        // 停止所有音轨
+                        if (mediaRecorder.value.stream) {
+                            mediaRecorder.value.stream.getTracks().forEach(track => track.stop());
+                        }
+
+                        // 创建音频Blob
+                        const audioBlob = new Blob(audioChunks.value, { type: mediaRecorder.value.mimeType });
+                        
+                        // 发送语音消息
+                        await sendVoiceMessage(audioBlob, duration);
+                        resolve();
+                    };
+                    mediaRecorder.value.stop();
+                });
+            };
+
+            // 取消录音
+            const cancelVoiceRecord = () => {
+                if (!isRecording.value || !mediaRecorder.value) return;
+
+                // 清除计时器
+                if (recordingTimer.value) {
+                    clearInterval(recordingTimer.value);
+                    recordingTimer.value = null;
+                }
+
+                isRecording.value = false;
+                mediaRecorder.value.stop();
+                window.Toast.info('已取消录音');
+            };
+
+            // 发送语音消息
+            const sendVoiceMessage = async (audioBlob, duration) => {
+                if (!audioBlob || audioBlob.size === 0) {
+                    window.Toast.error('录音数据为空');
+                    return;
+                }
+
+                const tempId = 'temp_voice_' + Date.now();
+                
+                // 创建FormData上传
+                const formData = new FormData();
+                formData.append('file', audioBlob, 'voice.webm');
+                formData.append('room_id', roomId.value);
+                formData.append('duration', Math.floor(duration / 1000));
+
+                try {
+                    window.Toast.info('正在发送语音...');
+                    
+                    const response = await fetch('/api/message/sendVoice', {
+                        method: 'POST',
+                        body: formData,
+                        credentials: 'same-origin'
+                    });
+
+                    if (response.status === 401) {
+                        localStorage.removeItem('userInfo');
+                        window.Toast.error('登录已过期，请重新登录');
+                        setTimeout(() => { window.location.href = '/login'; }, 2000);
+                        return;
+                    }
+
+                    const result = await response.json();
+                    
+                    if (result.code === 0) {
+                        window.Toast.success('语音发送成功');
+                        // 刷新消息列表
+                        await fetchMessages();
+                        scrollToBottom();
+                    } else {
+                        window.Toast.error(result.msg || '语音发送失败');
+                    }
+                } catch (error) {
+                    console.error('[语音] 发送失败:', error);
+                    window.Toast.error('语音发送失败: ' + error.message);
+                }
             };
 
             const handleImageSelect = (event) => {
@@ -2350,6 +2642,8 @@ try {
                 // 加入房间功能
                 loadUserInfo,
                 showJoinRoomDialog,
+                showCreateRoomDialog,
+                createRoom,
                 joinRoom,
                 getRoomInfo,
                 loadRoomMessages,
@@ -2386,6 +2680,12 @@ try {
                 isSending,
                 messageSendStatus,
                 uploadProgress,
+                // 语音录制
+                isRecording,
+                recordingTimeText,
+                startVoiceRecord,
+                stopVoiceRecord,
+                cancelVoiceRecord,
                 // 功能提示
                 showComingSoon,
                 // 清空消息

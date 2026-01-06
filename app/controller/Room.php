@@ -48,7 +48,9 @@ class Room
     public function save(Request $request)
     {
         $data = $request->param();
-        $result = RoomService::createRoom($data);
+        $userId = $request->userId; // 从中间件获取创建者ID
+        
+        $result = RoomService::createRoom($data, $userId);
 
         if ($result['code'] === 0) {
             return json($result);

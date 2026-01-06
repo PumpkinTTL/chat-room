@@ -393,43 +393,75 @@ body {
 /* 操作按钮 */
 .sidebar-actions {
     padding: 4px 12px 8px;
+    display: flex;
+    gap: 8px;
 }
 
-.action-btn-primary {
-    width: 100%;
+.action-btn-primary,
+.action-btn-secondary {
+    flex: 1;
     height: 34px;
-    background: var(--primary-color);
-    color: white;
     border: none;
     border-radius: 6px;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 500;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 5px;
-    transition: background 0.15s;
+    transition: all 0.15s;
+}
+
+.action-btn-primary {
+    background: var(--primary-color);
+    color: white;
 }
 
 .action-btn-primary:hover {
     background: var(--primary-hover);
 }
 
-.action-btn-primary:active {
+.action-btn-secondary {
+    background: var(--slate-100);
+    color: var(--text-primary);
+    border: 1px solid var(--slate-200);
+}
+
+.action-btn-secondary:hover {
+    background: var(--slate-200);
+    border-color: var(--slate-300);
+}
+
+.dark-mode .action-btn-secondary {
+    background: #1e293b;
+    color: var(--text-primary);
+    border-color: #334155;
+}
+
+.dark-mode .action-btn-secondary:hover {
+    background: #334155;
+    border-color: #475569;
+}
+
+.action-btn-primary:active,
+.action-btn-secondary:active {
     transform: scale(0.98);
 }
 
-.action-btn-primary i {
-    font-size: 10px;
+.action-btn-primary i,
+.action-btn-secondary i {
+    font-size: 11px;
 }
 
 /* 房间列表容器 */
 .sidebar-list {
     flex: 1;
     overflow-y: auto;
-    padding: 0 10px 10px;
+    padding: 12px 10px 10px;
     min-height: 0;
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+    margin-top: 4px;
 }
 
 /* 空状态 */
@@ -628,6 +660,10 @@ body {
     background: #334155;
     color: #f1f5f9;
     box-shadow: none;
+}
+
+.dark-mode .sidebar-list {
+    border-top-color: rgba(255, 255, 255, 0.08);
 }
 
 .dark-mode .room-item-active {
@@ -1456,6 +1492,71 @@ body {
     transform: scale(0.95);
 }
 
+/* 语音按钮样式 */
+.voice-btn {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+    transition: all 0.2s;
+    position: relative;
+}
+
+.voice-btn:hover {
+    color: var(--primary-color);
+    background: var(--primary-light);
+}
+
+.voice-btn:active {
+    transform: scale(0.95);
+}
+
+.voice-btn.recording {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.15);
+    animation: voicePulse 1s ease-in-out infinite;
+}
+
+.voice-btn.recording i {
+    animation: none;
+}
+
+@keyframes voicePulse {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+    }
+    50% {
+        box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
+    }
+}
+
+.recording-time {
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 11px;
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+    padding: 2px 8px;
+    border-radius: 10px;
+    white-space: nowrap;
+    font-weight: 500;
+}
+
+.dark-mode .voice-btn.recording {
+    background: rgba(239, 68, 68, 0.2);
+}
+
 .text-input-wrapper {
     flex: 1;
     min-width: 0;
@@ -1742,6 +1843,19 @@ body {
         height: 36px;
         min-width: 36px;
         font-size: 18px;
+    }
+
+    .voice-btn {
+        width: 36px;
+        height: 36px;
+        min-width: 36px;
+        font-size: 16px;
+    }
+
+    .voice-btn .recording-time {
+        top: -18px;
+        font-size: 10px;
+        padding: 2px 6px;
     }
 
     .send-btn {
@@ -2620,6 +2734,19 @@ button:disabled {
         height: 32px;
         min-width: 32px;
         font-size: 16px;
+    }
+
+    .voice-btn {
+        width: 32px;
+        height: 32px;
+        min-width: 32px;
+        font-size: 14px;
+    }
+
+    .voice-btn .recording-time {
+        top: -16px;
+        font-size: 9px;
+        padding: 1px 5px;
     }
 
     .send-btn {
