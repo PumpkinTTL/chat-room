@@ -1208,59 +1208,23 @@ body {
     font-weight: 500;
 }
 
-/* 时间分隔样式 - 全新设计 */
-.time-separator-badge {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: #ffffff;
-    font-size: 11px;
-    font-weight: 500;
-    padding: 3px 14px;
-    border-radius: 16px;
-    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.25);
-    letter-spacing: 0.5px;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-    position: relative;
-    overflow: hidden;
+/* 时间分隔样式 - 简约灰色（所有系统消息统一样式） */
+.time-separator-badge,
+.system-badge {
+    background: transparent;
+    color: var(--text-tertiary);
+    font-size: 12px;
+    font-weight: 400;
+    padding: 4px 0;
+    border: none;
+    border-radius: 0;
 }
 
-.time-separator-badge::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0) 50%, rgba(255, 255, 255, 0.1) 100%);
-    pointer-events: none;
-}
-
-.time-separator-badge::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-    animation: shimmer 2s infinite;
-}
-
-@keyframes shimmer {
-    0% {
-        left: -100%;
-    }
-    100% {
-        left: 100%;
-    }
-}
-
-.dark-mode .time-separator-badge {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    box-shadow: 0 2px 12px rgba(245, 87, 108, 0.35);
-}
-
-.dark-mode .time-separator-badge::before {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0) 50%, rgba(255, 255, 255, 0.05) 100%);
+.dark-mode .time-separator-badge,
+.dark-mode .system-badge {
+    background: transparent;
+    color: var(--text-tertiary);
+    border: none;
 }
 
 .dark-mode .system-badge {

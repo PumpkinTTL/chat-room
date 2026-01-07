@@ -382,4 +382,30 @@ class Message
 
         return json($result, $code);
     }
+
+    /**
+     * 发送系统消息（时间分隔等）
+     * @param Request $request
+     * @return Response
+     */
+    public function sendSystem(Request $request)
+    {
+        $roomId = $request->param('room_id');
+        $content = $request->param('content');
+
+        // 验证参数
+        $validate = Validate::rule([
+            'room_id' => 'require|integer|min:1',
+            'content' => 'require|max:500',
+        ]);
+
+        if (!$validate->check(['room_id' => $roomId, 'content' => $content])) {
+            return json(['code' => 1, 'msg' => $validate->getError()], 400);
+        }
+
+        $result = MessageService::sendSystemMessage($roomId, $content);
+        $code = $result['code'] === 0 ? 200 : 400;
+
+        return json($result, $code);
+    }
 }

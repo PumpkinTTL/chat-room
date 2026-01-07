@@ -113,6 +113,68 @@ try {
             // 发送状态
             const isSending = ref(false);
 
+            // 时间分隔相关常量
+            const TIME_SEPARATOR_INTERVAL = 5 * 60 * 1000; // 5分钟（毫秒）
+
+            // 时间分隔函数声明（使用function声明以便hoisting）
+            function shouldInsertTimeSeparatorFn() {
+                if (messages.value.length === 0) return false;
+                let lastMsg = null;
+                for (let i = messages.value.length - 1; i >= 0; i--) {
+                    if (!messages.value[i].isTimeSeparator) {
+                        lastMsg = messages.value[i];
+                        break;
+                    }
+                }
+                if (!lastMsg || !lastMsg.time) return false;
+                const lastTime = lastMsg.time instanceof Date ? lastMsg.time : new Date(lastMsg.time);
+                const now = new Date();
+                return (now.getTime() - lastTime.getTime()) >= TIME_SEPARATOR_INTERVAL;
+            }
+
+            function createTimeSeparatorMessageFn() {
+                const now = new Date();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const day = String(now.getDate()).padStart(2, '0');
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                return {
+                    id: 'time_' + Date.now(),
+                    type: 'system',
+                    text: month + '-' + day + ' ' + hours + ':' + minutes,
+                    time: now,
+                    isTimeSeparator: true,
+                    isOwn: false
+                };
+            }
+
+            async function insertTimeSeparatorIfNeededFn() {
+                if (shouldInsertTimeSeparatorFn()) {
+                    const separator = createTimeSeparatorMessageFn();
+                    
+                    // 先调用API写入数据库，等待成功后再添加到本地
+                    try {
+                        const response = await apiRequest('/api/message/sendSystem', {
+                            method: 'POST',
+                            body: JSON.stringify({
+                                room_id: roomId.value,
+                                content: separator.text
+                            })
+                        });
+                        const result = await response.json();
+                        if (result.code === 0 && result.data) {
+                            // API成功后，使用数据库返回的ID添加到本地
+                            separator.id = result.data.id;
+                            messages.value.push(separator);
+                        }
+                    } catch (error) {
+                        console.error('[TimeSeparator] 写入失败:', error);
+                    }
+                    return true;
+                }
+                return false;
+            }
+
             // 设置uploadManager的回调
             if (window.uploadManager) {
                 window.uploadManager.setCallbacks({
@@ -122,14 +184,9 @@ try {
                     onSuccess: (data) => {
                         const { tempId, messageId, message, tempMessage } = data;
 
-                        console.log('[Upload] onSuccess - message:', JSON.stringify(message));
-                        console.log('[Upload] onSuccess - tempMessage:', JSON.stringify(tempMessage));
-
                         // 更新消息ID：将临时ID替换为真实ID
                         const msgIndex = messages.value.findIndex(m => m.id === tempId);
-                        console.log('[Upload] Looking for tempId:', tempId, 'found at index:', msgIndex);
-                        console.log('[Upload] Current messages ids:', messages.value.map(m => m.id));
-                        
+
                         if (msgIndex !== -1) {
                             // 构建完整的消息对象
                             const updatedMessage = {
@@ -149,9 +206,8 @@ try {
                             if (message.type === 'video') {
                                 // 优先使用服务器返回的 URL，其次使用临时消息的预览 URL
                                 updatedMessage.videoUrl = message.videoUrl || tempMessage.videoUrl || message.content;
-                                updatedMessage.videoThumbnail = null; // 不使用缩略图，让 video 标签自动显示封面
+                                updatedMessage.videoThumbnail = null;
                                 updatedMessage.videoDuration = message.videoDuration || tempMessage.videoDuration || null;
-                                console.log('[Upload] Video message updated - videoUrl:', updatedMessage.videoUrl);
                             }
 
                             // 文件消息：确保文件信息正确设置
@@ -169,7 +225,6 @@ try {
 
                             // 使用 splice 确保 Vue 响应式更新
                             messages.value.splice(msgIndex, 1, updatedMessage);
-                            console.log('[Upload] Message updated at index:', msgIndex, 'new message:', JSON.stringify(updatedMessage));
 
                             // 更新发送状态
                             delete messageSendStatus.value[tempId];
@@ -213,15 +268,17 @@ try {
                             }
                         }
                     },
-                    onStatusChange: (tempId, status, tempMessage) => {
+                    onStatusChange: async (tempId, status, tempMessage) => {
                         messageSendStatus.value[tempId] = status;
 
                         // 当状态变为sending时，添加临时消息到列表
                         if (status === 'sending' && tempMessage) {
-                            console.log('[Upload] Adding temp message:', JSON.stringify(tempMessage));
                             // 检查是否已经添加过
                             const exists = messages.value.some(m => m.id === tempMessage.id);
                             if (!exists) {
+                                // 检查是否需要插入时间分隔消息
+                                await insertTimeSeparatorIfNeededFn();
+
                                 // 补充模板需要的字段
                                 const completeMessage = {
                                     ...tempMessage,
@@ -1595,6 +1652,9 @@ try {
 
                 if (isSending.value) return; // 防止重复发送
 
+                // 检查是否需要插入时间分隔消息
+                await insertTimeSeparatorIfNeededFn();
+
                 // 生成临时消息ID
                 const tempId = 'temp_' + Date.now();
 
@@ -2043,6 +2103,9 @@ try {
                 }
 
                 if (isSending.value) return; // 防止重复发送
+
+                // 检查是否需要插入时间分隔消息
+                await insertTimeSeparatorIfNeededFn();
 
                 // 生成临时消息ID
                 const tempId = 'temp_' + Date.now();
@@ -2696,33 +2759,30 @@ try {
 
             const formatTime = (date) => {
                 if (!date) return '';
-                // iOS Safari 兼容性：将 YYYY-MM-DD 格式转换为 YYYY/MM/DD
-                const safeDate = typeof date === 'string' ? date.replace(/-/g, '/') : date;
+                
+                const messageDate = date instanceof Date ? date : new Date(date);
 
-                const now = new Date();
-                const messageDate = new Date(safeDate);
-
-                // 如果日期无效，尝试直接解析或返回原字符串
                 if (isNaN(messageDate.getTime())) {
-                    return date;
+                    return '';
                 }
 
+                const now = new Date();
                 const diffInMinutes = Math.floor((now - messageDate) / 60000);
 
                 if (diffInMinutes < 1) return '刚刚';
-                if (diffInMinutes < 60) return `${diffInMinutes}分钟前`;
+                if (diffInMinutes < 60) return diffInMinutes + '分钟前';
 
                 if (diffInMinutes < 1440) {
                     const hour = messageDate.getHours().toString().padStart(2, '0');
                     const minute = messageDate.getMinutes().toString().padStart(2, '0');
-                    return `${hour}:${minute}`;
+                    return hour + ':' + minute;
                 }
 
                 const month = (messageDate.getMonth() + 1).toString().padStart(2, '0');
                 const day = messageDate.getDate().toString().padStart(2, '0');
                 const hour = messageDate.getHours().toString().padStart(2, '0');
                 const minute = messageDate.getMinutes().toString().padStart(2, '0');
-                return `${month}-${day} ${hour}:${minute}`;
+                return month + '-' + day + ' ' + hour + ':' + minute;
             };
 
             // 格式化URL显示（保留完整链接）

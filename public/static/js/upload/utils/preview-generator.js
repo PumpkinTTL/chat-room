@@ -82,61 +82,15 @@ class PreviewGenerator {
 
             video.onloadedmetadata = () => {
                 const duration = video.duration;
-                const width = video.videoWidth;
-                const height = video.videoHeight;
-
-                // 尝试生成缩略图
-                video.currentTime = 1; // 跳到第1秒
-
-                video.onseeked = () => {
-                    try {
-                        const canvas = document.createElement('canvas');
-                        canvas.width = width;
-                        canvas.height = height;
-
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(video, 0, 0, width, height);
-
-                        const thumbnailUrl = canvas.toDataURL('image/jpeg', 0.7);
-
-                        URL.revokeObjectURL(url);
-
-                        resolve({
-                            type: 'video',
-                            thumbnail: thumbnailUrl,
-                            url: url, // 保留URL用于预览播放
-                            duration: duration,
-                            width: width,
-                            height: height,
-                            size: file.size,
-                            name: file.name,
-                            mimeType: file.type
-                        });
-                    } catch (e) {
-                        // 生成缩略图失败，返回基本信息
-                        URL.revokeObjectURL(url);
-                        resolve({
-                            type: 'video',
-                            url: null,
-                            duration: duration,
-                            size: file.size,
-                            name: file.name,
-                            mimeType: file.type
-                        });
-                    }
-                };
-
-                video.onerror = () => {
-                    URL.revokeObjectURL(url);
-                    resolve({
-                        type: 'video',
-                        url: null,
-                        duration: null,
-                        size: file.size,
-                        name: file.name,
-                        mimeType: file.type
-                    });
-                };
+                
+                resolve({
+                    type: 'video',
+                    url: url,
+                    duration: duration,
+                    size: file.size,
+                    name: file.name,
+                    mimeType: file.type
+                });
             };
 
             video.onerror = () => {
