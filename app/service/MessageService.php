@@ -601,7 +601,7 @@ class MessageService
             // 获取所有包含文件的消息（图片、视频、文件）
             $fileMessages = Db::table('ch_messages')
                 ->where('room_id', $roomId)
-                ->where('message_type', 'in', [Message::TYPE_IMAGE, Message::TYPE_FILE])
+                ->where('message_type', 'in', [Message::TYPE_IMAGE, Message::TYPE_VIDEO, Message::TYPE_FILE])
                 ->whereNotNull('file_info')
                 ->select()
                 ->toArray();
