@@ -2813,9 +2813,14 @@ try {
                 return `${minutes}:${secs.toString().padStart(2, '0')}`;
             };
 
-            // 获取文件扩展名（从文件名提取）
-            const getFileExtension = (fileName) => {
-                if (!fileName) return '';
+            // 获取文件扩展名（从文件名或文件路径提取）
+            const getFileExtension = (fileNameOrUrl) => {
+                if (!fileNameOrUrl) return '';
+                // 如果是URL路径，先提取文件名部分
+                let fileName = fileNameOrUrl;
+                if (fileNameOrUrl.includes('/')) {
+                    fileName = fileNameOrUrl.split('/').pop();
+                }
                 const lastDot = fileName.lastIndexOf('.');
                 if (lastDot > -1 && lastDot < fileName.length - 1) {
                     return fileName.substring(lastDot + 1).toUpperCase();
@@ -2913,10 +2918,21 @@ try {
             };
 
             // 判断是否是音频文件
-            const isAudioFile = (fileName) => {
-                if (!fileName) return false;
+            const isAudioFile = (fileNameOrUrl) => {
+                if (!fileNameOrUrl) return false;
+                // 如果是URL路径，先提取文件名部分
+                let fileName = fileNameOrUrl;
+                if (fileNameOrUrl.includes('/')) {
+                    fileName = fileNameOrUrl.split('/').pop();
+                }
                 const ext = fileName.toString().toLowerCase().split('.').pop();
                 return ['mp3', 'wav', 'ogg', 'flac', 'aac', 'm4a', 'wma', 'opus', 'webm'].includes(ext);
+            };
+
+            // 从URL中提取文件名
+            const getFileNameFromUrl = (url) => {
+                if (!url) return '';
+                return url.split('/').pop() || '';
             };
 
             // 下载文件
@@ -2927,13 +2943,13 @@ try {
                 }
                 
                 // 音频文件点击不下载（有播放器）
-                if (isAudioFile(message.fileName)) {
+                if (isAudioFile(message.fileName || message.fileUrl)) {
                     return;
                 }
                 
                 const link = document.createElement('a');
                 link.href = message.fileUrl;
-                link.download = message.fileName || 'download';
+                link.download = message.fileName || getFileNameFromUrl(message.fileUrl) || 'download';
                 link.target = '_blank';
                 document.body.appendChild(link);
                 link.click();
@@ -3347,6 +3363,7 @@ try {
                 formatDuration,
                 getFileIcon,
                 getFileExtension,
+                getFileNameFromUrl,
                 getFileIconClass,
                 isAudioFile,
                 downloadFile,

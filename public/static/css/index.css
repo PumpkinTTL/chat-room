@@ -1380,6 +1380,54 @@ body {
     border: none !important;
 }
 
+/* 音频消息：移动端允许更宽 */
+.file-message:has(.audio-message) {
+    max-width: none !important;
+    width: fit-content !important;
+}
+
+.msg-bubble:has(.file-message:has(.audio-message)) {
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    max-width: none !important;
+}
+
+.msg-own .msg-bubble:has(.file-message:has(.audio-message)) {
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+    max-width: none !important;
+}
+
+/* 移动端音频消息放宽限制 */
+@media (max-width: 768px) {
+    .file-message:has(.audio-message) {
+        width: 280px !important;
+        max-width: 280px !important;
+    }
+}
+
+@media (max-width: 375px) {
+    .file-message:has(.audio-message) {
+        width: 240px !important;
+        max-width: 240px !important;
+    }
+}
+
+/* 音频消息：自己发的右对齐 */
+.msg-own .file-message:has(.audio-message) {
+    margin-left: auto;
+}
+
+/* 音频消息：音频元信息行（后缀+大小） */
+.audio-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
 .image-wrapper img {
     max-width: min(300px, 70vw);
     max-height: 300px;
