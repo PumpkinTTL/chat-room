@@ -26,7 +26,7 @@ const IP_SERVICES = [
 ];
 
 // 从第三方接口获取真实IP
-const getRealIpFromThirdParty = async function() {
+const getRealIpFromThirdParty = async function () {
     for (let i = 0; i < IP_SERVICES.length; i++) {
         try {
             console.log('尝试IP服务 ' + (i + 1) + ':', IP_SERVICES[i].url);
@@ -230,7 +230,7 @@ createApp({
                     }, 100); // 延迟100ms确保cookie写入完成
                 } else if (result.code === 403) {
                     // 账号已封禁，跳转到道别页面
-                   
+
                     window.location.href = '/farewell.html';
                     return; // 确保不继续执行
                 } else {
