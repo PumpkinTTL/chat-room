@@ -1199,6 +1199,7 @@ body {
     margin: 8px 0;
 }
 
+/* 系统消息样式 */
 .system-badge {
     background: rgba(0, 0, 0, 0.04);
     color: var(--text-secondary);
@@ -1208,10 +1209,9 @@ body {
     font-weight: 500;
 }
 
-/* 时间分隔样式 - 简约灰色（所有系统消息统一样式） */
-.time-separator-badge,
-.system-badge {
-    background: transparent;
+/* 时间分隔样式 - 简约灰色无背景 */
+.system-badge.time-separator-badge {
+    background: transparent !important;
     color: var(--text-tertiary);
     font-size: 12px;
     font-weight: 400;
@@ -1220,20 +1220,19 @@ body {
     border-radius: 0;
 }
 
-.dark-mode .time-separator-badge,
-.dark-mode .system-badge {
-    background: transparent;
-    color: var(--text-tertiary);
-    border: none;
-}
-
+/* 暗色模式 */
 .dark-mode .system-badge {
     background: rgba(255, 255, 255, 0.06);
+    color: var(--text-tertiary);
+}
+
+.dark-mode .system-badge.time-separator-badge {
+    background: transparent !important;
 }
 
 /* 暗黑模式下的头像样式 */
 .dark-mode .msg-avatar {
-    background: rgba(71, 85, 105, 0.4);
+    background-color: rgba(71, 85, 105, 0.4);
     color: #e2e8f0;
     border-color: rgba(148, 163, 184, 0.15);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3),
