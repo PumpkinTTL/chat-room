@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="/static/css/animate.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/static/css/index.css?v=86">
-    <link rel="stylesheet" href="/static/css/message-types.css?v=11">
+    <link rel="stylesheet" href="/static/css/message-types.css?v=12">
     <!-- 关键：在Vue加载前隐藏整个应用，防止模板闪现 -->
     <style>
         [v-cloak] {
@@ -279,20 +279,36 @@
                                                 style="max-width: 280px; max-height: 400px; border-radius: 12px;"></video>
                                         </div>
                                         <!-- 文件消息 -->
-                                        <div v-else-if="message.type === 'file'" class="file-message">
-                                            <div class="file-icon"
-                                                :class="getFileIconClass(message.fileExtension || message.fileName)">
-                                                <i :class="getFileIcon(message.fileExtension || message.fileName)"></i>
-                                            </div>
-                                            <div class="file-info">
-                                                <div class="file-name" v-text="message.fileName || '未知文件'"></div>
-                                                <div class="file-meta">
-                                                    <span class="file-size" v-if="message.fileSize"
-                                                        v-text="formatFileSize(message.fileSize)"></span>
-                                                    <span class="file-extension"
-                                                        v-text="getFileExtension(message.fileName)"></span>
+                                        <div v-else-if="message.type === 'file'" class="file-message" @click="downloadFile(message)">
+                                            <!-- 音频文件：显示播放器 -->
+                                            <template v-if="isAudioFile(message.fileName)">
+                                                <div class="audio-message">
+                                                    <audio :src="message.fileUrl" controls preload="metadata"></audio>
+                                                    <div class="audio-info">
+                                                        <span class="file-name" v-text="message.fileName"></span>
+                                                        <span class="file-size" v-if="message.fileSize" v-text="formatFileSize(message.fileSize)"></span>
+                                                    </div>
                                                 </div>
-                                            </div>
+                                            </template>
+                                            <!-- 普通文件 -->
+                                            <template v-else>
+                                                <div class="file-icon"
+                                                    :class="getFileIconClass(message.fileExtension || message.fileName)">
+                                                    <i :class="getFileIcon(message.fileExtension || message.fileName)"></i>
+                                                </div>
+                                                <div class="file-info">
+                                                    <div class="file-name" v-text="message.fileName || '未知文件'"></div>
+                                                    <div class="file-meta">
+                                                        <span class="file-size" v-if="message.fileSize"
+                                                            v-text="formatFileSize(message.fileSize)"></span>
+                                                        <span class="file-extension"
+                                                            v-text="getFileExtension(message.fileName)"></span>
+                                                    </div>
+                                                </div>
+                                                <div class="file-download">
+                                                    <i class="fas fa-download"></i>
+                                                </div>
+                                            </template>
                                         </div>
                                         <!-- 文本消息 -->
                                         <div v-else class="text-wrapper">
@@ -383,20 +399,36 @@
                                         </div>
                                         <!-- 文件消息 -->
                                         <div v-else-if="message.type === 'file'" class="file-message"
-                                            style="position: relative;">
-                                            <div class="file-icon"
-                                                :class="getFileIconClass(message.fileExtension || message.fileName)">
-                                                <i :class="getFileIcon(message.fileExtension || message.fileName)"></i>
-                                            </div>
-                                            <div class="file-info">
-                                                <div class="file-name" v-text="message.fileName || '未知文件'"></div>
-                                                <div class="file-meta">
-                                                    <span class="file-size" v-if="message.fileSize"
-                                                        v-text="formatFileSize(message.fileSize)"></span>
-                                                    <span class="file-extension"
-                                                        v-text="getFileExtension(message.fileName)"></span>
+                                            style="position: relative;" @click="downloadFile(message)">
+                                            <!-- 音频文件：显示播放器 -->
+                                            <template v-if="isAudioFile(message.fileName)">
+                                                <div class="audio-message">
+                                                    <audio :src="message.fileUrl" controls preload="metadata" @click.stop></audio>
+                                                    <div class="audio-info">
+                                                        <span class="file-name" v-text="message.fileName"></span>
+                                                        <span class="file-size" v-if="message.fileSize" v-text="formatFileSize(message.fileSize)"></span>
+                                                    </div>
                                                 </div>
-                                            </div>
+                                            </template>
+                                            <!-- 普通文件 -->
+                                            <template v-else>
+                                                <div class="file-icon"
+                                                    :class="getFileIconClass(message.fileExtension || message.fileName)">
+                                                    <i :class="getFileIcon(message.fileExtension || message.fileName)"></i>
+                                                </div>
+                                                <div class="file-info">
+                                                    <div class="file-name" v-text="message.fileName || '未知文件'"></div>
+                                                    <div class="file-meta">
+                                                        <span class="file-size" v-if="message.fileSize"
+                                                            v-text="formatFileSize(message.fileSize)"></span>
+                                                        <span class="file-extension"
+                                                            v-text="getFileExtension(message.fileName)"></span>
+                                                    </div>
+                                                </div>
+                                                <div class="file-download">
+                                                    <i class="fas fa-download"></i>
+                                                </div>
+                                            </template>
                                             <!-- 上传进度遮罩 -->
                                             <div v-if="messageSendStatus && messageSendStatus[message.id] === 'sending'"
                                                 class="file-upload-overlay">
@@ -673,7 +705,7 @@
     <script src="/static/js/upload/handlers/file-handler.js?v=1"></script>
     <script src="/static/js/upload/upload-manager.js?v=3"></script>
 
-    <script src="/static/js/index.js?v=85"></script>
+    <script src="/static/js/index.js?v=86"></script>
 </body>
 
 </html>

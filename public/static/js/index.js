@@ -1792,7 +1792,7 @@ try {
                         nickname: currentUser.value.nick_name,
                         avatar: currentUser.value.avatar
                     }
-                };
+                };  
 
                 // 根据文件类型创建不同的临时消息
                 if (fileType === 'image') {
@@ -2912,6 +2912,34 @@ try {
                 return 'default';
             };
 
+            // 判断是否是音频文件
+            const isAudioFile = (fileName) => {
+                if (!fileName) return false;
+                const ext = fileName.toString().toLowerCase().split('.').pop();
+                return ['mp3', 'wav', 'ogg', 'flac', 'aac', 'm4a', 'wma', 'opus', 'webm'].includes(ext);
+            };
+
+            // 下载文件
+            const downloadFile = (message) => {
+                if (!message.fileUrl) {
+                    window.Toast.error('文件地址不存在');
+                    return;
+                }
+                
+                // 音频文件点击不下载（有播放器）
+                if (isAudioFile(message.fileName)) {
+                    return;
+                }
+                
+                const link = document.createElement('a');
+                link.href = message.fileUrl;
+                link.download = message.fileName || 'download';
+                link.target = '_blank';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            };
+
             // 处理视频点击（播放视频）
             const handleVideoClick = (videoUrl) => {
                 if (!videoUrl) return;
@@ -3320,6 +3348,8 @@ try {
                 getFileIcon,
                 getFileExtension,
                 getFileIconClass,
+                isAudioFile,
+                downloadFile,
                 handleVideoClick,
                 broadcastMessageViaWebSocket,
                 // 加入房间功能
