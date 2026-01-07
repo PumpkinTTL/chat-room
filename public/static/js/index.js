@@ -429,25 +429,86 @@ try {
             // 消息列表（提前定义，供已读检测函数使用）
             const messages = ref([]);
 
-            // 已读消息ID集合（避免重复标记）
+            // 已读消息ID集合（避免重复标记）- 统一使用数字类型
             const markedAsReadIds = ref(new Set());
+            // 正在标记中的消息ID（防止并发重复请求）
+            const pendingMarkIds = ref(new Set());
+
+            // 从localStorage加载已读状态
+            const loadReadStatusFromStorage = () => {
+                try {
+                    const userId = currentUser.value?.id;
+                    if (!userId) return;
+
+                    const storageKey = 'message_read_status_' + userId;
+                    const storedData = localStorage.getItem(storageKey);
+
+                    if (storedData) {
+                        const parsedData = JSON.parse(storedData);
+                        // 恢复已读状态（只加载最近的1000条，避免内存占用过大）
+                        if (Array.isArray(parsedData.readIds)) {
+                            parsedData.readIds.slice(-1000).forEach(function (id) {
+                                markedAsReadIds.value.add(Number(id));
+                            });
+                            console.log('[已读] 从localStorage加载了', markedAsReadIds.value.size, '条已读记录');
+                        }
+                    }
+                } catch (e) {
+                    console.warn('[已读] 加载已读状态失败:', e);
+                }
+            };
+
+            // 保存已读状态到localStorage（节流）
+            let saveReadStatusTimer = null;
+            const saveReadStatusToStorage = () => {
+                if (saveReadStatusTimer) return;
+
+                saveReadStatusTimer = setTimeout(function () {
+                    saveReadStatusTimer = null;
+
+                    try {
+                        const userId = currentUser.value?.id;
+                        if (!userId) return;
+
+                        const storageKey = 'message_read_status_' + userId;
+                        const readIds = Array.from(markedAsReadIds.value);
+
+                        localStorage.setItem(storageKey, JSON.stringify({
+                            userId: userId,
+                            readIds: readIds,
+                            updateTime: Date.now()
+                        }));
+                    } catch (e) {
+                        console.warn('[已读] 保存已读状态失败:', e);
+                    }
+                }, 1000); // 1秒节流
+            };
 
             // 标记指定消息为已读（通过WebSocket）
             const markMessagesAsRead = (messageIds) => {
                 if (!messageIds || messageIds.length === 0) return;
 
-                // 过滤掉临时消息ID和已经标记过的消息
-                const validIds = messageIds.filter(function (id) {
-                    if (!id || id.toString().startsWith('temp_')) return false;
+                // 统一转换为数字类型，避免类型混用
+                const normalizedIds = messageIds.map(function (id) {
+                    return id ? Number(id) : null;
+                }).filter(function (id) {
+                    return id && !isNaN(id) && !id.toString().startsWith('temp_');
+                });
+
+                if (normalizedIds.length === 0) return;
+
+                // 过滤掉已经标记过的消息和正在标记中的消息
+                const validIds = normalizedIds.filter(function (id) {
                     if (markedAsReadIds.value.has(id)) return false;
+                    if (pendingMarkIds.value.has(id)) return false;
                     return true;
                 });
 
                 if (validIds.length === 0) return;
 
-                // 记录已标记的消息ID
+                // 记录到正在标记集合
                 validIds.forEach(function (id) {
-                    markedAsReadIds.value.add(id);
+                    pendingMarkIds.value.add(id);
                 });
 
                 console.log('[已读] 标记消息已读:', validIds);
@@ -458,12 +519,34 @@ try {
                         type: 'mark_read',
                         message_ids: validIds
                     });
+
+                    // WebSocket发送成功后立即标记为已读
+                    validIds.forEach(function (id) {
+                        markedAsReadIds.value.add(id);
+                        pendingMarkIds.value.delete(id);
+                    });
+
+                    // 触发保存到localStorage
+                    saveReadStatusToStorage();
                 } else {
                     // 降级到HTTP API
                     apiRequest('/api/message/markRead', {
                         method: 'POST',
                         body: JSON.stringify({ message_ids: validIds })
-                    }).catch(function () { });
+                    }).then(function () {
+                        // HTTP请求成功后标记为已读
+                        validIds.forEach(function (id) {
+                            markedAsReadIds.value.add(id);
+                            pendingMarkIds.value.delete(id);
+                        });
+                        saveReadStatusToStorage();
+                    }).catch(function (error) {
+                        console.error('[已读] HTTP标记失败:', error);
+                        // 失败后从待发送集合移除，允许重试
+                        validIds.forEach(function (id) {
+                            pendingMarkIds.value.delete(id);
+                        });
+                    });
                 }
             };
 
@@ -489,12 +572,16 @@ try {
                     const msgId = el.getAttribute('data-msg-id');
                     if (!msgId || msgId.startsWith('temp_')) continue;
 
-                    // 检查是否已经标记过（快速检查）
-                    if (markedAsReadIds.value.has(msgId) || markedAsReadIds.value.has(Number(msgId))) continue;
+                    // 统一转换为数字类型
+                    const numericMsgId = Number(msgId);
+                    if (isNaN(numericMsgId)) continue;
+
+                    // 检查是否已经标记过（统一使用数字类型）
+                    if (markedAsReadIds.value.has(numericMsgId)) continue;
 
                     // 查找对应的消息数据
                     const msg = messages.value.find(function (m) {
-                        return m.id == msgId;
+                        return m.id == numericMsgId;
                     });
 
                     // 只处理别人发的消息
@@ -504,7 +591,7 @@ try {
                     const msgRect = el.getBoundingClientRect();
                     const msgCenter = msgRect.top + msgRect.height / 2;
                     if (msgCenter >= containerTop && msgCenter <= containerBottom) {
-                        visibleUnreadIds.push(msgId);
+                        visibleUnreadIds.push(numericMsgId);
                     }
                 }
 
@@ -3021,6 +3108,9 @@ try {
 
                 // 获取用户信息和已加入的房间
                 loadUserInfo().then(function () {
+                    // 从localStorage加载已读状态
+                    loadReadStatusFromStorage();
+
                     // 初始化 WebSocket
                     initWebSocket();
 
