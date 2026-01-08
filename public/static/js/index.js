@@ -490,21 +490,36 @@ try {
             const markedAsReadIds = ref(new Set());
             // 正在标记中的消息ID（防止并发重复请求）
             const pendingMarkIds = ref(new Set());
+            
+            // 批量已读请求聚合
+            let pendingReadBatch = [];
+            let batchReadTimer = null;
+            const BATCH_READ_DELAY = 300; // 300ms 聚合窗口
+            
+            // IntersectionObserver 实例
+            let messageObserver = null;
 
-            // 从localStorage加载已读状态
+            // 从localStorage加载已读状态（按房间分开存储）
             const loadReadStatusFromStorage = () => {
                 try {
                     const userId = currentUser.value?.id;
-                    if (!userId) return;
+                    const currentRoomId = roomId.value;
+                    if (!userId || !currentRoomId) return;
 
-                    const storageKey = 'message_read_status_' + userId;
+                    const storageKey = 'read_status_' + userId + '_' + currentRoomId;
                     const storedData = localStorage.getItem(storageKey);
 
                     if (storedData) {
                         const parsedData = JSON.parse(storedData);
-                        // 恢复已读状态（只加载最近的1000条，避免内存占用过大）
+                        // 检查是否过期（7天）
+                        if (parsedData.updateTime && Date.now() - parsedData.updateTime > 7 * 24 * 60 * 60 * 1000) {
+                            localStorage.removeItem(storageKey);
+                            console.log('[已读] 清理过期的已读记录');
+                            return;
+                        }
+                        // 恢复已读状态（只加载最近的500条）
                         if (Array.isArray(parsedData.readIds)) {
-                            parsedData.readIds.slice(-1000).forEach(function (id) {
+                            parsedData.readIds.slice(-500).forEach(function (id) {
                                 markedAsReadIds.value.add(Number(id));
                             });
                             console.log('[已读] 从localStorage加载了', markedAsReadIds.value.size, '条已读记录');
@@ -515,7 +530,7 @@ try {
                 }
             };
 
-            // 保存已读状态到localStorage（节流）
+            // 保存已读状态到localStorage（节流，按房间分开）
             let saveReadStatusTimer = null;
             const saveReadStatusToStorage = () => {
                 if (saveReadStatusTimer) return;
@@ -525,23 +540,74 @@ try {
 
                     try {
                         const userId = currentUser.value?.id;
-                        if (!userId) return;
+                        const currentRoomId = roomId.value;
+                        if (!userId || !currentRoomId) return;
 
-                        const storageKey = 'message_read_status_' + userId;
-                        const readIds = Array.from(markedAsReadIds.value);
+                        const storageKey = 'read_status_' + userId + '_' + currentRoomId;
+                        // 只保留最近500条
+                        const readIds = Array.from(markedAsReadIds.value).slice(-500);
 
                         localStorage.setItem(storageKey, JSON.stringify({
-                            userId: userId,
                             readIds: readIds,
                             updateTime: Date.now()
                         }));
                     } catch (e) {
                         console.warn('[已读] 保存已读状态失败:', e);
                     }
-                }, 1000); // 1秒节流
+                }, 2000); // 2秒节流
+            };
+            
+            // 清理旧的已读存储（切换房间时调用）
+            const clearReadStatusForRoom = () => {
+                markedAsReadIds.value.clear();
+                pendingMarkIds.value.clear();
+                pendingReadBatch = [];
             };
 
-            // 标记指定消息为已读（通过WebSocket）
+            // 实际发送已读标记请求
+            const flushReadBatch = () => {
+                if (pendingReadBatch.length === 0) return;
+                
+                const idsToSend = pendingReadBatch.slice();
+                pendingReadBatch = [];
+                
+                console.log('[已读] 批量发送已读标记:', idsToSend.length, '条');
+
+                // 通过WebSocket发送已读标记
+                if (wsClient.value && wsConnected.value) {
+                    wsClient.value.send({
+                        type: 'mark_read',
+                        message_ids: idsToSend
+                    });
+
+                    // WebSocket发送成功后立即标记为已读
+                    idsToSend.forEach(function (id) {
+                        markedAsReadIds.value.add(id);
+                        pendingMarkIds.value.delete(id);
+                    });
+
+                    saveReadStatusToStorage();
+                } else {
+                    // 降级到HTTP API
+                    apiRequest('/api/message/markRead', {
+                        method: 'POST',
+                        body: JSON.stringify({ message_ids: idsToSend })
+                    }).then(function () {
+                        idsToSend.forEach(function (id) {
+                            markedAsReadIds.value.add(id);
+                            pendingMarkIds.value.delete(id);
+                        });
+                        saveReadStatusToStorage();
+                    }).catch(function (error) {
+                        console.error('[已读] HTTP标记失败:', error);
+                        idsToSend.forEach(function (id) {
+                            pendingMarkIds.value.delete(id);
+                        });
+                    });
+                }
+            };
+
+            // 标记指定消息为已读（批量聚合版）
             const markMessagesAsRead = (messageIds) => {
                 if (!messageIds || messageIds.length === 0) return;
 
@@ -549,7 +615,7 @@ try {
                 const normalizedIds = messageIds.map(function (id) {
                     return id ? Number(id) : null;
                 }).filter(function (id) {
-                    return id && !isNaN(id) && !id.toString().startsWith('temp_');
+                    return id && !isNaN(id) && !String(id).startsWith('temp_');
                 });
 
                 if (normalizedIds.length === 0) return;
@@ -563,88 +629,152 @@ try {
 
                 if (validIds.length === 0) return;
 
-                // 记录到正在标记集合
+                // 记录到正在标记集合，并加入批量队列
                 validIds.forEach(function (id) {
                     pendingMarkIds.value.add(id);
+                    if (pendingReadBatch.indexOf(id) === -1) {
+                        pendingReadBatch.push(id);
+                    }
                 });
 
-                console.log('[已读] 标记消息已读:', validIds);
-
-                // 通过WebSocket发送已读标记
-                if (wsClient.value && wsConnected.value) {
-                    wsClient.value.send({
-                        type: 'mark_read',
-                        message_ids: validIds
-                    });
-
-                    // WebSocket发送成功后立即标记为已读
-                    validIds.forEach(function (id) {
-                        markedAsReadIds.value.add(id);
-                        pendingMarkIds.value.delete(id);
-                    });
-
-                    // 触发保存到localStorage
-                    saveReadStatusToStorage();
-                } else {
-                    // 降级到HTTP API
-                    apiRequest('/api/message/markRead', {
-                        method: 'POST',
-                        body: JSON.stringify({ message_ids: validIds })
-                    }).then(function () {
-                        // HTTP请求成功后标记为已读
-                        validIds.forEach(function (id) {
-                            markedAsReadIds.value.add(id);
-                            pendingMarkIds.value.delete(id);
-                        });
-                        saveReadStatusToStorage();
-                    }).catch(function (error) {
-                        console.error('[已读] HTTP标记失败:', error);
-                        // 失败后从待发送集合移除，允许重试
-                        validIds.forEach(function (id) {
-                            pendingMarkIds.value.delete(id);
-                        });
-                    });
+                // 重置批量发送定时器
+                if (batchReadTimer) {
+                    clearTimeout(batchReadTimer);
                 }
+                batchReadTimer = setTimeout(flushReadBatch, BATCH_READ_DELAY);
             };
 
-            // 检测并标记可见区域内的未读消息（优化版：减少 DOM 查询）
+            // 使用 IntersectionObserver 检测消息可见性
+            const initMessageObserver = () => {
+                if (messageObserver) {
+                    messageObserver.disconnect();
+                }
+                
+                if (!('IntersectionObserver' in window)) {
+                    console.warn('[已读] 浏览器不支持 IntersectionObserver，降级到滚动检测');
+                    return;
+                }
+                
+                const container = messagesContainer.value;
+                if (!container) return;
+                
+                messageObserver = new IntersectionObserver(function (entries) {
+                    if (document.visibilityState !== 'visible') return;
+                    
+                    const visibleUnreadIds = [];
+                    
+                    entries.forEach(function (entry) {
+                        if (!entry.isIntersecting) return;
+                        
+                        const el = entry.target;
+                        const msgId = el.getAttribute('data-msg-id');
+                        if (!msgId || msgId.startsWith('temp_')) return;
+                        
+                        const numericMsgId = Number(msgId);
+                        if (isNaN(numericMsgId)) return;
+                        if (markedAsReadIds.value.has(numericMsgId)) return;
+                        
+                        // 查找消息数据，只处理别人的消息
+                        const msg = messages.value.find(function (m) {
+                            return m.id == numericMsgId;
+                        });
+                        if (!msg || msg.isOwn) return;
+                        
+                        visibleUnreadIds.push(numericMsgId);
+                        
+                        // 已读后停止观察该元素
+                        messageObserver.unobserve(el);
+                    });
+                    
+                    if (visibleUnreadIds.length > 0) {
+                        markMessagesAsRead(visibleUnreadIds);
+                    }
+                }, {
+                    root: container,
+                    rootMargin: '0px',
+                    threshold: 0.5 // 50% 可见时触发
+                });
+            };
+            
+            // 观察新消息元素
+            const observeMessageElement = (msgId) => {
+                if (!messageObserver) return;
+                
+                nextTick(function () {
+                    const container = messagesContainer.value;
+                    if (!container) return;
+                    
+                    const el = container.querySelector('.msg-row[data-msg-id="' + msgId + '"]');
+                    if (el) {
+                        messageObserver.observe(el);
+                    }
+                });
+            };
+            
+            // 观察所有未读消息（加载消息后调用）
+            const observeAllUnreadMessages = () => {
+                if (!messageObserver) {
+                    initMessageObserver();
+                }
+                if (!messageObserver) return;
+                
+                nextTick(function () {
+                    const container = messagesContainer.value;
+                    if (!container) return;
+                    
+                    const msgElements = container.querySelectorAll('.msg-row[data-msg-id]');
+                    msgElements.forEach(function (el) {
+                        const msgId = el.getAttribute('data-msg-id');
+                        if (!msgId || msgId.startsWith('temp_')) return;
+                        
+                        const numericMsgId = Number(msgId);
+                        if (markedAsReadIds.value.has(numericMsgId)) return;
+                        
+                        // 只观察别人的消息
+                        const msg = messages.value.find(function (m) {
+                            return m.id == numericMsgId;
+                        });
+                        if (!msg || msg.isOwn) return;
+                        
+                        messageObserver.observe(el);
+                    });
+                });
+            };
+
+            // 检测并标记可见区域内的未读消息（降级方案，IntersectionObserver 不可用时使用）
             const checkAndMarkVisibleMessages = () => {
+                // 如果有 IntersectionObserver，优先使用它
+                if (messageObserver) {
+                    observeAllUnreadMessages();
+                    return;
+                }
+                
                 if (!roomId.value || document.visibilityState !== 'visible') return;
 
                 const container = messagesContainer.value;
                 if (!container) return;
 
-                // 一次性获取容器位置，避免重复调用
                 const containerRect = container.getBoundingClientRect();
                 const containerTop = containerRect.top;
                 const containerBottom = containerRect.bottom;
 
-                // 获取所有消息元素
                 const msgElements = container.querySelectorAll('.msg-row[data-msg-id]');
                 const visibleUnreadIds = [];
 
-                // 使用普通 for 循环代替 forEach，性能更好
                 for (let i = 0; i < msgElements.length; i++) {
                     const el = msgElements[i];
                     const msgId = el.getAttribute('data-msg-id');
                     if (!msgId || msgId.startsWith('temp_')) continue;
 
-                    // 统一转换为数字类型
                     const numericMsgId = Number(msgId);
                     if (isNaN(numericMsgId)) continue;
-
-                    // 检查是否已经标记过（统一使用数字类型）
                     if (markedAsReadIds.value.has(numericMsgId)) continue;
 
-                    // 查找对应的消息数据
                     const msg = messages.value.find(function (m) {
                         return m.id == numericMsgId;
                     });
-
-                    // 只处理别人发的消息
                     if (!msg || msg.isOwn) continue;
 
-                    // 检查是否在可见区域（内联计算，减少函数调用）
                     const msgRect = el.getBoundingClientRect();
                     const msgCenter = msgRect.top + msgRect.height / 2;
                     if (msgCenter >= containerTop && msgCenter <= containerBottom) {
@@ -664,14 +794,13 @@ try {
 
                 scrollCheckTimer = setTimeout(function () {
                     scrollCheckTimer = null;
-                    checkAndMarkVisibleMessages();
-
-                    // 如果用户滚动到底部，隐藏新消息提示
+                    
+                    // IntersectionObserver 会自动处理，这里只处理新消息提示
                     if (isUserAtBottom() && showNewMessageTip.value) {
                         showNewMessageTip.value = false;
                         newMessageCount.value = 0;
                     }
-                }, 200); // 200ms节流
+                }, 150); // 150ms节流
             };
 
             // ========== WebSocket 相关函数 ==========
@@ -745,10 +874,13 @@ try {
                             stopAutoRefresh();
                         }
 
-                        // 加入房间后检测可见消息并标记已读（确保在 DOM 更新后执行）
+                        // 加入房间后初始化消息观察器
                         nextTick(function () {
                             setTimeout(function () {
-                                checkAndMarkVisibleMessages();
+                                if (!messageObserver) {
+                                    initMessageObserver();
+                                }
+                                observeAllUnreadMessages();
                             }, 300);
                         });
                     },
@@ -848,11 +980,9 @@ try {
                                     newMessageCount.value = (newMessageCount.value || 0) + 1;
                                 }
 
-                                // 如果是别人的消息，延迟检测可见性并标记已读
+                                // 如果是别人的消息，观察该消息元素
                                 if (!isOwn && document.visibilityState === 'visible') {
-                                    setTimeout(function () {
-                                        checkAndMarkVisibleMessages();
-                                    }, 100);
+                                    observeMessageElement(newMsg.id);
                                 }
                             });
                         }
@@ -938,39 +1068,45 @@ try {
                             nickname: data.reader_nickname,
                             read_at: data.read_at
                         };
+                        
+                        // 用 Set 加速消息ID匹配
+                        const messageIdSet = new Set(messageIds.map(function(id) { return String(id); }));
 
                         messages.value.forEach(function (msg) {
-                            // 使用宽松比较，避免类型不匹配
-                            const msgIdMatches = messageIds.some(function (id) {
-                                return id == msg.id;
-                            });
-
-                            if (msg.isOwn && msgIdMatches) {
-                                // 初始化已读用户列表
-                                if (!msg.readUsers) {
-                                    msg.readUsers = [];
-                                }
-
-                                // 检查该用户是否已存在（去重）
-                                const exists = msg.readUsers.some(function (u) {
-                                    return u.user_id == readerInfo.user_id;
-                                });
-
-                                if (!exists) {
-                                    // 该用户是第一次标记已读，才增加计数
-                                    msg.isRead = true;
-                                    msg.readCount = (msg.readCount || 0) + 1;
-
-                                    // 添加到已读用户列表（最多5个）
-                                    if (msg.readUsers.length < 5) {
-                                        msg.readUsers.unshift(readerInfo);
-                                    }
-
-                                    console.log('[WebSocket] 更新消息已读状态:', msg.id, '已读人数:', msg.readCount, '阅读者:', readerInfo.nickname);
-                                } else {
-                                    console.log('[WebSocket] 忽略重复已读回执:', msg.id, '阅读者:', readerInfo.nickname);
+                            // 使用 Set 快速查找
+                            if (!msg.isOwn || !messageIdSet.has(String(msg.id))) return;
+                            
+                            // 初始化已读用户 Set（用于快速去重）
+                            if (!msg._readUserIds) {
+                                msg._readUserIds = new Set();
+                                // 从已有的 readUsers 初始化
+                                if (msg.readUsers) {
+                                    msg.readUsers.forEach(function(u) {
+                                        msg._readUserIds.add(String(u.user_id));
+                                    });
                                 }
                             }
+                            if (!msg.readUsers) {
+                                msg.readUsers = [];
+                            }
+
+                            // 用 Set 快速检查去重
+                            const readerIdStr = String(readerInfo.user_id);
+                            if (msg._readUserIds.has(readerIdStr)) {
+                                return; // 已存在，跳过
+                            }
+
+                            // 新的已读用户
+                            msg._readUserIds.add(readerIdStr);
+                            msg.isRead = true;
+                            msg.readCount = (msg.readCount || 0) + 1;
+
+                            // 添加到已读用户列表（最多5个）
+                            if (msg.readUsers.length < 5) {
+                                msg.readUsers.unshift(readerInfo);
+                            }
+
+                            console.log('[WebSocket] 更新消息已读状态:', msg.id, '已读人数:', msg.readCount);
                         });
                     },
 
@@ -1025,16 +1161,29 @@ try {
                 }
             };
 
-            // 发送正在输入状态
+            // 发送正在输入状态（带节流）
+            let lastTypingSentTime = 0;
+            const TYPING_THROTTLE = 500; // 500ms 节流
+            
             const sendTypingStatus = (typing) => {
                 if (!wsClient.value || !wsConnected.value) {
                     return;
                 }
+                
+                const now = Date.now();
+                // 发送 typing=true 时节流，typing=false 时立即发送
+                if (typing && now - lastTypingSentTime < TYPING_THROTTLE) {
+                    return;
+                }
+                
                 try {
                     wsClient.value.send({
                         type: 'typing',
                         typing: typing
                     });
+                    if (typing) {
+                        lastTypingSentTime = now;
+                    }
                 } catch (e) {
                     // 忽略错误
                 }
@@ -1062,7 +1211,7 @@ try {
                 }
 
                 if (newMessage.value.trim()) {
-                    // 每次输入都发送正在输入状态（续命）
+                    // 发送正在输入状态（内部有节流）
                     sendTypingStatus(true);
                     isTyping.value = true;
 
@@ -1309,6 +1458,9 @@ try {
 
                         // 加载历史消息
                         await loadRoomMessages(targetRoom.id);
+                        
+                        // 加载该房间的已读状态
+                        loadReadStatusFromStorage();
                     } else {
                         // 显示未加入房间状态
                         roomList.value = [];
@@ -1423,12 +1575,18 @@ try {
                         const joinedRoomName = checkResult.data.name || `房间 ${roomIdValue}`;
                         roomName.value = joinedRoomName;
                         roomId.value = roomIdValue;
+                        
+                        // 清空旧房间的已读状态
+                        clearReadStatusForRoom();
 
                         // 获取房间信息
                         await getRoomInfo(roomIdValue);
 
                         // 加载历史消息
                         await loadRoomMessages(roomIdValue);
+                        
+                        // 加载该房间的已读状态
+                        loadReadStatusFromStorage();
 
                         // 重新加载房间列表
                         await loadUserInfo();
@@ -1576,7 +1734,11 @@ try {
 
                         // 检测可见消息（合并到一个 setTimeout）
                         setTimeout(function () {
-                            checkAndMarkVisibleMessages();
+                            // 初始化或重新观察消息
+                            if (!messageObserver) {
+                                initMessageObserver();
+                            }
+                            observeAllUnreadMessages();
                         }, 200);
                     }
                 } catch (error) {
@@ -2263,7 +2425,7 @@ try {
                             }
                             messages.value[msgIndex].time = new Date(serverTime);
 
-                            // 更新状态为成功（常驻显示）
+                            // 更新状态为成功
                             delete messageSendStatus.value[tempId];
                             messageSendStatus.value[result.data.id] = 'success';
 
@@ -2360,8 +2522,14 @@ try {
                 roomName.value = room.name;
                 roomId.value = room.id;
 
-                // 清空已标记已读的消息ID集合（切换房间时重置）
-                markedAsReadIds.value = new Set();
+                // 清空已读状态（切换房间时重置）
+                clearReadStatusForRoom();
+                
+                // 断开旧的 Observer
+                if (messageObserver) {
+                    messageObserver.disconnect();
+                    messageObserver = null;
+                }
 
                 // 保存当前房间ID到本地
                 localStorage.setItem('lastRoomId', room.id);
@@ -2372,6 +2540,13 @@ try {
 
                     // 加载房间历史消息（内部有loading，但我们已经显示了）
                     await loadRoomMessages(room.id);
+                    
+                    // 加载该房间的已读状态
+                    loadReadStatusFromStorage();
+                    
+                    // 初始化消息观察器并观察未读消息
+                    initMessageObserver();
+                    observeAllUnreadMessages();
 
                     // WebSocket 加入房间
                     joinWebSocketRoom(room.id);
