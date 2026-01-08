@@ -129,6 +129,9 @@ $wsWorker->onMessage = function ($connection, $data) use (&$localConnections) {
             case 'mark_read':
                 handleMarkRead($connection, $msg, $localConnections);
                 break;
+            case 'message_burned':
+                handleMessageBurned($connection, $msg, $localConnections);
+                break;
             case 'ping':
                 handlePing($connection, $localConnections);
                 break;
@@ -530,6 +533,34 @@ function handleMarkRead($connection, $msg, &$localConnections)
         'type' => 'mark_read_success',
         'count' => $count
     ]));
+}
+
+// 处理消息焚毁广播
+function handleMessageBurned($connection, $msg, &$localConnections)
+{
+    $connData = $localConnections[$connection->id];
+    if (!$connData['authed'] || !$connData['room_id']) {
+        return;
+    }
+
+    $messageId = $msg['message_id'] ?? null;
+    $userId = $connData['user_id'];
+    $nickname = $connData['nickname'];
+    $roomId = $connData['room_id'];
+
+    if (empty($messageId)) {
+        return;
+    }
+
+    echo "[" . date('H:i:s') . "] 用户{$userId} {$nickname} 焚毁消息 {$messageId}\n";
+
+    // 广播给房间内其他用户（不包括自己，因为自己已经处理了）
+    broadcastToRoomExcludeUser($roomId, [
+        'type' => 'message_burned',
+        'message_id' => $messageId,
+        'burned_by' => $userId,
+        'burned_by_nickname' => $nickname
+    ], $localConnections, $userId);
 }
 
 // 处理心跳检测检测

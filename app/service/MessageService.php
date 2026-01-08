@@ -451,10 +451,20 @@ class MessageService
                 return ['code' => 1, 'msg' => '只能焚毁自己的消息'];
             }
 
+            // 保存房间ID用于广播
+            $roomId = $message->room_id;
+
             // 软删除
             Message::destroy($messageId);
 
-            return ['code' => 0, 'msg' => '焚毁成功'];
+            return [
+                'code' => 0, 
+                'msg' => '焚毁成功',
+                'data' => [
+                    'message_id' => $messageId,
+                    'room_id' => $roomId
+                ]
+            ];
 
         } catch (\Exception $e) {
             return ['code' => 1, 'msg' => '焚毁失败：' . $e->getMessage()];

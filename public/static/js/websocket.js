@@ -27,6 +27,7 @@
         this.onUserLeft = this.options.onUserLeft || null;
         this.onTyping = this.options.onTyping || null;
         this.onMessageRead = this.options.onMessageRead || null;  // 已读回执
+        this.onMessageBurned = this.options.onMessageBurned || null;  // 消息焚毁
         this.onError = this.options.onError || null;           // 连接错误
         this.onServerError = this.options.onServerError || null; // 服务器业务错误
         this.onClose = this.options.onClose || null;
@@ -279,6 +280,13 @@
             case 'message_read':
                 if (this.onMessageRead) {
                     this.onMessageRead(data);
+                }
+                break;
+
+            case 'message_burned':
+                console.log('[WebSocketClient] 收到 message_burned, 回调存在:', !!this.onMessageBurned);
+                if (this.onMessageBurned) {
+                    this.onMessageBurned(data);
                 }
                 break;
 

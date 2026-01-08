@@ -1110,6 +1110,37 @@ try {
                         });
                     },
 
+                    // 收到消息焚毁广播
+                    onMessageBurned: (data) => {
+                        console.log('[WebSocket] 收到消息焚毁广播:', data);
+                        
+                        const messageId = data.message_id;
+                        if (!messageId) return;
+                        
+                        // 查找消息
+                        const msgIndex = messages.value.findIndex(function(m) {
+                            return m.id == messageId;
+                        });
+                        
+                        if (msgIndex > -1) {
+                            // 添加焚毁动画
+                            const msgElement = document.querySelector('[data-msg-id="' + messageId + '"]');
+                            if (msgElement) {
+                                msgElement.classList.add('msg-burning');
+                            }
+                            
+                            // 延迟删除消息（等待动画完成）
+                            setTimeout(function() {
+                                const index = messages.value.findIndex(function(m) {
+                                    return m.id == messageId;
+                                });
+                                if (index > -1) {
+                                    messages.value.splice(index, 1);
+                                }
+                            }, 600);
+                        }
+                    },
+
                     // 服务器业务错误（如"您未加入此房间"）
                     onServerError: (error) => {
                         console.warn('[WebSocket] 服务器业务错误:', error.msg);
@@ -2953,6 +2984,14 @@ try {
                     const result = await response.json();
 
                     if (result.code === 0) {
+                        // 通过 WebSocket 广播焚毁消息
+                        if (wsClient.value && wsConnected.value) {
+                            wsClient.value.send({
+                                type: 'message_burned',
+                                message_id: message.id
+                            });
+                        }
+                        
                         // 延迟删除消息（等待动画完成）
                         setTimeout(() => {
                             const index = messages.value.findIndex(m => m.id === message.id);
