@@ -1141,6 +1141,20 @@ try {
                         }
                     },
 
+                    // 收到房间清理广播
+                    onRoomCleared: (data) => {
+                        console.log('[WebSocket] 收到房间清理广播:', data);
+                        
+                        const clearedBy = data.cleared_by_nickname || '管理员';
+                        
+                        // 清空本地消息列表
+                        messages.value = [];
+                        messageSendStatus.value = {};
+                        
+                        // 提示用户
+                        window.Toast.info(clearedBy + ' 清理了房间消息');
+                    },
+
                     // 服务器业务错误（如"您未加入此房间"）
                     onServerError: (error) => {
                         console.warn('[WebSocket] 服务器业务错误:', error.msg);
@@ -3336,6 +3350,14 @@ try {
                     const result = await response.json();
 
                     if (result.code === 0) {
+                        // 通过 WebSocket 广播房间清理
+                        if (wsClient.value && wsConnected.value) {
+                            wsClient.value.send({
+                                type: 'room_cleared',
+                                hard_delete: clearRoomHardDelete.value
+                            });
+                        }
+                        
                         // 清空前端消息列表
                         messages.value = [];
                         messageSendStatus.value = {};

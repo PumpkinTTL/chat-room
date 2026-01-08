@@ -28,6 +28,7 @@
         this.onTyping = this.options.onTyping || null;
         this.onMessageRead = this.options.onMessageRead || null;  // 已读回执
         this.onMessageBurned = this.options.onMessageBurned || null;  // 消息焚毁
+        this.onRoomCleared = this.options.onRoomCleared || null;  // 房间清理
         this.onError = this.options.onError || null;           // 连接错误
         this.onServerError = this.options.onServerError || null; // 服务器业务错误
         this.onClose = this.options.onClose || null;
@@ -287,6 +288,12 @@
                 console.log('[WebSocketClient] 收到 message_burned, 回调存在:', !!this.onMessageBurned);
                 if (this.onMessageBurned) {
                     this.onMessageBurned(data);
+                }
+                break;
+
+            case 'room_cleared':
+                if (this.onRoomCleared) {
+                    this.onRoomCleared(data);
                 }
                 break;
 

@@ -132,6 +132,9 @@ $wsWorker->onMessage = function ($connection, $data) use (&$localConnections) {
             case 'message_burned':
                 handleMessageBurned($connection, $msg, $localConnections);
                 break;
+            case 'room_cleared':
+                handleRoomCleared($connection, $msg, $localConnections);
+                break;
             case 'ping':
                 handlePing($connection, $localConnections);
                 break;
@@ -560,6 +563,30 @@ function handleMessageBurned($connection, $msg, &$localConnections)
         'message_id' => $messageId,
         'burned_by' => $userId,
         'burned_by_nickname' => $nickname
+    ], $localConnections, $userId);
+}
+
+// 处理房间清理广播
+function handleRoomCleared($connection, $msg, &$localConnections)
+{
+    $connData = $localConnections[$connection->id];
+    if (!$connData['authed'] || !$connData['room_id']) {
+        return;
+    }
+
+    $userId = $connData['user_id'];
+    $nickname = $connData['nickname'];
+    $roomId = $connData['room_id'];
+    $hardDelete = $msg['hard_delete'] ?? false;
+
+    echo "[" . date('H:i:s') . "] 用户{$userId} {$nickname} 清理房间 {$roomId} (物理删除: " . ($hardDelete ? '是' : '否') . ")\n";
+
+    // 广播给房间内其他用户
+    broadcastToRoomExcludeUser($roomId, [
+        'type' => 'room_cleared',
+        'cleared_by' => $userId,
+        'cleared_by_nickname' => $nickname,
+        'hard_delete' => $hardDelete
     ], $localConnections, $userId);
 }
 
