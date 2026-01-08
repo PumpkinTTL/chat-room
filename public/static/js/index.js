@@ -744,6 +744,13 @@ try {
                         if (autoRefreshTimer.value) {
                             stopAutoRefresh();
                         }
+
+                        // 加入房间后检测可见消息并标记已读（确保在 DOM 更新后执行）
+                        nextTick(function () {
+                            setTimeout(function () {
+                                checkAndMarkVisibleMessages();
+                            }, 300);
+                        });
                     },
 
                     onMessage: (data) => {
@@ -939,23 +946,30 @@ try {
                             });
 
                             if (msg.isOwn && msgIdMatches) {
-                                // 更新已读状态
-                                msg.isRead = true;
-                                msg.readCount = (msg.readCount || 0) + 1;
-
-                                // 添加到已读用户列表（最多5个）
+                                // 初始化已读用户列表
                                 if (!msg.readUsers) {
                                     msg.readUsers = [];
                                 }
-                                // 检查是否已存在
+
+                                // 检查该用户是否已存在（去重）
                                 const exists = msg.readUsers.some(function (u) {
                                     return u.user_id == readerInfo.user_id;
                                 });
-                                if (!exists && msg.readUsers.length < 5) {
-                                    msg.readUsers.unshift(readerInfo);
-                                }
 
-                                console.log('[WebSocket] 更新消息已读状态:', msg.id, '已读人数:', msg.readCount);
+                                if (!exists) {
+                                    // 该用户是第一次标记已读，才增加计数
+                                    msg.isRead = true;
+                                    msg.readCount = (msg.readCount || 0) + 1;
+
+                                    // 添加到已读用户列表（最多5个）
+                                    if (msg.readUsers.length < 5) {
+                                        msg.readUsers.unshift(readerInfo);
+                                    }
+
+                                    console.log('[WebSocket] 更新消息已读状态:', msg.id, '已读人数:', msg.readCount, '阅读者:', readerInfo.nickname);
+                                } else {
+                                    console.log('[WebSocket] 忽略重复已读回执:', msg.id, '阅读者:', readerInfo.nickname);
+                                }
                             }
                         });
                     },
@@ -2638,17 +2652,43 @@ try {
                 } else {
                     // 页面重新可见时
                     if (roomId.value) {
+                        // 如果 WebSocket 已连接，直接检测已读消息
+                        if (wsConnected.value) {
+                            setTimeout(function () {
+                                checkAndMarkVisibleMessages();
+                            }, 200);
+                        } else {
+                            // WebSocket 未连接，等待连接后再检测
+                            console.log('[已读] 页面重新可见，等待WebSocket连接后再检测...');
+
+                            // 设置一个超时，如果 WebSocket 一直不连接，就使用 HTTP 降级
+                            let waitCount = 0;
+                            const checkWsAndMark = function () {
+                                waitCount++;
+                                if (wsConnected.value) {
+                                    // WebSocket 已连接，检测已读消息
+                                    checkAndMarkVisibleMessages();
+                                } else if (waitCount >= 10) {
+                                    // 等待超过2秒仍没连接，使用 HTTP 降级
+                                    console.log('[已读] WebSocket未连接，使用HTTP标记已读');
+                                    checkAndMarkVisibleMessages();
+                                } else {
+                                    // 继续等待
+                                    setTimeout(checkWsAndMark, 200);
+                                }
+                            };
+
+                            // 立即刷新一次获取最新消息（使用 HTTP）
+                            loadRoomMessages(roomId.value, false, false);
+
+                            // 200ms 后开始等待 WebSocket
+                            setTimeout(checkWsAndMark, 200);
+                        }
+
                         // 如果开启了自动刷新且 WebSocket 未连接，则重启轮询
                         if (autoRefresh.value && !wsConnected.value) {
                             startAutoRefresh();
-                            // 立即刷新一次获取最新消息
-                            loadRoomMessages(roomId.value, false, false);
                         }
-
-                        // 页面重新可见时，检测并标记可见区域内的未读消息
-                        setTimeout(function () {
-                            checkAndMarkVisibleMessages();
-                        }, 200);
                     }
                 }
             };
