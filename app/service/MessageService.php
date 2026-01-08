@@ -557,12 +557,13 @@ class MessageService
     }
 
     /**
-     * 清理房间所有消息（物理删除，包括文件）
+     * 清理房间所有消息
      * @param int $roomId 房间ID
      * @param int $userId 操作用户ID
+     * @param bool $hardDelete 是否物理删除（true=物理删除含文件，false=软删除）
      * @return array
      */
-    public static function clearRoomMessages($roomId, $userId)
+    public static function clearRoomMessages($roomId, $userId, $hardDelete = false)
     {
         if (empty($roomId) || empty($userId)) {
             return ['code' => 1, 'msg' => '参数错误'];
@@ -596,100 +597,186 @@ class MessageService
             // 获取所有消息的总数（用于统计）
             $totalMessages = Db::table('ch_messages')
                 ->where('room_id', $roomId)
+                ->whereNull('delete_time')
                 ->count();
 
-            // 获取所有包含文件的消息（图片、视频、文件）
-            $fileMessages = Db::table('ch_messages')
-                ->where('room_id', $roomId)
-                ->where('message_type', 'in', [Message::TYPE_IMAGE, Message::TYPE_VIDEO, Message::TYPE_FILE])
-                ->whereNotNull('file_info')
-                ->select()
-                ->toArray();
-
-            // 删除关联的已读记录
-            Db::table('ch_message_reads')
-                ->whereIn('message_id', function($query) use ($roomId) {
-                    $query->table('ch_messages')
-                        ->where('room_id', $roomId)
-                        ->field('id');
-                })
-                ->delete();
-
-            // 物理删除所有消息（包括软删除的记录）
-            Db::table('ch_messages')
-                ->where('room_id', $roomId)
-                ->delete();
-
-            Db::commit();
-
-            // 删除文件（在事务提交后）
             $deletedFiles = 0;
-            $error_log_path = runtime_path() . 'log/file_deletion.log';
 
-            foreach ($fileMessages as $message) {
-                $filePath = null;
+            if ($hardDelete) {
+                // 物理删除模式：删除文件 + 已读记录 + 消息记录
+                
+                // 获取所有包含文件的消息（图片、视频、文件）
+                $fileMessages = Db::table('ch_messages')
+                    ->where('room_id', $roomId)
+                    ->where('message_type', 'in', [Message::TYPE_IMAGE, Message::TYPE_VIDEO, Message::TYPE_FILE])
+                    ->whereNotNull('file_info')
+                    ->select()
+                    ->toArray();
 
-                // 方法1: 优先使用 file_info 中的 path 字段
-                if (!empty($message['file_info'])) {
-                    if (is_string($message['file_info'])) {
-                        $fileInfo = json_decode($message['file_info'], true);
-                    } else {
-                        $fileInfo = $message['file_info'];
+                // 删除关联的已读记录
+                Db::table('ch_message_reads')
+                    ->whereIn('message_id', function($query) use ($roomId) {
+                        $query->table('ch_messages')
+                            ->where('room_id', $roomId)
+                            ->field('id');
+                    })
+                    ->delete();
+
+                // 物理删除所有消息（包括软删除的记录）
+                Db::table('ch_messages')
+                    ->where('room_id', $roomId)
+                    ->delete();
+
+                Db::commit();
+
+                // 删除文件（在事务提交后）
+                $error_log_path = runtime_path() . 'log/file_deletion.log';
+
+                foreach ($fileMessages as $message) {
+                    $filePath = null;
+
+                    // 方法1: 优先使用 file_info 中的 path 字段
+                    if (!empty($message['file_info'])) {
+                        if (is_string($message['file_info'])) {
+                            $fileInfo = json_decode($message['file_info'], true);
+                        } else {
+                            $fileInfo = $message['file_info'];
+                        }
+
+                        if (!empty($fileInfo['path'])) {
+                            $filePath = $fileInfo['path'];
+                        }
                     }
 
-                    if (!empty($fileInfo['path'])) {
-                        $filePath = $fileInfo['path'];
+                    // 方法2: 如果 file_info 没有 path，从 content 字段提取
+                    if (empty($filePath) && !empty($message['content'])) {
+                        $content = $message['content'];
+                        if (strpos($content, '/storage/') === 0) {
+                            $filePath = substr($content, 9);
+                        } elseif (strpos($content, '/') === 0) {
+                            $filePath = substr($content, 1);
+                        } else {
+                            $filePath = $content;
+                        }
+                    }
+
+                    // 删除文件
+                    if (!empty($filePath)) {
+                        $debugMsg = date('Y-m-d H:i:s') . " - 尝试删除文件: " . $filePath . "\n";
+                        error_log($debugMsg, 3, $error_log_path);
+
+                        $result = UploadService::deleteFile($filePath);
+
+                        if ($result['code'] === 0 && strpos($result['msg'], '删除成功') !== false) {
+                            $deletedFiles++;
+                        }
                     }
                 }
 
-                // 方法2: 如果 file_info 没有 path，从 content 字段提取
-                if (empty($filePath) && !empty($message['content'])) {
-                    $content = $message['content'];
-                    // content 格式可能是: /storage/images/xxx.jpg 或 images/xxx.jpg
-                    if (strpos($content, '/storage/') === 0) {
-                        $filePath = substr($content, 9); // 去掉 /storage/
-                    } elseif (strpos($content, '/') === 0) {
-                        $filePath = substr($content, 1); // 去掉开头的 /
-                    } else {
-                        $filePath = $content;
-                    }
-                }
+                return [
+                    'code' => 0,
+                    'msg' => '物理删除成功',
+                    'data' => [
+                        'deleted_messages' => $totalMessages,
+                        'deleted_files' => $deletedFiles,
+                        'hard_delete' => true
+                    ]
+                ];
+            } else {
+                // 软删除模式：只标记消息为已删除，保留文件和已读数据
+                $now = date('Y-m-d H:i:s');
+                
+                Db::table('ch_messages')
+                    ->where('room_id', $roomId)
+                    ->whereNull('delete_time')
+                    ->update(['delete_time' => $now]);
 
-                // 删除文件
-                if (!empty($filePath)) {
-                    // 使用 error_log 记录调试信息
-                    $debugMsg = date('Y-m-d H:i:s') . " - 尝试删除文件: " . $filePath . "\n";
-                    $debugMsg .= "  file_info原始值: " . ($message['file_info'] ?? 'null') . "\n";
-                    $debugMsg .= "  content原始值: " . ($message['content'] ?? 'null') . "\n";
-                    error_log($debugMsg, 3, $error_log_path);
+                Db::commit();
 
-                    $result = UploadService::deleteFile($filePath);
-
-                    $resultMsg = date('Y-m-d H:i:s') . " - 删除结果: " . json_encode($result, JSON_UNESCAPED_UNICODE) . "\n";
-                    error_log($resultMsg, 3, $error_log_path);
-
-                    if ($result['code'] === 0 && strpos($result['msg'], '删除成功') !== false) {
-                        $deletedFiles++;
-                    }
-                }
+                return [
+                    'code' => 0,
+                    'msg' => '软删除成功',
+                    'data' => [
+                        'deleted_messages' => $totalMessages,
+                        'deleted_files' => 0,
+                        'hard_delete' => false
+                    ]
+                ];
             }
-
-            // 记录总体统计
-            $summaryMsg = date('Y-m-d H:i:s') . " - 清理完成: 找到 " . count($fileMessages) . " 条文件消息（图片/视频/文件），实际删除 " . $deletedFiles . " 个文件\n";
-            error_log($summaryMsg, 3, $error_log_path);
-
-            return [
-                'code' => 0,
-                'msg' => '清理成功',
-                'data' => [
-                    'deleted_messages' => $totalMessages,
-                    'deleted_files' => $deletedFiles
-                ]
-            ];
 
         } catch (\Exception $e) {
             Db::rollback();
             return ['code' => 1, 'msg' => '清理失败：' . $e->getMessage()];
         }
+    }
+
+    /**
+     * 恢复房间软删除的消息
+     * @param int $roomId 房间ID
+     * @param int $userId 操作用户ID
+     * @return array
+     */
+    public static function restoreRoomMessages($roomId, $userId)
+    {
+        if (empty($roomId) || empty($userId)) {
+            return ['code' => 1, 'msg' => '参数错误'];
+        }
+
+        // 只有管理员3306可以恢复
+        $ADMIN_ID = 3306;
+        if ($userId != $ADMIN_ID) {
+            return ['code' => 1, 'msg' => '权限不足，只有管理员可以恢复消息'];
+        }
+
+        // 验证用户是否在房间内
+        if (!RoomUserService::isUserInRoom($roomId, $userId)) {
+            return ['code' => 1, 'msg' => '您不在此房间内'];
+        }
+
+        try {
+            // 统计软删除的消息数量
+            $deletedCount = Db::table('ch_messages')
+                ->where('room_id', $roomId)
+                ->whereNotNull('delete_time')
+                ->count();
+
+            if ($deletedCount === 0) {
+                return ['code' => 1, 'msg' => '没有可恢复的消息'];
+            }
+
+            // 恢复软删除的消息
+            Db::table('ch_messages')
+                ->where('room_id', $roomId)
+                ->whereNotNull('delete_time')
+                ->update(['delete_time' => null]);
+
+            return [
+                'code' => 0,
+                'msg' => '恢复成功',
+                'data' => [
+                    'restored_messages' => $deletedCount
+                ]
+            ];
+
+        } catch (\Exception $e) {
+            return ['code' => 1, 'msg' => '恢复失败：' . $e->getMessage()];
+        }
+    }
+
+    /**
+     * 获取房间软删除消息数量（用于显示恢复按钮）
+     * @param int $roomId 房间ID
+     * @return int
+     */
+    public static function getDeletedMessagesCount($roomId)
+    {
+        if (empty($roomId)) {
+            return 0;
+        }
+
+        return Db::table('ch_messages')
+            ->where('room_id', $roomId)
+            ->whereNotNull('delete_time')
+            ->count();
     }
 }

@@ -1461,6 +1461,9 @@ try {
                         
                         // 加载该房间的已读状态
                         loadReadStatusFromStorage();
+                        
+                        // 检查是否有可恢复的消息（管理员功能）
+                        checkDeletedMessagesCount();
                     } else {
                         // 显示未加入房间状态
                         roomList.value = [];
@@ -2544,6 +2547,9 @@ try {
                     // 加载该房间的已读状态
                     loadReadStatusFromStorage();
                     
+                    // 检查是否有可恢复的消息（管理员功能）
+                    checkDeletedMessagesCount();
+                    
                     // 初始化消息观察器并观察未读消息
                     initMessageObserver();
                     observeAllUnreadMessages();
@@ -3264,21 +3270,27 @@ try {
                     return;
                 }
 
-                // 使用 confirm 对话框确认
-                const confirmed = confirm('警告：此操作将物理删除房间的所有消息和上传的图片文件！\n\n此操作不可恢复，确定要继续吗？');
-                if (!confirmed) {
-                    return;
-                }
-
+                // 显示自定义确认对话框
+                showClearRoomDialog.value = true;
+            };
+            
+            // 清理房间对话框状态
+            const showClearRoomDialog = ref(false);
+            const clearRoomHardDelete = ref(false);
+            
+            // 确认清理房间
+            const confirmClearRoom = async () => {
+                showClearRoomDialog.value = false;
+                
                 try {
                     globalLoading.value = true;
                     loadingText.value = '正在清理...';
 
-                    // 调用后端API清理房间消息（后端会验证权限）
                     const response = await apiRequest('/api/message/clearRoom', {
                         method: 'POST',
                         body: JSON.stringify({
-                            room_id: roomId.value
+                            room_id: roomId.value,
+                            hard_delete: clearRoomHardDelete.value
                         })
                     });
 
@@ -3291,8 +3303,19 @@ try {
 
                         const deletedMsgs = result.data?.deleted_messages || 0;
                         const deletedFiles = result.data?.deleted_files || 0;
+                        const isHard = result.data?.hard_delete;
 
-                        window.Toast.success(`清理成功！删除了${deletedMsgs}条消息和${deletedFiles}个文件`);
+                        if (isHard) {
+                            window.Toast.success('物理删除成功！删除了' + deletedMsgs + '条消息和' + deletedFiles + '个文件');
+                        } else {
+                            window.Toast.success('软删除成功！删除了' + deletedMsgs + '条消息（可恢复）');
+                        }
+                        
+                        // 重置选项
+                        clearRoomHardDelete.value = false;
+                        
+                        // 刷新删除消息数量
+                        checkDeletedMessagesCount();
                     } else {
                         window.Toast.error(result.msg || '清理失败');
                     }
@@ -3302,6 +3325,79 @@ try {
                     globalLoading.value = false;
                 }
             };
+            
+            // 取消清理
+            const cancelClearRoom = () => {
+                showClearRoomDialog.value = false;
+                clearRoomHardDelete.value = false;
+            };
+            
+            // 软删除消息数量
+            const deletedMessagesCount = ref(0);
+            
+            // 检查是否有可恢复的消息
+            const checkDeletedMessagesCount = async () => {
+                if (!roomId.value) return;
+                
+                try {
+                    const response = await apiRequest('/api/message/deletedCount?room_id=' + roomId.value);
+                    const result = await response.json();
+                    if (result.code === 0) {
+                        deletedMessagesCount.value = result.data?.count || 0;
+                    }
+                } catch (e) {
+                    // 静默失败
+                }
+            };
+            
+            // 恢复房间消息（仅管理员3306可用）
+            const restoreRoomMessages = async () => {
+                if (!roomId.value) {
+                    window.Toast.error('请先加入房间');
+                    return;
+                }
+                
+                if (!confirm('确定要恢复该房间所有已删除的消息吗？')) {
+                    return;
+                }
+                
+                try {
+                    globalLoading.value = true;
+                    loadingText.value = '正在恢复...';
+                    
+                    const response = await apiRequest('/api/message/restoreRoom', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            room_id: roomId.value
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.code === 0) {
+                        const restoredCount = result.data?.restored_messages || 0;
+                        window.Toast.success('恢复成功！恢复了' + restoredCount + '条消息');
+                        
+                        // 重新加载消息
+                        await loadRoomMessages(roomId.value);
+                        
+                        // 刷新删除消息数量
+                        deletedMessagesCount.value = 0;
+                    } else {
+                        window.Toast.error(result.msg || '恢复失败');
+                    }
+                } catch (error) {
+                    window.Toast.error('恢复失败：' + error.message);
+                } finally {
+                    globalLoading.value = false;
+                }
+            };
+            
+            // 是否显示恢复按钮（仅管理员3306且有可恢复消息时显示）
+            const canRestoreMessages = computed(() => {
+                const ADMIN_ID = 3306;
+                return currentUser.value.id == ADMIN_ID && deletedMessagesCount.value > 0;
+            });
 
             // 计算属性：是否显示清理按钮（房主或管理员3306）
             const canClearRoom = computed(() => {
@@ -3640,6 +3736,14 @@ try {
                 // 清理房间消息
                 canClearRoom,
                 clearRoomMessages,
+                showClearRoomDialog,
+                clearRoomHardDelete,
+                confirmClearRoom,
+                cancelClearRoom,
+                // 恢复消息
+                canRestoreMessages,
+                restoreRoomMessages,
+                deletedMessagesCount,
                 // 退出登录
                 handleLogout,
                 // 用户资料

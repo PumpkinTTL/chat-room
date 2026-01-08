@@ -80,6 +80,8 @@ Route::group('api', function () {
         Route::get('unreadCount', 'Message/unreadCount');
         Route::post('markRead', 'Message/markRead');
         Route::post('clearRoom', 'Message/clearRoom');
+        Route::post('restoreRoom', 'Message/restoreRoom');
+        Route::get('deletedCount', 'Message/deletedCount');
     });
 
 });

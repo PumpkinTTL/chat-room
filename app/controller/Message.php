@@ -366,6 +366,7 @@ class Message
     public function clearRoom(Request $request)
     {
         $roomId = $request->param('room_id');
+        $hardDelete = $request->param('hard_delete', false);
         $userId = $request->userId; // 从中间件获取
 
         // 验证参数
@@ -377,10 +378,59 @@ class Message
             return json(['code' => 1, 'msg' => $validate->getError()], 400);
         }
 
-        $result = MessageService::clearRoomMessages($roomId, $userId);
+        // 转换 hard_delete 为布尔值
+        $hardDelete = filter_var($hardDelete, FILTER_VALIDATE_BOOLEAN);
+
+        $result = MessageService::clearRoomMessages($roomId, $userId, $hardDelete);
         $code = $result['code'] === 0 ? 200 : 400;
 
         return json($result, $code);
+    }
+
+    /**
+     * 恢复房间软删除的消息（仅管理员3306可用）
+     * @param Request $request
+     * @return Response
+     */
+    public function restoreRoom(Request $request)
+    {
+        $roomId = $request->param('room_id');
+        $userId = $request->userId;
+
+        // 验证参数
+        $validate = Validate::rule([
+            'room_id' => 'require|integer|min:1',
+        ]);
+
+        if (!$validate->check(['room_id' => $roomId])) {
+            return json(['code' => 1, 'msg' => $validate->getError()], 400);
+        }
+
+        $result = MessageService::restoreRoomMessages($roomId, $userId);
+        $code = $result['code'] === 0 ? 200 : 400;
+
+        return json($result, $code);
+    }
+
+    /**
+     * 获取房间软删除消息数量
+     * @param Request $request
+     * @return Response
+     */
+    public function deletedCount(Request $request)
+    {
+        $roomId = $request->param('room_id');
+
+        if (empty($roomId)) {
+            return json(['code' => 1, 'msg' => '参数错误'], 400);
+        }
+
+        $count = MessageService::getDeletedMessagesCount($roomId);
+
+        return json([
+            'code' => 0,
+            'data' => ['count' => $count]
+        ]);
     }
 
     /**

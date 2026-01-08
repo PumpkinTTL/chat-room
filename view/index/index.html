@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="/static/css/animate.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/static/css/index.css?v=94">
+    <link rel="stylesheet" href="/static/css/index-modal.css?v=1">
     <link rel="stylesheet" href="/static/css/message-types.css?v=21">
     <!-- 关键：在Vue加载前隐藏整个应用，防止模板闪现 -->
     <style>
@@ -594,6 +595,12 @@
                                 </div>
                                 <span>清理房间</span>
                             </div>
+                            <div class="attach-item" v-if="canRestoreMessages" @click="restoreRoomMessages">
+                                <div class="attach-icon" style="background: linear-gradient(135deg, #22c55e, #16a34a);">
+                                    <i class="fas fa-undo-alt"></i>
+                                </div>
+                                <span>恢复消息({{ deletedMessagesCount }})</span>
+                            </div>
                         </div>
                     </div>
                 </transition>
@@ -683,6 +690,44 @@
             </div>
         </div>
     </transition>
+    
+    <!-- 清理房间确认对话框 -->
+    <transition name="fade">
+        <div v-if="showClearRoomDialog" class="modal-overlay" @click="cancelClearRoom">
+            <div class="modal-dialog" @click.stop>
+                <div class="modal-header">
+                    <h3><i class="fas fa-exclamation-triangle" style="color: #ef4444;"></i> 清理房间消息</h3>
+                </div>
+                <div class="modal-body">
+                    <p style="margin-bottom: 16px; color: var(--text-secondary);">
+                        确定要清理该房间的所有消息吗？
+                    </p>
+                    <label class="checkbox-label">
+                        <input type="checkbox" v-model="clearRoomHardDelete">
+                        <span class="checkbox-text">
+                            <strong>物理删除</strong>
+                            <small>（同时删除文件和已读记录，不可恢复）</small>
+                        </span>
+                    </label>
+                    <p v-if="!clearRoomHardDelete" class="hint-text">
+                        <i class="fas fa-info-circle"></i>
+                        软删除模式：消息可以通过"恢复消息"功能恢复
+                    </p>
+                    <p v-else class="warning-text">
+                        <i class="fas fa-exclamation-circle"></i>
+                        物理删除模式：消息和文件将被永久删除，无法恢复！
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-cancel" @click="cancelClearRoom">取消</button>
+                    <button class="btn-danger" @click="confirmClearRoom">
+                        <i class="fas fa-trash-alt"></i>
+                        确认清理
+                    </button>
+                </div>
+            </div>
+        </div>
+    </transition>
     </div>
 
     <script src="/static/js/toast.js?v=2"></script>
@@ -711,7 +756,7 @@
     <script src="/static/js/upload/handlers/file-handler.js?v=1"></script>
     <script src="/static/js/upload/upload-manager.js?v=3"></script>
 
-    <script src="/static/js/index.js?v=89"></script>
+    <script src="/static/js/index.js?v=90"></script>
 </body>
 
 </html>

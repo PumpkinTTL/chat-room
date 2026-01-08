@@ -1,0 +1,249 @@
+/**
+ * 模态框/对话框样式
+ */
+
+/* 模态框遮罩 */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    padding: 20px;
+    backdrop-filter: blur(4px);
+}
+
+/* 模态框主体 */
+.modal-dialog {
+    background: var(--glass-bg);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    max-width: 420px;
+    width: 100%;
+    overflow: hidden;
+    animation: modalSlideIn 0.2s ease-out;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* 模态框头部 */
+.modal-header {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* 模态框内容 */
+.modal-body {
+    padding: 20px 24px;
+}
+
+/* 复选框样式 */
+.checkbox-label {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    cursor: pointer;
+    padding: 12px 16px;
+    background: var(--slate-50);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--glass-border);
+    transition: all 0.2s ease;
+}
+
+.checkbox-label:hover {
+    background: var(--slate-100);
+    border-color: var(--primary-color);
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin-top: 2px;
+    accent-color: var(--primary-color);
+    cursor: pointer;
+}
+
+.checkbox-text {
+    flex: 1;
+    line-height: 1.5;
+}
+
+.checkbox-text strong {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.checkbox-text small {
+    display: block;
+    color: var(--text-tertiary);
+    font-size: 12px;
+    margin-top: 2px;
+}
+
+/* 提示文本 */
+.hint-text {
+    margin-top: 16px;
+    padding: 12px;
+    background: rgba(59, 130, 246, 0.08);
+    border-radius: var(--radius-sm);
+    color: var(--primary-color);
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.warning-text {
+    margin-top: 16px;
+    padding: 12px;
+    background: rgba(239, 68, 68, 0.08);
+    border-radius: var(--radius-sm);
+    color: #ef4444;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* 模态框底部 */
+.modal-footer {
+    padding: 16px 24px 20px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    border-top: 1px solid var(--glass-border);
+}
+
+/* 按钮样式 */
+.btn-cancel {
+    padding: 10px 20px;
+    border: 1px solid var(--glass-border);
+    background: var(--glass-bg);
+    color: var(--text-secondary);
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-cancel:hover {
+    background: var(--slate-100);
+    border-color: var(--slate-300);
+}
+
+.btn-danger {
+    padding: 10px 20px;
+    border: none;
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-danger:hover {
+    background: linear-gradient(135deg, #dc2626, #b91c1c);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+/* 暗黑模式 */
+.dark-mode .modal-dialog {
+    background: var(--slate-800);
+    border: 1px solid var(--slate-700);
+}
+
+.dark-mode .modal-header {
+    border-bottom-color: var(--slate-700);
+}
+
+.dark-mode .checkbox-label {
+    background: var(--slate-900);
+    border-color: var(--slate-700);
+}
+
+.dark-mode .checkbox-label:hover {
+    background: var(--slate-800);
+}
+
+.dark-mode .modal-footer {
+    border-top-color: var(--slate-700);
+}
+
+.dark-mode .btn-cancel {
+    background: var(--slate-700);
+    border-color: var(--slate-600);
+    color: var(--text-secondary);
+}
+
+.dark-mode .btn-cancel:hover {
+    background: var(--slate-600);
+}
+
+.dark-mode .hint-text {
+    background: rgba(59, 130, 246, 0.15);
+}
+
+.dark-mode .warning-text {
+    background: rgba(239, 68, 68, 0.15);
+}
+
+/* 移动端适配 */
+@media (max-width: 480px) {
+    .modal-overlay {
+        padding: 16px;
+    }
+    
+    .modal-dialog {
+        max-width: 100%;
+    }
+    
+    .modal-header {
+        padding: 16px 20px 14px;
+    }
+    
+    .modal-header h3 {
+        font-size: 16px;
+    }
+    
+    .modal-body {
+        padding: 16px 20px;
+    }
+    
+    .modal-footer {
+        padding: 14px 20px 16px;
+    }
+    
+    .btn-cancel,
+    .btn-danger {
+        padding: 10px 16px;
+        font-size: 13px;
+    }
+}
