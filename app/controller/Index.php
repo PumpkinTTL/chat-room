@@ -26,16 +26,22 @@ class Index extends BaseController
      */
     public function logAccess()
     {
-        $ip = request()->param('client_ip', '');
-        $page = request()->param('page', '未知页面');
-        $userAgent = request()->header('user-agent', '');
-        
+        // 获取请求体数据
+        $body = request()->getContent();
+        $data = json_decode($body, true) ?? [];
+
+        $ip = $data['client_ip'] ?? '';
+        $page = $data['page'] ?? '未知页面';
+
+        // 如果前端没传IP，从header获取真实IP
         if (empty($ip)) {
             $ip = $this->getRealIp();
         }
-        
+
+        $userAgent = request()->header('user-agent', '');
+
         AccessService::logAccess($ip, $page, $userAgent);
-        
+
         return json(['code' => 0, 'msg' => 'ok']);
     }
 
