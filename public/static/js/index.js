@@ -92,6 +92,9 @@ try {
                 message: null
             });
 
+            // 引用回复状态
+            const replyToMessage = ref(null);
+
             // Loading状态
             const globalLoading = ref(false);
             const loadingText = ref('加载中...');
@@ -949,6 +952,11 @@ try {
                                 }
                             };
 
+                            // 引用回复：如果有 reply_to 信息，添加到消息中
+                            if (data.reply_to) {
+                                rawMsg.reply_to = data.reply_to;
+                            }
+
                             // 使用 processMessage 处理消息（包括链接检测）
                             const newMsg = processMessage(rawMsg, true, null);
 
@@ -1340,6 +1348,11 @@ try {
                     messageType = typeMap[messageType] || 'text';
                 }
                 
+                // 重要：reply 类型的消息应该被当作 text 类型渲染（只是额外显示引用信息）
+                if (messageType === 'reply') {
+                    messageType = 'text';
+                }
+                
                 // 判断是否是时间分隔消息（system类型 + 内容格式为 MM-DD HH:mm）
                 let isTimeSeparator = false;
                 if (messageType === 'system') {
@@ -1427,15 +1440,30 @@ try {
                     }
                 }
 
-                // 复制其他所有属性（包括 text 等）
+                // 复制其他所有属性（包括 text、reply_to 等）
                 for (const key in msg) {
-                    if (msg.hasOwnProperty && msg.hasOwnProperty(key) && !processedMsg.hasOwnProperty(key)) {
+                    if (Object.prototype.hasOwnProperty.call(msg, key) && !processedMsg.hasOwnProperty(key)) {
                         processedMsg[key] = msg[key];
                     }
                 }
 
-                // 处理文本消息中的链接（支持 'text', 'normal', 1 等多种类型）
-                if (msg.type === 'text' || msg.type === 'normal' || msg.type === 1) {
+                // 确保 reply_to 字段被正确保留（重要！）
+                if (msg.reply_to && !processedMsg.reply_to) {
+                    processedMsg.reply_to = msg.reply_to;
+                }
+
+                // 确保 text 字段被正确保留
+                if (msg.text && !processedMsg.text) {
+                    processedMsg.text = msg.text;
+                }
+                
+                // 文本消息需要设置 text 字段（从 content 或 text 获取）
+                if (messageType === 'text' && !processedMsg.text) {
+                    processedMsg.text = msg.content || msg.text || '';
+                }
+
+                // 处理文本消息中的链接（使用转换后的 messageType 判断）
+                if (messageType === 'text') {
                     if (processedMsg.text) {
                         const urls = detectUrls(processedMsg.text);
                         if (urls.length > 0) {
@@ -1891,7 +1919,7 @@ try {
                 // 构造消息对象
                 const rawMsg = {
                     id: tempId,
-                    type: 'normal',
+                    type: replyToMessage.value ? 'reply' : 'normal',
                     text: messageText,
                     content: messageText,
                     time: new Date(),
@@ -1900,6 +1928,27 @@ try {
                         nickname: username.value
                     }
                 };
+
+                // 如果有引用，添加reply_to信息
+                if (replyToMessage.value) {
+                    // 构建消息类型映射
+                    const typeToMessageType = {
+                        'image': 2,
+                        'video': 5,
+                        'file': 3,
+                        'text': 1,
+                        'system': 4
+                    };
+
+                    rawMsg.reply_to = {
+                        message_id: replyToMessage.value.id,
+                        content: getReplyPreviewText(replyToMessage.value),
+                        nickname: replyToMessage.value.sender?.nickname || '用户',
+                        user_id: replyToMessage.value.sender?.id,
+                        message_type: replyToMessage.value.message_type || typeToMessageType[replyToMessage.value.type] || 1,
+                        deleted: false
+                    };
+                }
 
                 // 使用 processMessage 处理消息（包括链接检测）
                 const newMsg = processMessage(rawMsg, true, null);
@@ -1924,12 +1973,19 @@ try {
                     isSending.value = true;
 
                     // 统一通过 HTTP API 发送消息
+                    const requestBody = {
+                        room_id: roomId.value,
+                        content: messageText
+                    };
+
+                    // 如果有引用，添加reply_to参数
+                    if (replyToMessage.value) {
+                        requestBody.reply_to = replyToMessage.value.id;
+                    }
+
                     const response = await apiRequest('/api/message/sendText', {
                         method: 'POST',
-                        body: JSON.stringify({
-                            room_id: roomId.value,
-                            content: messageText
-                        })
+                        body: JSON.stringify(requestBody)
                     });
 
                     const result = await response.json();
@@ -1945,12 +2001,20 @@ try {
                             }
                             messages.value[msgIndex].time = new Date(serverTime);
 
+                            // 更新引用信息（从服务器返回）
+                            if (result.data.reply_to) {
+                                messages.value[msgIndex].reply_to = result.data.reply_to;
+                            }
+
                             delete messageSendStatus.value[tempId];
                             messageSendStatus.value[result.data.id] = 'success';
 
                             // 通过 WebSocket 广播通知其他用户（使用统一函数）
-                            broadcastMessageViaWebSocket(result.data.id, 'text', messageText);
+                            broadcastMessageViaWebSocket(result.data.id, 'text', messageText, null, result.data.reply_to);
                         }
+
+                        // 清除引用状态
+                        replyToMessage.value = null;
                     } else {
                         messageSendStatus.value[tempId] = 'failed';
                         window.Toast.error('发送失败：' + (result.msg || '未知错误'));
@@ -2975,18 +3039,34 @@ try {
             let touchTimer = null;
             let touchStartX = 0;
             let touchStartY = 0;
+            let msgTouchStartTime = 0;
+            let isTouchMoved = false;
 
             // 消息长按触摸开始 - 启动长按计时器
             const handleMessageTouchStart = (event, message) => {
                 // 如果是多点触控，不处理
                 if (event.touches.length > 1) return;
+                
+                // 检查是否点击的是引用区域，如果是则不启动长按
+                const target = event.target;
+                if (target.closest('.reply-quote')) {
+                    return;
+                }
 
                 const touch = event.touches[0];
                 touchStartX = touch.clientX;
                 touchStartY = touch.clientY;
+                msgTouchStartTime = Date.now();
+                isTouchMoved = false;
 
                 // 500ms后触发右键菜单
                 touchTimer = setTimeout(() => {
+                    // 如果已经移动了，不触发长按
+                    if (isTouchMoved) return;
+                    
+                    // 阻止后续的点击事件
+                    event.preventDefault();
+                    
                     // 使用触摸点位置作为菜单位置
                     const mockEvent = {
                         preventDefault: () => {},
@@ -3018,10 +3098,11 @@ try {
                 const moveX = Math.abs(touch.clientX - touchStartX);
                 const moveY = Math.abs(touch.clientY - touchStartY);
 
-                // 移动超过10px，取消长按
+                // 移动超过10px，取消长按，允许滚动
                 if (moveX > 10 || moveY > 10) {
                     clearTimeout(touchTimer);
                     touchTimer = null;
+                    isTouchMoved = true;
                 }
             };
 
@@ -3089,6 +3170,129 @@ try {
                     }
                 }
                 hideContextMenu();
+            };
+
+            // ==================== 引用回复相关方法 ====================
+
+            // 获取引用预览文本（输入框上方显示）
+            const getReplyPreviewText = (message) => {
+                if (!message) return '';
+
+                // 文件消息显示类型标识
+                if (message.type === 'image') return '[图片]';
+                if (message.type === 'video') return '[视频]';
+                if (message.type === 'file') return '[文件]';
+
+                // 文本消息
+                const text = message.text || message.content || '';
+                return text.length > 30 ? text.substring(0, 30) + '...' : text;
+            };
+
+            // 获取引用文本（消息气泡中显示）
+            const getReplyQuoteText = (replyTo) => {
+                if (!replyTo) return '';
+
+                // 如果消息已删除
+                if (replyTo.deleted) {
+                    return '原消息已撤回';
+                }
+
+                // 文件消息
+                const typeMap = {
+                    2: '[图片]',  // TYPE_IMAGE
+                    5: '[视频]',  // TYPE_VIDEO
+                    3: '[文件]'   // TYPE_FILE
+                };
+
+                if (replyTo.message_type && typeMap[replyTo.message_type]) {
+                    return typeMap[replyTo.message_type];
+                }
+
+                // 文本消息
+                const text = replyTo.content || '';
+                return text.length > 50 ? text.substring(0, 50) + '...' : text;
+            };
+
+            // 回复消息（从右键菜单触发）
+            const replyToMessageFn = () => {
+                if (!contextMenu.value.message) return;
+
+                const msg = contextMenu.value.message;
+
+                // 构建消息类型映射（type -> message_type）
+                const typeToMessageType = {
+                    'image': 2,
+                    'video': 5,
+                    'file': 3,
+                    'text': 1,
+                    'system': 4
+                };
+
+                replyToMessage.value = {
+                    id: msg.id,
+                    text: msg.text || msg.content || '',
+                    content: msg.text || msg.content || '',
+                    type: msg.type,
+                    message_type: typeToMessageType[msg.type] || 1,
+                    sender: msg.sender || {
+                        id: msg.senderId,
+                        nickname: msg.username || '用户'
+                    }
+                };
+
+                hideContextMenu();
+
+                // 聚焦输入框
+                nextTick(() => {
+                    const inputEl = document.querySelector('.text-input');
+                    if (inputEl) inputEl.focus();
+                });
+            };
+
+            // 取消回复
+            const cancelReply = () => {
+                replyToMessage.value = null;
+            };
+
+            // 点击引用跳转到原消息
+            const scrollToReplyMessage = (messageId) => {
+                if (!messageId) return;
+                
+                const targetEl = document.querySelector(`[data-msg-id="${messageId}"]`);
+                if (!targetEl) {
+                    window.Toast.info('原消息不在当前视图中');
+                    return;
+                }
+                
+                const container = messagesContainer.value;
+                if (!container) {
+                    console.error('[滚动] 找不到消息容器');
+                    return;
+                }
+                
+                try {
+                    // 计算目标元素相对于容器的位置
+                    const containerRect = container.getBoundingClientRect();
+                    const targetRect = targetEl.getBoundingClientRect();
+                    
+                    // 计算需要滚动的距离（让目标元素居中）
+                    const scrollTop = container.scrollTop;
+                    const targetOffsetTop = targetRect.top - containerRect.top + scrollTop;
+                    const centerOffset = (containerRect.height - targetRect.height) / 2;
+                    const scrollTo = Math.max(0, targetOffsetTop - centerOffset);
+                    
+                    // 直接设置 scrollTop，最快最流畅
+                    container.scrollTop = scrollTo;
+                    
+                    // 添加高亮效果
+                    targetEl.classList.add('highlight-message');
+                    setTimeout(() => {
+                        targetEl.classList.remove('highlight-message');
+                    }, 2000);
+                    
+                } catch (error) {
+                    console.error('[滚动] 滚动失败:', error);
+                }
             };
 
             const formatTime = (date) => {
@@ -3299,7 +3503,8 @@ try {
 
             // 统一的WebSocket消息广播函数
             // fileInfo 参数用于视频/文件消息，包含完整的元数据
-            const broadcastMessageViaWebSocket = (messageId, messageType, content, fileInfo = null) => {
+            // replyTo 参数用于引用回复，包含被引用消息的信息
+            const broadcastMessageViaWebSocket = (messageId, messageType, content, fileInfo = null, replyTo = null) => {
                 if (!wsClient.value || !wsClient.value.isConnected || !messageId) {
                     return;
                 }
@@ -3331,6 +3536,11 @@ try {
                     messageData.file_size = fileInfo.fileSize || 0;
                     messageData.file_extension = fileInfo.fileExtension || '';
                     messageData.file_url = fileInfo.fileUrl || '';
+                }
+
+                // 引用回复：附加引用信息
+                if (replyTo) {
+                    messageData.reply_to = replyTo;
                 }
 
                 wsClient.value.send(messageData);
@@ -3459,7 +3669,7 @@ try {
             // 检查是否有可恢复的消息
             const checkDeletedMessagesCount = async () => {
                 if (!roomId.value) return;
-                
+
                 try {
                     const response = await apiRequest('/api/message/deletedCount?room_id=' + roomId.value);
                     const result = await response.json();
@@ -3467,7 +3677,7 @@ try {
                         deletedMessagesCount.value = result.data?.count || 0;
                     }
                 } catch (e) {
-                    // 静默失败
+                    console.error('检查删除消息数量失败:', e);
                 }
             };
             
@@ -3716,7 +3926,7 @@ try {
                 nextTick(function () {
                     const container = messagesContainer.value;
                     if (container) {
-                        container.addEventListener('scroll', handleMessagesScroll);
+                        container.addEventListener('scroll', handleMessagesScroll, { passive: true });
                     }
                 });
 
@@ -3817,6 +4027,12 @@ try {
                 showContextMenu,
                 hideContextMenu,
                 burnMessage,
+                replyToMessage,
+                replyToMessageFn,
+                cancelReply,
+                getReplyPreviewText,
+                getReplyQuoteText,
+                scrollToReplyMessage,
                 handleMessageTouchStart,
                 handleMessageTouchEnd,
                 handleMessageTouchMove,

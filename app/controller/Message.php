@@ -53,6 +53,7 @@ class Message
     {
         $roomId = $request->param('room_id');
         $content = $request->param('content');
+        $replyTo = $request->param('reply_to'); // 被引用消息ID（可选）
 
         $userId = $request->userId; // 从中间件获取
 
@@ -60,13 +61,14 @@ class Message
         $validate = Validate::rule([
             'room_id' => 'require|integer|min:1',
             'content' => 'require|max:10000',
+            'reply_to' => 'integer', // 可选，如果是整数则验证
         ]);
 
-        if (!$validate->check(['room_id' => $roomId, 'content' => $content])) {
+        if (!$validate->check(['room_id' => $roomId, 'content' => $content, 'reply_to' => $replyTo])) {
             return json(['code' => 1, 'msg' => $validate->getError()], 400);
         }
 
-        $result = MessageService::sendTextMessage($roomId, $userId, $content);
+        $result = MessageService::sendTextMessage($roomId, $userId, $content, $replyTo ?: null);
         $code = $result['code'] === 0 ? 200 : 400;
 
         return json($result, $code);

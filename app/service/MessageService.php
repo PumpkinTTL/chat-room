@@ -19,9 +19,10 @@ class MessageService
      * @param int $roomId 房间ID
      * @param int $userId 用户ID
      * @param string $content 消息内容
+     * @param int|null $replyTo 被引用消息ID（可选）
      * @return array
      */
-    public static function sendTextMessage($roomId, $userId, $content)
+    public static function sendTextMessage($roomId, $userId, $content, $replyTo = null)
     {
         if (empty($roomId) || empty($userId) || empty($content)) {
             return ['code' => 1, 'msg' => '参数错误'];
@@ -37,36 +38,114 @@ class MessageService
             return ['code' => 1, 'msg' => '消息内容过长，最多10000字符'];
         }
 
+        $extraData = [];
+        $replyToData = null;
+
+        // 如果有引用消息
+        if ($replyTo) {
+            $quotedMessage = Message::with(['user'])->find($replyTo);
+
+            // 验证被引用消息是否存在且在同一房间
+            if (!$quotedMessage) {
+                return ['code' => 1, 'msg' => '被引用的消息不存在'];
+            }
+
+            if ($quotedMessage->room_id != $roomId) {
+                return ['code' => 1, 'msg' => '不能引用其他房间的消息'];
+            }
+
+            // 构建引用信息
+            $replyToData = [
+                'message_id' => $quotedMessage->id,
+                'content' => self::truncateContent($quotedMessage),
+                'user_id' => $quotedMessage->user_id,
+                'nickname' => $quotedMessage->user ? $quotedMessage->user->nick_name : '用户',
+                'message_type' => $quotedMessage->message_type,
+                'create_time' => $quotedMessage->create_time
+            ];
+
+            // 如果是文件消息，添加文件信息
+            if ($quotedMessage->file_info) {
+                $fileInfo = $quotedMessage->file_info;
+                if (is_string($fileInfo)) {
+                    $fileInfo = json_decode($fileInfo, true);
+                }
+                $replyToData['file_info'] = $fileInfo;
+            }
+
+            $extraData['reply_to'] = $replyToData;
+        }
+
         try {
             Db::startTrans();
 
-            $messageId = Message::insertGetId([
+            $insertData = [
                 'room_id'      => $roomId,
                 'user_id'      => $userId,
                 'message_type' => Message::TYPE_TEXT,
                 'content'      => trim($content),
                 'create_time'  => date('Y-m-d H:i:s'),
                 'update_time'  => date('Y-m-d H:i:s'),
-            ]);
+            ];
+
+            // 如果有引用信息，添加到extra_data
+            if (!empty($extraData)) {
+                $insertData['extra_data'] = json_encode($extraData);
+            }
+
+            $messageId = Message::insertGetId($insertData);
 
             Db::commit();
 
-            // 返回消息信息
+            // 构建返回数据
+            $resultData = [
+                'id' => $messageId,
+                'type' => $replyTo ? 'reply' : 'normal',
+                'text' => trim($content),
+                'time' => date('Y-m-d H:i:s'),
+            ];
+
+            // 如果有引用，添加到返回数据
+            if ($replyToData) {
+                $resultData['reply_to'] = $replyToData;
+            }
+
             return [
                 'code' => 0,
                 'msg' => '发送成功',
-                'data' => [
-                    'id' => $messageId,
-                    'type' => 'normal',
-                    'text' => trim($content),
-                    'time' => date('Y-m-d H:i:s'),
-                ]
+                'data' => $resultData
             ];
 
         } catch (\Exception $e) {
             Db::rollback();
             return ['code' => 1, 'msg' => '发送失败：' . $e->getMessage()];
         }
+    }
+
+    /**
+     * 截断消息内容用于引用显示
+     * @param Message $message 消息对象
+     * @param int $maxLength 最大长度
+     * @return string
+     */
+    private static function truncateContent($message, $maxLength = 50)
+    {
+        // 文本消息
+        if ($message->message_type == Message::TYPE_TEXT) {
+            $content = $message->content;
+            return mb_strlen($content) > $maxLength
+                ? mb_substr($content, 0, $maxLength) . '...'
+                : $content;
+        }
+
+        // 文件消息显示类型标识
+        $typeLabels = [
+            Message::TYPE_IMAGE => '[图片]',
+            Message::TYPE_VIDEO => '[视频]',
+            Message::TYPE_FILE => '[文件]',
+        ];
+
+        return $typeLabels[$message->message_type] ?? '[消息]';
     }
 
     /**
@@ -546,6 +625,32 @@ class MessageService
             $result['fileSize'] = $fileInfo['file_size'] ?? 0;
             $result['fileExtension'] = $fileInfo['extension'] ?? '';
             $result['fileUrl'] = $fileInfo['url'] ?? '';
+        }
+
+        // 处理扩展数据（引用信息等）
+        $extraData = $message['extra_data'] ?? null;
+        if ($extraData) {
+            if (is_string($extraData)) {
+                $extraData = json_decode($extraData, true);
+            }
+
+            // 处理引用信息
+            if (!empty($extraData['reply_to'])) {
+                $replyTo = $extraData['reply_to'];
+
+                // 检查被引用消息是否已被删除
+                $quotedMessage = Message::find($replyTo['message_id']);
+                if (!$quotedMessage || $quotedMessage->delete_time) {
+                    $replyTo['deleted'] = true;
+                    $replyTo['content'] = '原消息已撤回';
+                }
+
+                $result['reply_to'] = $replyTo;
+                // 如果有引用，更新type为reply
+                if ($type === 'normal') {
+                    $result['type'] = 'reply';
+                }
+            }
         }
 
         return $result;

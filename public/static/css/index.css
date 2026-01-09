@@ -1166,11 +1166,14 @@ body {
     overflow-y: auto;
     overflow-x: hidden;
     padding: 0;
-    /* 移除 scroll-behavior: smooth; 避免程序设置 scrollTop 时产生动画 */
     background-color: var(--chat-bg);
     background-image:
         url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
     position: relative;
+    /* 移动端滚动优化 */
+    -webkit-overflow-scrolling: touch;
+    /* 防止过度滚动 */
+    overscroll-behavior-y: contain;
 }
 
 .messages-list {
@@ -1976,6 +1979,20 @@ body {
 
     .input-section {
         padding: 10px 12px 14px;
+    }
+    
+    /* 移动端引用预览条优化 */
+    .reply-preview-bar {
+        margin: 0 8px 8px 8px;
+        padding: 8px 12px;
+    }
+    
+    .reply-preview-nickname {
+        font-size: 11px;
+    }
+    
+    .reply-preview-text {
+        font-size: 12px;
     }
 
     .msg-content-group {
@@ -3507,4 +3524,281 @@ button:disabled {
 
 .dark-mode .no-more-text i {
     color: #34d399;
+}
+
+/* ==================== 引用回复相关样式 ==================== */
+
+/* 引用预览条（输入框上方） */
+.reply-preview-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: var(--bg-secondary, #f0f2f5);
+    border-radius: 10px;
+    border-left: 3px solid var(--primary-color, #4a90e2);
+    margin: 0 12px 8px 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.reply-preview-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+}
+
+.reply-icon {
+    color: var(--primary-color, #4a90e2);
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.reply-preview-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.reply-preview-nickname {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary, #1a1a1a);
+}
+
+.reply-preview-text {
+    font-size: 13px;
+    color: var(--text-secondary, #666);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.reply-cancel-btn {
+    width: 24px;
+    height: 24px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary, #666);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.reply-cancel-btn:hover {
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--text-primary, #1a1a1a);
+}
+
+/* 消息气泡内的引用显示 */
+.reply-quote {
+    display: flex;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+    align-items: center;
+}
+
+/* 别人消息的引用样式 */
+.reply-quote-other {
+    background: var(--bg-quote, rgba(0, 0, 0, 0.04));
+    margin-top: 8px;
+    margin-bottom: 0;
+}
+
+.reply-quote-other:hover {
+    background: var(--bg-quote-hover, rgba(0, 0, 0, 0.08));
+}
+
+/* 自己消息的引用样式（在蓝色背景上，精致版） */
+.reply-quote-own {
+    background: rgba(255, 255, 255, 0.18);
+    margin-bottom: 0;
+    margin-top: 8px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.reply-quote-own:hover {
+    background: rgba(255, 255, 255, 0.28);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
+}
+
+.reply-quote-own .reply-quote-line {
+    background: rgba(255, 255, 255, 0.75);
+    width: 3px;
+    min-height: 26px;
+}
+
+.reply-quote-own .reply-quote-nickname {
+    color: rgba(255, 255, 255, 1);
+    font-weight: 650;
+    font-size: 12px;
+}
+
+.reply-quote-own .reply-quote-text {
+    color: rgba(255, 255, 255, 0.88);
+    font-size: 12px;
+}
+
+.reply-quote-line {
+    width: 3px;
+    min-height: 24px;
+    background: var(--primary-color, #4a90e2);
+    border-radius: 2px;
+    flex-shrink: 0;
+}
+
+.reply-quote-content {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    flex: 1;
+    min-width: 0;
+    flex-wrap: wrap;
+}
+
+.reply-quote-nickname {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--primary-color, #4a90e2);
+    flex-shrink: 0;
+}
+
+.reply-quote-text {
+    font-size: 12px;
+    color: var(--text-secondary, #666);
+    line-height: 1.4;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+    min-width: 0;
+}
+
+/* 高亮滚动到的消息 */
+@keyframes messageHighlight {
+    0% {
+        background: transparent;
+        transform: scale(1);
+    }
+    15% {
+        background: var(--primary-light, rgba(74, 144, 226, 0.15));
+        transform: scale(1.02);
+    }
+    30% {
+        transform: scale(0.98);
+    }
+    45% {
+        transform: scale(1.01);
+    }
+    60%, 100% {
+        background: transparent;
+        transform: scale(1);
+    }
+}
+
+.highlight-message {
+    animation: messageHighlight 1.5s ease-out;
+}
+
+/* 暗色模式 */
+.dark-mode .reply-preview-bar {
+    background: rgba(255, 255, 255, 0.08);
+    border-left-color: #60a5fa;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.dark-mode .reply-preview-nickname {
+    color: #e5e7eb;
+}
+
+.dark-mode .reply-preview-text {
+    color: #9ca3af;
+}
+
+.dark-mode .reply-cancel-btn {
+    color: #9ca3af;
+}
+
+.dark-mode .reply-cancel-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #e5e7eb;
+}
+
+.dark-mode .reply-quote-other {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.dark-mode .reply-quote-other:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.dark-mode .reply-quote-own {
+    background: rgba(255, 255, 255, 0.14);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.dark-mode .reply-quote-own:hover {
+    background: rgba(255, 255, 255, 0.22);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* 暗色模式下自己消息的引用文字颜色 */
+.dark-mode .reply-quote-own .reply-quote-line {
+    background: rgba(255, 255, 255, 0.7);
+}
+
+.dark-mode .reply-quote-own .reply-quote-nickname {
+    color: rgba(255, 255, 255, 1);
+}
+
+.dark-mode .reply-quote-own .reply-quote-text {
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.dark-mode .reply-quote-line {
+    background: #60a5fa;
+}
+
+.dark-mode .reply-quote-nickname {
+    color: #60a5fa;
+}
+
+.dark-mode .reply-quote-text {
+    color: #9ca3af;
+}
+
+.dark-mode .highlight-message {
+    animation-name: messageHighlightDark;
+}
+
+@keyframes messageHighlightDark {
+    0% {
+        background: transparent;
+        transform: scale(1);
+    }
+    15% {
+        background: rgba(96, 165, 250, 0.2);
+        transform: scale(1.02);
+    }
+    30% {
+        transform: scale(0.98);
+    }
+    45% {
+        transform: scale(1.01);
+    }
+    60%, 100% {
+        background: transparent;
+        transform: scale(1);
+    }
 }

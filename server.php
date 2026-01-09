@@ -410,7 +410,7 @@ function handleMessage($connection, $msg, &$localConnections)
     $content = $msg['content'] ?? '';
 
     echo "[" . date('H:i:s') . "] 广播消息: {$connData['nickname']} 发送了 {$messageType} (ID:{$messageId})\n";
-    
+
     // 构建广播数据
     $broadcastData = [
         'type' => 'message',
@@ -437,6 +437,11 @@ function handleMessage($connection, $msg, &$localConnections)
         $broadcastData['file_size'] = $msg['file_size'] ?? 0;
         $broadcastData['file_extension'] = $msg['file_extension'] ?? '';
         $broadcastData['file_url'] = $msg['file_url'] ?? '';
+    }
+
+    // 引用回复：附加引用信息
+    if (isset($msg['reply_to']) && $msg['reply_to']) {
+        $broadcastData['reply_to'] = $msg['reply_to'];
     }
 
     // 广播给房间内所有用户（排除当前连接，但包括发送者的其他设备）

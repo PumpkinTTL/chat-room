@@ -7,9 +7,9 @@
     <title>端对端聊天系统</title>
     <link rel="stylesheet" href="/static/css/animate.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="/static/css/index.css?v=94">
-    <link rel="stylesheet" href="/static/css/index-modal.css?v=1">
-    <link rel="stylesheet" href="/static/css/message-types.css?v=21">
+    <link rel="stylesheet" href="/static/css/index.css?v=106">
+    <link rel="stylesheet" href="/static/css/index-modal.css?v=2">
+    <link rel="stylesheet" href="/static/css/message-types.css?v=22">
     <!-- 关键：在Vue加载前隐藏整个应用，防止模板闪现 -->
     <style>
         [v-cloak] {
@@ -184,7 +184,7 @@
                             </span>
                             <span class="conn-badge" :class="{ 'conn-ws': wsConnected, 'conn-poll': !wsConnected }">
                                 <i :class="wsConnected ? 'fas fa-bolt' : 'fas fa-globe'"></i>
-                                <span v-text="wsConnected ? 'WebSocket' : 'HTTP'"></span>
+                                <span v-text="wsConnected ? 'Socket' : 'HTTP'"></span>
                             </span>
                         </div>
                         <!-- PC端：同时显示 -->
@@ -245,7 +245,7 @@
 
                         <div v-else class="msg-content-group"
                             @contextmenu.prevent="showContextMenu($event, message)"
-                            @touchstart.prevent="handleMessageTouchStart($event, message)"
+                            @touchstart="handleMessageTouchStart($event, message)"
                             @touchend="handleMessageTouchEnd"
                             @touchmove="handleMessageTouchMove">
                             <div v-if="!message.isOwn" class="msg-avatar"
@@ -336,6 +336,15 @@
                                             <!-- 没有链接也没有displayText的纯文本 -->
                                             <div v-if="!message.displayText && !message.urlCards && message.text"
                                                 class="text-content" v-text="message.text"></div>
+                                            <!-- 引用显示（放在文本内容下方） -->
+                                            <div v-if="message.reply_to" class="reply-quote reply-quote-other" 
+                                                @click.stop="scrollToReplyMessage(message.reply_to.message_id)">
+                                                <div class="reply-quote-line"></div>
+                                                <div class="reply-quote-content">
+                                                    <span class="reply-quote-nickname">{{ message.reply_to.nickname || '用户' }}:</span>
+                                                    <span class="reply-quote-text">{{ getReplyQuoteText(message.reply_to) }}</span>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -476,6 +485,15 @@
                                             <!-- 没有链接也没有displayText的纯文本 -->
                                             <div v-if="!message.displayText && !message.urlCards && message.text"
                                                 class="text-content" v-text="message.text"></div>
+                                            <!-- 引用显示（放在文本内容下方） -->
+                                            <div v-if="message.reply_to" class="reply-quote reply-quote-own" 
+                                                @click.stop="scrollToReplyMessage(message.reply_to.message_id)">
+                                                <div class="reply-quote-line"></div>
+                                                <div class="reply-quote-content">
+                                                    <span class="reply-quote-nickname">{{ message.reply_to.nickname || '用户' }}:</span>
+                                                    <span class="reply-quote-text">{{ getReplyQuoteText(message.reply_to) }}</span>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -509,6 +527,10 @@
             <transition name="menu-fade">
                 <div v-if="contextMenu.show" class="context-menu"
                     :style="{ top: contextMenu.y + 'px', left: contextMenu.x + 'px' }" @click.stop>
+                    <div class="context-menu-item" @click="replyToMessageFn">
+                        <i class="fas fa-reply"></i>
+                        <span>回复</span>
+                    </div>
                     <div class="context-menu-item danger"
                         :class="{ 'disabled': !contextMenu.message || !contextMenu.message.isOwn }"
                         @click="burnMessage">
@@ -541,6 +563,24 @@
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
+                </div>
+
+                <!-- 引用预览条 -->
+                <div v-if="replyToMessage" class="reply-preview-bar">
+                    <div class="reply-preview-content">
+                        <i class="fas fa-reply reply-icon"></i>
+                        <div class="reply-preview-info">
+                            <span class="reply-preview-nickname">
+                                {{ replyToMessage.sender?.nickname || '用户' }}
+                            </span>
+                            <span class="reply-preview-text">
+                                {{ getReplyPreviewText(replyToMessage) }}
+                            </span>
+                        </div>
+                    </div>
+                    <button class="reply-cancel-btn" @click="cancelReply" type="button">
+                        <i class="fas fa-times"></i>
+                    </button>
                 </div>
 
                 <div class="input-bar">
@@ -760,7 +800,7 @@
     <script src="/static/js/upload/handlers/file-handler.js?v=1"></script>
     <script src="/static/js/upload/upload-manager.js?v=4"></script>
 
-    <script src="/static/js/index.js?v=97"></script>
+    <script src="/static/js/index.js?v=110"></script>
 </body>
 
 </html>
