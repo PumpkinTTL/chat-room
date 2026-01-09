@@ -7,7 +7,7 @@
     <title>端对端聊天系统</title>
     <link rel="stylesheet" href="/static/css/animate.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="/static/css/index.css?v=116">
+    <link rel="stylesheet" href="/static/css/index.css?v=117">
     <link rel="stylesheet" href="/static/css/index-modal.css?v=2">
     <link rel="stylesheet" href="/static/css/message-types.css?v=22">
     <link rel="stylesheet" href="/static/css/intimacy.css?v=10">
@@ -187,15 +187,15 @@
                                 <i :class="wsConnected ? 'fas fa-bolt' : 'fas fa-globe'"></i>
                                 <span v-text="wsConnected ? 'Socket' : 'HTTP'"></span>
                             </span>
-                            <span v-if="currentRoomPrivate" class="private-badge" :class="{ 'lit': isPrivateRoomLit, 'dim': !isPrivateRoomLit }" @click.stop="toggleIntimacyCard">
-                                <i class="fas fa-heart"></i>
+                            <span v-if="currentRoomPrivate" class="private-badge" :class="{ 'lit': isPrivateRoomLit, 'dim': !isPrivateRoomLit }" @click.stop="toggleIntimacyCard" :style="isPrivateRoomLit && intimacyInfo ? { '--badge-color': intimacyInfo.level_color } : {}">
+                                <i class="fas fa-heart" :style="isPrivateRoomLit && intimacyInfo ? { color: intimacyInfo.level_color } : {}"></i>
                                 <span>私密</span>
                                 <span v-if="intimacyInfo" class="intimacy-level-mini">Lv.{{ intimacyInfo.current_level }}</span>
                                 <!-- 爱心飘动动画 -->
                                 <div v-if="showFloatingHearts" class="floating-hearts" :key="heartsAnimationKey">
-                                    <i class="fas fa-heart fh fh-1"></i>
-                                    <i class="fas fa-heart fh fh-2"></i>
-                                    <i class="fas fa-heart fh fh-3"></i>
+                                    <i class="fas fa-heart fh fh-1" :style="intimacyInfo ? { color: intimacyInfo.level_color } : {}"></i>
+                                    <i class="fas fa-heart fh fh-2" :style="intimacyInfo ? { color: intimacyInfo.level_color } : {}"></i>
+                                    <i class="fas fa-heart fh fh-3" :style="intimacyInfo ? { color: intimacyInfo.level_color } : {}"></i>
                                 </div>
                             </span>
                         </div>
@@ -208,7 +208,7 @@
                 
                 <!-- 好感度卡片（展开式，仅私密房间显示） -->
                 <transition name="intimacy-slide">
-                    <div v-if="currentRoomPrivate && intimacyInfo && showIntimacyCard" class="intimacy-card-expanded">
+                    <div v-if="currentRoomPrivate && intimacyInfo && showIntimacyCard" class="intimacy-card-expanded" :style="{ '--intimacy-color': intimacyInfo.level_color }">
                         <button class="intimacy-close" @click="toggleIntimacyCard">
                             <i class="fas fa-times"></i>
                         </button>

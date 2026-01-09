@@ -42,9 +42,9 @@
     position: absolute;
     top: 16px;
     right: 16px;
-    background: rgba(236, 72, 153, 0.1);
+    background: color-mix(in srgb, var(--intimacy-color, #ec4899) 10%, transparent);
     border: none;
-    color: #ec4899;
+    color: var(--intimacy-color, #ec4899);
     cursor: pointer;
     padding: 0;
     width: 32px;
@@ -59,7 +59,7 @@
 }
 
 .intimacy-close:hover {
-    background: rgba(236, 72, 153, 0.2);
+    background: color-mix(in srgb, var(--intimacy-color, #ec4899) 20%, transparent);
     transform: rotate(90deg);
 }
 
@@ -181,7 +181,7 @@
 
 .exp-current {
     font-size: 20px;
-    color: #ec4899;
+    color: var(--intimacy-color, #ec4899);
     line-height: 1;
 }
 
@@ -229,7 +229,7 @@
 
 .intimacy-progress-bar {
     height: 10px;
-    background: rgba(236, 72, 153, 0.1);
+    background: color-mix(in srgb, var(--intimacy-color, #ec4899) 10%, transparent);
     border-radius: 20px;
     overflow: hidden;
     position: relative;
@@ -277,20 +277,20 @@
     align-items: center;
     gap: 12px;
     padding: 12px 16px;
-    background: rgba(236, 72, 153, 0.08);
+    background: color-mix(in srgb, var(--intimacy-color, #ec4899) 8%, transparent);
     border-radius: 12px;
     transition: all 0.3s ease;
 }
 
 .intimacy-message-count:hover {
-    background: rgba(236, 72, 153, 0.12);
+    background: color-mix(in srgb, var(--intimacy-color, #ec4899) 12%, transparent);
 }
 
 .message-icon-wrapper {
     width: 40px;
     height: 40px;
     border-radius: 10px;
-    background: rgba(236, 72, 153, 0.15);
+    background: color-mix(in srgb, var(--intimacy-color, #ec4899) 15%, transparent);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -299,7 +299,7 @@
 
 .message-icon-wrapper i {
     font-size: 18px;
-    color: #ec4899;
+    color: var(--intimacy-color, #ec4899);
 }
 
 .message-text {
@@ -316,13 +316,13 @@
 
 .message-value {
     font-size: 15px;
-    color: #ec4899;
+    color: var(--intimacy-color, #ec4899);
     font-weight: 700;
 }
 
 .intimacy-divider {
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(236, 72, 153, 0.15), transparent);
+    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--intimacy-color, #ec4899) 15%, transparent), transparent);
     margin: 2px 0;
 }
 
@@ -344,7 +344,7 @@
 
 .settings-label i {
     font-size: 14px;
-    color: #ec4899;
+    color: var(--intimacy-color, #ec4899);
 }
 
 /* ==================== 开关样式 ==================== */
@@ -387,7 +387,7 @@
 }
 
 .intimacy-switch input:checked + .intimacy-slider {
-    background: linear-gradient(135deg, #ec4899, #f472b6);
+    background: linear-gradient(135deg, var(--intimacy-color, #ec4899), color-mix(in srgb, var(--intimacy-color, #ec4899) 80%, white));
 }
 
 .intimacy-switch input:checked + .intimacy-slider:before {
@@ -770,7 +770,7 @@
 }
 
 .level-up-desc i {
-    color: #ec4899;
+    color: var(--intimacy-color, #ec4899);
 }
 
 /* 动画 */
@@ -912,7 +912,7 @@
     top: 20%;
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(236, 72, 153, 0.95);
+    background: color-mix(in srgb, var(--intimacy-color, #ec4899) 95%, black);
     color: white;
     padding: 8px 16px;
     border-radius: 20px;
@@ -949,31 +949,31 @@
 }
 
 .dark-mode .intimacy-close {
-    background: rgba(236, 72, 153, 0.15);
+    background: color-mix(in srgb, var(--intimacy-color, #ec4899) 15%, transparent);
 }
 
 .dark-mode .intimacy-close:hover {
-    background: rgba(236, 72, 153, 0.25);
+    background: color-mix(in srgb, var(--intimacy-color, #ec4899) 25%, transparent);
 }
 
 .dark-mode .intimacy-progress-bar {
-    background: rgba(236, 72, 153, 0.12);
+    background: color-mix(in srgb, var(--intimacy-color, #ec4899) 12%, transparent);
 }
 
 .dark-mode .intimacy-message-count {
-    background: rgba(236, 72, 153, 0.1);
+    background: color-mix(in srgb, var(--intimacy-color, #ec4899) 10%, transparent);
 }
 
 .dark-mode .intimacy-message-count:hover {
-    background: rgba(236, 72, 153, 0.15);
+    background: color-mix(in srgb, var(--intimacy-color, #ec4899) 15%, transparent);
 }
 
 .dark-mode .message-icon-wrapper {
-    background: rgba(236, 72, 153, 0.2);
+    background: color-mix(in srgb, var(--intimacy-color, #ec4899) 20%, transparent);
 }
 
 .dark-mode .intimacy-divider {
-    background: linear-gradient(90deg, transparent, rgba(236, 72, 153, 0.2), transparent);
+    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--intimacy-color, #ec4899) 20%, transparent), transparent);
 }
 
 .dark-mode .intimacy-slider {

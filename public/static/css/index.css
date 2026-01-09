@@ -1026,15 +1026,15 @@ body {
 
 /* 点亮状态（两人都在线） */
 .private-badge.lit {
-    background: rgba(236, 72, 153, 0.1);
-    color: #ec4899;
-    border: 1px solid rgba(236, 72, 153, 0.3);
-    box-shadow: 0 0 8px rgba(236, 72, 153, 0.3);
+    --badge-color: #ec4899; /* 默认粉色，会被内联样式覆盖 */
+    background: color-mix(in srgb, var(--badge-color) 10%, transparent);
+    color: var(--badge-color);
+    border: 1px solid color-mix(in srgb, var(--badge-color) 30%, transparent);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--badge-color) 30%, transparent);
     animation: private-glow 2s ease-in-out infinite;
 }
 
 .private-badge.lit i {
-    color: #ec4899;
     animation: heart-beat 1.5s ease-in-out infinite;
 }
 
@@ -1057,10 +1057,10 @@ body {
 
 @keyframes private-glow {
     0%, 100% {
-        box-shadow: 0 0 8px rgba(236, 72, 153, 0.3);
+        box-shadow: 0 0 8px color-mix(in srgb, var(--badge-color, #ec4899) 30%, transparent);
     }
     50% {
-        box-shadow: 0 0 14px rgba(236, 72, 153, 0.5);
+        box-shadow: 0 0 14px color-mix(in srgb, var(--badge-color, #ec4899) 50%, transparent);
     }
 }
 
@@ -1097,14 +1097,10 @@ body {
 
 /* 暗色模式 - 点亮状态 */
 .dark-mode .private-badge.lit {
-    background: rgba(236, 72, 153, 0.15);
-    color: #f472b6;
-    border-color: rgba(244, 114, 182, 0.4);
-    box-shadow: 0 0 10px rgba(244, 114, 182, 0.4);
-}
-
-.dark-mode .private-badge.lit i {
-    color: #f472b6;
+    background: color-mix(in srgb, var(--badge-color) 15%, transparent);
+    color: var(--badge-color);
+    border-color: color-mix(in srgb, var(--badge-color) 40%, transparent);
+    box-shadow: 0 0 10px color-mix(in srgb, var(--badge-color) 40%, transparent);
 }
 
 /* 爱心飘动动画 */
@@ -1119,9 +1115,8 @@ body {
 
 .floating-hearts .fh {
     position: absolute;
-    color: #ec4899;
     opacity: 0;
-    text-shadow: 0 0 4px rgba(236, 72, 153, 0.5);
+    /* 颜色由内联样式控制 */
 }
 
 .floating-hearts .fh-1 {
@@ -1162,8 +1157,7 @@ body {
 }
 
 .dark-mode .floating-hearts .fh {
-    color: #f472b6;
-    text-shadow: 0 0 6px rgba(244, 114, 182, 0.6);
+    /* 颜色由内联样式控制 */
 }
 
 /* 暗黑模式 */

@@ -12,16 +12,19 @@ CREATE TABLE `ch_intimacy_levels` (
   UNIQUE KEY `level` (`level`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='好感度等级配置表';
 
--- 插入默认等级数据
+-- 删除旧的等级数据
+DELETE FROM `ch_intimacy_levels`;
+
+-- 插入默认等级数据（优化配色，每个等级颜色明显区分）
 INSERT INTO `ch_intimacy_levels` (`level`, `name`, `required_exp`, `color`, `icon`, `description`) VALUES
 (1, '恋人', 0, '#ec4899', 'fa-heart', '相爱的恋人'),
-(2, '热恋', 500, '#f472b6', 'fa-heart', '热恋中的情侣'),
-(3, '甜蜜', 1500, '#fb7185', 'fa-heart', '甜蜜的恋人'),
-(4, '深爱', 3000, '#f43f5e', 'fa-heart', '深深相爱'),
-(5, '挚爱', 5000, '#e11d48', 'fa-heart', '挚爱的伴侣'),
-(6, '相守', 8000, '#dc2626', 'fa-heart', '相守一生'),
-(7, '伴侣', 12000, '#c026d3', 'fa-heart', '生命中的伴侣'),
-(8, '灵魂伴侣', 18000, '#a21caf', 'fa-heart', '灵魂深处的契合');
+(2, '热恋', 500, '#f9a916ff', 'fa-heart', '热恋中的情侣'),
+(3, '甜蜜', 1500, '#f85712ff', 'fa-heart', '甜蜜的恋人'),
+(4, '深爱', 3000, '#ef4444', 'fa-heart', '深深相爱'),
+(5, '挚爱', 5000, '#dc2626', 'fa-heart', '挚爱的伴侣'),
+(6, '相守', 8000, '#c026d3', 'fa-heart', '相守一生'),
+(7, '伴侣', 12000, '#9333ea', 'fa-heart', '生命中的伴侣'),
+(8, '灵魂伴侣', 18000, '#7c3aed', 'fa-heart', '灵魂深处的契合');
 
 -- 用户好感度经验表
 CREATE TABLE `ch_intimacy_exp` (

@@ -1843,7 +1843,7 @@ try {
                 
                 modal.innerHTML = `
                     <div class="level-up-overlay"></div>
-                    <div class="level-up-card">
+                    <div class="level-up-card" style="--intimacy-color: ${levelColor}">
                         <button class="level-up-close-btn">
                             <i class="fas fa-times"></i>
                         </button>
