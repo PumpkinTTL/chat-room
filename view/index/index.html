@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>轻量聊天室</title>
+    <title>端对端聊天系统</title>
     <link rel="stylesheet" href="/static/css/animate.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/static/css/index.css?v=94">
@@ -243,7 +243,11 @@
                             <span class="system-badge" :class="{ 'time-separator-badge': message.isTimeSeparator }" v-text="message.text"></span>
                         </div>
 
-                        <div v-else class="msg-content-group" @contextmenu.prevent="showContextMenu($event, message)">
+                        <div v-else class="msg-content-group"
+                            @contextmenu.prevent="showContextMenu($event, message)"
+                            @touchstart.prevent="handleMessageTouchStart($event, message)"
+                            @touchend="handleMessageTouchEnd"
+                            @touchmove="handleMessageTouchMove">
                             <div v-if="!message.isOwn" class="msg-avatar"
                                 :style="message.sender && isValidAvatar(message.sender.avatar) ? { backgroundImage: 'url(' + message.sender.avatar + ')' } : {}">
                                 <span v-if="!message.sender || !isValidAvatar(message.sender.avatar)"
@@ -756,7 +760,7 @@
     <script src="/static/js/upload/handlers/file-handler.js?v=1"></script>
     <script src="/static/js/upload/upload-manager.js?v=4"></script>
 
-    <script src="/static/js/index.js?v=95"></script>
+    <script src="/static/js/index.js?v=97"></script>
 </body>
 
 </html>

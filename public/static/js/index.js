@@ -2971,6 +2971,60 @@ try {
                 contextMenu.value.show = false;
             };
 
+            // 长按计时器
+            let touchTimer = null;
+            let touchStartX = 0;
+            let touchStartY = 0;
+
+            // 消息长按触摸开始 - 启动长按计时器
+            const handleMessageTouchStart = (event, message) => {
+                // 如果是多点触控，不处理
+                if (event.touches.length > 1) return;
+
+                const touch = event.touches[0];
+                touchStartX = touch.clientX;
+                touchStartY = touch.clientY;
+
+                // 500ms后触发右键菜单
+                touchTimer = setTimeout(() => {
+                    // 使用触摸点位置作为菜单位置
+                    const mockEvent = {
+                        preventDefault: () => {},
+                        clientX: touchStartX,
+                        clientY: touchStartY
+                    };
+                    showContextMenu(mockEvent, message);
+
+                    // 触发震动反馈（如果设备支持）
+                    if (navigator.vibrate) {
+                        navigator.vibrate(50);
+                    }
+                }, 500);
+            };
+
+            // 消息长按触摸结束 - 清除计时器
+            const handleMessageTouchEnd = () => {
+                if (touchTimer) {
+                    clearTimeout(touchTimer);
+                    touchTimer = null;
+                }
+            };
+
+            // 消息长按触摸移动 - 如果移动距离超过阈值，取消长按
+            const handleMessageTouchMove = (event) => {
+                if (!touchTimer) return;
+
+                const touch = event.touches[0];
+                const moveX = Math.abs(touch.clientX - touchStartX);
+                const moveY = Math.abs(touch.clientY - touchStartY);
+
+                // 移动超过10px，取消长按
+                if (moveX > 10 || moveY > 10) {
+                    clearTimeout(touchTimer);
+                    touchTimer = null;
+                }
+            };
+
             // 焚毁消息
             const burnMessage = async () => {
                 const message = contextMenu.value.message;
@@ -3763,6 +3817,9 @@ try {
                 showContextMenu,
                 hideContextMenu,
                 burnMessage,
+                handleMessageTouchStart,
+                handleMessageTouchEnd,
+                handleMessageTouchMove,
                 // Loading状态
                 globalLoading,
                 loadingText,
