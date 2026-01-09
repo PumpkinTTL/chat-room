@@ -931,6 +931,11 @@ try {
                             else if (msgType === 'video' || msgType === 5) normalizedType = 'video';
                             else if (msgType === 'file' || msgType === 3) normalizedType = 'file';
                             else if (msgType === 'text' || msgType === 1 || msgType === 'normal') normalizedType = 'text';
+                            
+                            // 如果有引用信息，类型设为 reply（但渲染时会转为 text）
+                            if (data.reply_to) {
+                                normalizedType = 'reply';
+                            }
 
                             const rawMsg = {
                                 id: data.message_id,
