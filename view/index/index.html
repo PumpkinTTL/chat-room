@@ -7,7 +7,7 @@
     <title>端对端聊天系统</title>
     <link rel="stylesheet" href="/static/css/animate.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="/static/css/index.css?v=106">
+    <link rel="stylesheet" href="/static/css/index.css?v=108">
     <link rel="stylesheet" href="/static/css/index-modal.css?v=2">
     <link rel="stylesheet" href="/static/css/message-types.css?v=22">
     <!-- 关键：在Vue加载前隐藏整个应用，防止模板闪现 -->
@@ -547,6 +547,14 @@
                     <span>有新消息</span>
                 </div>
             </transition>
+            
+            <!-- 回到底部按钮 -->
+            <transition name="slide-up-right">
+                <div v-if="showScrollToBottom && !showNewMessageTip" class="scroll-to-bottom-btn" @click="handleScrollToBottom">
+                    <i class="fas fa-chevron-down"></i>
+                    <span>回到底部</span>
+                </div>
+            </transition>
 
             <!-- 输入区域 -->
             <div class="input-section">
@@ -800,7 +808,7 @@
     <script src="/static/js/upload/handlers/file-handler.js?v=1"></script>
     <script src="/static/js/upload/upload-manager.js?v=4"></script>
 
-    <script src="/static/js/index.js?v=110"></script>
+    <script src="/static/js/index.js?v=112"></script>
 </body>
 
 </html>

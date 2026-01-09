@@ -103,6 +103,9 @@ try {
             // 新消息提示
             const showNewMessageTip = ref(false);
             const newMessageCount = ref(0);
+            
+            // 回到底部按钮
+            const showScrollToBottom = ref(false);
 
             // 分页相关
             const currentPage = ref(1);
@@ -785,8 +788,13 @@ try {
                 scrollCheckTimer = setTimeout(function () {
                     scrollCheckTimer = null;
                     
+                    const atBottom = isUserAtBottom();
+                    
+                    // 控制回到底部按钮的显示
+                    showScrollToBottom.value = !atBottom;
+                    
                     // IntersectionObserver 会自动处理，这里只处理新消息提示
-                    if (isUserAtBottom() && showNewMessageTip.value) {
+                    if (atBottom && showNewMessageTip.value) {
                         showNewMessageTip.value = false;
                         newMessageCount.value = 0;
                     }
@@ -1753,7 +1761,7 @@ try {
                         messagesLoading.value = true;
                     }
 
-                    const response = await apiRequest(`/api/message/list?room_id=${roomIdValue}&page=1&limit=50`);
+                    const response = await apiRequest(`/api/message/list?room_id=${roomIdValue}&page=1&limit=100`);
                     const result = await response.json();
 
                     if (result.code === 0) {
@@ -1857,7 +1865,7 @@ try {
 
                 try {
                     const nextPage = currentPage.value + 1;
-                    const response = await apiRequest(`/api/message/list?room_id=${roomId.value}&page=${nextPage}&limit=50`);
+                    const response = await apiRequest(`/api/message/list?room_id=${roomId.value}&page=${nextPage}&limit=100`);
                     const result = await response.json();
 
                     if (result.code === 0) {
@@ -2598,6 +2606,12 @@ try {
                 scrollToBottom();
                 showNewMessageTip.value = false;
                 newMessageCount.value = 0;
+            };
+            
+            // 点击回到底部按钮
+            const handleScrollToBottom = function () {
+                scrollToBottom();
+                showScrollToBottom.value = false;
             };
 
             // 处理粘贴事件
@@ -4044,6 +4058,9 @@ try {
                 showNewMessageTip,
                 newMessageCount,
                 scrollToBottomAndHideTip,
+                // 回到底部按钮
+                showScrollToBottom,
+                handleScrollToBottom,
                 // 粘贴处理
                 handlePaste,
                 // 表情相关
