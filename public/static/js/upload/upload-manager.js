@@ -101,7 +101,7 @@ class UploadManager {
         });
 
         // 触发状态变更回调（传递tempMessage）
-        this.triggerStatusChange(tempId, UPLOAD_CONFIG.status.SENDING, tempMessage);
+        await this.triggerStatusChange(tempId, UPLOAD_CONFIG.status.SENDING, tempMessage);
 
         // 启动进度模拟
         const progressControl = handler.startProgressSimulation(tempId, (msgId, progress) => {
@@ -297,9 +297,9 @@ class UploadManager {
      * @param {string} status - 状态
      * @param {Object} tempMessage - 临时消息（可选）
      */
-    triggerStatusChange(tempId, status, tempMessage = null) {
+    async triggerStatusChange(tempId, status, tempMessage = null) {
         if (this.callbacks.onStatusChange) {
-            this.callbacks.onStatusChange(tempId, status, tempMessage);
+            await this.callbacks.onStatusChange(tempId, status, tempMessage);
         }
     }
 

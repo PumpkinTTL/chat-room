@@ -116,63 +116,50 @@ try {
             // 时间分隔相关常量
             const TIME_SEPARATOR_INTERVAL = 5 * 60 * 1000; // 5分钟（毫秒）
 
-            // 时间分隔函数声明（使用function声明以便hoisting）
-            function shouldInsertTimeSeparatorFn() {
+            // 检查是否需要插入时间分隔
+            function shouldInsertTimeSeparator() {
                 if (messages.value.length === 0) return false;
-                let lastMsg = null;
+                // 找最后一条非时间分隔的消息
                 for (let i = messages.value.length - 1; i >= 0; i--) {
-                    if (!messages.value[i].isTimeSeparator) {
-                        lastMsg = messages.value[i];
-                        break;
+                    const msg = messages.value[i];
+                    if (!msg.isTimeSeparator) {
+                        if (!msg.time) return false;
+                        const lastTime = msg.time instanceof Date ? msg.time : new Date(msg.time);
+                        return (Date.now() - lastTime.getTime()) >= TIME_SEPARATOR_INTERVAL;
                     }
-                }
-                if (!lastMsg || !lastMsg.time) return false;
-                const lastTime = lastMsg.time instanceof Date ? lastMsg.time : new Date(lastMsg.time);
-                const now = new Date();
-                return (now.getTime() - lastTime.getTime()) >= TIME_SEPARATOR_INTERVAL;
-            }
-
-            function createTimeSeparatorMessageFn() {
-                const now = new Date();
-                const month = String(now.getMonth() + 1).padStart(2, '0');
-                const day = String(now.getDate()).padStart(2, '0');
-                const hours = String(now.getHours()).padStart(2, '0');
-                const minutes = String(now.getMinutes()).padStart(2, '0');
-                return {
-                    id: 'time_' + Date.now(),
-                    type: 'system',
-                    text: month + '-' + day + ' ' + hours + ':' + minutes,
-                    time: now,
-                    isTimeSeparator: true,
-                    isOwn: false
-                };
-            }
-
-            async function insertTimeSeparatorIfNeededFn() {
-                if (shouldInsertTimeSeparatorFn()) {
-                    const separator = createTimeSeparatorMessageFn();
-                    
-                    // 先调用API写入数据库，等待成功后再添加到本地
-                    try {
-                        const response = await apiRequest('/api/message/sendSystem', {
-                            method: 'POST',
-                            body: JSON.stringify({
-                                room_id: roomId.value,
-                                content: separator.text
-                            })
-                        });
-                        const result = await response.json();
-                        if (result.code === 0 && result.data) {
-                            // API成功后，使用数据库返回的ID添加到本地
-                            separator.id = result.data.id;
-                            messages.value.push(separator);
-                        }
-                    } catch (error) {
-                        console.error('[TimeSeparator] 写入失败:', error);
-                    }
-                    return true;
                 }
                 return false;
+            }
+
+            // 插入时间分隔消息（如果需要）
+            async function insertTimeSeparatorIfNeededFn() {
+                if (!shouldInsertTimeSeparator()) return;
+                
+                const now = new Date();
+                const text = String(now.getMonth() + 1).padStart(2, '0') + '-' +
+                             String(now.getDate()).padStart(2, '0') + ' ' +
+                             String(now.getHours()).padStart(2, '0') + ':' +
+                             String(now.getMinutes()).padStart(2, '0');
+                
+                try {
+                    const response = await apiRequest('/api/message/sendSystem', {
+                        method: 'POST',
+                        body: JSON.stringify({ room_id: roomId.value, content: text })
+                    });
+                    const result = await response.json();
+                    if (result.code === 0 && result.data) {
+                        messages.value.push({
+                            id: result.data.id,
+                            type: 'system',
+                            text: text,
+                            time: now,
+                            isTimeSeparator: true,
+                            isOwn: false
+                        });
+                    }
+                } catch (error) {
+                    console.error('[TimeSeparator] 写入失败:', error);
+                }
             }
 
             // 设置uploadManager的回调
@@ -1352,6 +1339,14 @@ try {
                     };
                     messageType = typeMap[messageType] || 'text';
                 }
+                
+                // 判断是否是时间分隔消息（system类型 + 内容格式为 MM-DD HH:mm）
+                let isTimeSeparator = false;
+                if (messageType === 'system') {
+                    const content = msg.content || msg.text || '';
+                    // 匹配格式：MM-DD HH:mm（如 01-09 14:30）
+                    isTimeSeparator = /^\d{2}-\d{2}\s+\d{2}:\d{2}$/.test(content.trim());
+                }
 
                 // iOS Safari 兼容性：避免扩展运算符
                 const processedMsg = {
@@ -1365,8 +1360,19 @@ try {
                     isNewMessage: shouldShowNewAnimation,
                     isRead: msg.is_read || false,
                     readCount: msg.read_count || 0,
-                    readUsers: msg.read_users || []
+                    readUsers: msg.read_users || [],
+                    isTimeSeparator: isTimeSeparator
                 };
+                
+                // 时间分隔消息需要设置 text 字段用于显示
+                if (isTimeSeparator) {
+                    processedMsg.text = msg.content || msg.text || '';
+                }
+                
+                // 普通 system 消息也需要设置 text 字段（模板使用 message.text 显示）
+                if (messageType === 'system' && !processedMsg.text) {
+                    processedMsg.text = msg.content || msg.text || '';
+                }
 
                 // 时间戳处理（只在有值时处理）
                 if (msg.timestamp) {
