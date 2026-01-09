@@ -992,16 +992,39 @@ body {
     border-radius: 12px;
     font-size: 11px;
     font-weight: 500;
+    position: relative;
+    transition: all 0.5s ease;
+}
+
+.private-badge i {
+    font-size: 10px;
+    transition: all 0.5s ease;
+}
+
+/* 暗淡状态（只有一人在线） */
+.private-badge.dim {
+    background: rgba(148, 163, 184, 0.1);
+    color: #94a3b8;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    box-shadow: none;
+}
+
+.private-badge.dim i {
+    color: #94a3b8;
+}
+
+/* 点亮状态（两人都在线） */
+.private-badge.lit {
     background: rgba(236, 72, 153, 0.1);
     color: #ec4899;
     border: 1px solid rgba(236, 72, 153, 0.3);
     box-shadow: 0 0 8px rgba(236, 72, 153, 0.3);
     animation: private-glow 2s ease-in-out infinite;
-    position: relative;
 }
 
-.private-badge i {
-    font-size: 10px;
+.private-badge.lit i {
+    color: #ec4899;
+    animation: heart-beat 1.5s ease-in-out infinite;
 }
 
 @keyframes private-glow {
@@ -1013,11 +1036,36 @@ body {
     }
 }
 
-.dark-mode .private-badge {
+@keyframes heart-beat {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.15);
+    }
+}
+
+/* 暗色模式 - 暗淡状态 */
+.dark-mode .private-badge.dim {
+    background: rgba(100, 116, 139, 0.15);
+    color: #64748b;
+    border-color: rgba(100, 116, 139, 0.3);
+}
+
+.dark-mode .private-badge.dim i {
+    color: #64748b;
+}
+
+/* 暗色模式 - 点亮状态 */
+.dark-mode .private-badge.lit {
     background: rgba(236, 72, 153, 0.15);
     color: #f472b6;
     border-color: rgba(244, 114, 182, 0.4);
     box-shadow: 0 0 10px rgba(244, 114, 182, 0.4);
+}
+
+.dark-mode .private-badge.lit i {
+    color: #f472b6;
 }
 
 /* 爱心飘动动画 */

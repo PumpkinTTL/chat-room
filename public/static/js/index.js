@@ -321,6 +321,11 @@ try {
                 if (users.length === 1) return users[0].nickname + ' 正在输入...';
                 return users[0].nickname + ' 等' + users.length + '人正在输入...';
             });
+            
+            // 计算私密房间是否点亮（两人都在线）
+            const isPrivateRoomLit = computed(() => {
+                return currentRoomPrivate.value && onlineUsers.value >= 2;
+            });
 
             // 消息发送状态映射 { messageId: 'sending' | 'success' | 'failed' }
             const messageSendStatus = ref({});
@@ -3988,6 +3993,7 @@ try {
                 totalUsers,
                 currentRoomOwnerId,
                 currentRoomPrivate,
+                isPrivateRoomLit,
                 showFloatingHearts,
                 onlineUsersList,
                 roomList,
