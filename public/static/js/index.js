@@ -1791,23 +1791,17 @@ try {
                 // 消息数+1（实时统计）
                 intimacyInfo.value.total_messages = (intimacyInfo.value.total_messages || 0) + 1;
                 
-                // 检查是否需要升级（经验值超过下一级所需经验）
-                if (intimacyInfo.value.next_level_exp && intimacyInfo.value.current_exp >= intimacyInfo.value.next_level_exp) {
-                    // 如果后端返回了升级信息，显示升级提示
-                    if (data.level_up && data.level_name) {
-                        showLevelUpToast(data.level_name, data.current_level);
-                    }
-                    
-                    // 重新加载完整信息（包含新等级和新的next_level_exp）
-                    loadIntimacyInfo(roomId.value).then(function() {
-                        // 加载完成后，重新计算进度（无缝衔接）
-                        updateIntimacyProgress();
-                    });
-                    return;
-                }
+                // 记录当前等级
+                const oldLevel = intimacyInfo.value.current_level;
                 
-                // 没有升级，直接更新进度
-                updateIntimacyProgress();
+                // 重新加载完整信息（会自动计算新等级）
+                loadIntimacyInfo(roomId.value).then(function() {
+                    // 检查是否升级
+                    if (intimacyInfo.value.current_level > oldLevel) {
+                        showLevelUpToast(intimacyInfo.value.level_name, intimacyInfo.value.current_level);
+                    }
+                    updateIntimacyProgress();
+                });
             };
             
             // 更新好感度进度条
@@ -1839,20 +1833,87 @@ try {
                 intimacyInfo.value.progress_percent = progressPercent.toFixed(1);
             };
             
-            // 显示升级提示
+            // 显示升级提示 - 高级灵动版
             const showLevelUpToast = function (levelName, level) {
-                const toast = document.createElement('div');
-                toast.className = 'level-up-toast';
-                toast.innerHTML = `
-                    <div class="level-up-icon"><i class="fas fa-heart"></i></div>
-                    <div class="level-up-text">好感度提升</div>
-                    <div class="level-up-name">${levelName}</div>
-                `;
-                document.body.appendChild(toast);
+                const modal = document.createElement('div');
+                modal.className = 'level-up-modal';
                 
-                setTimeout(function () {
-                    document.body.removeChild(toast);
-                }, 2000);
+                // 获取当前等级颜色
+                const levelColor = intimacyInfo.value?.level_color || '#ec4899';
+                
+                modal.innerHTML = `
+                    <div class="level-up-overlay"></div>
+                    <div class="level-up-card">
+                        <button class="level-up-close-btn">
+                            <i class="fas fa-times"></i>
+                        </button>
+                        
+                        <!-- 装饰元素 -->
+                        <div class="level-up-decorations">
+                            <div class="decoration-circle decoration-1" style="background: ${levelColor}"></div>
+                            <div class="decoration-circle decoration-2" style="background: ${levelColor}"></div>
+                            <div class="decoration-circle decoration-3" style="background: ${levelColor}"></div>
+                            <div class="decoration-star decoration-star-1">✨</div>
+                            <div class="decoration-star decoration-star-2">✨</div>
+                            <div class="decoration-star decoration-star-3">⭐</div>
+                            <div class="decoration-heart decoration-heart-1" style="color: ${levelColor}">
+                                <i class="fas fa-heart"></i>
+                            </div>
+                            <div class="decoration-heart decoration-heart-2" style="color: ${levelColor}">
+                                <i class="fas fa-heart"></i>
+                            </div>
+                        </div>
+                        
+                        <!-- 主内容 -->
+                        <div class="level-up-content">
+                            <div class="level-up-icon-wrapper">
+                                <div class="icon-ring icon-ring-1" style="border-color: ${levelColor}40"></div>
+                                <div class="icon-ring icon-ring-2" style="border-color: ${levelColor}60"></div>
+                                <div class="icon-bg" style="background: ${levelColor}15"></div>
+                                <i class="fas fa-heart level-up-icon" style="color: ${levelColor}"></i>
+                            </div>
+                            
+                            <div class="level-up-badge-wrapper">
+                                <div class="badge-glow" style="background: ${levelColor}"></div>
+                                <div class="level-up-badge" style="background: ${levelColor}">
+                                    <span class="badge-text">Lv.${level}</span>
+                                </div>
+                            </div>
+                            
+                            <h2 class="level-up-title">
+                                <span class="title-icon">🎉</span>
+                                亲密等级提升
+                                <span class="title-icon">🎉</span>
+                            </h2>
+                            
+                            <div class="level-up-name" style="color: ${levelColor}">${levelName}</div>
+                            
+                            <p class="level-up-desc">
+                                <i class="fas fa-heart-circle"></i>
+                                我们的关系更进一步啦
+                            </p>
+                        </div>
+                    </div>
+                `;
+                
+                document.body.appendChild(modal);
+                
+                // 点击关闭按钮
+                const closeBtn = modal.querySelector('.level-up-close-btn');
+                closeBtn.addEventListener('click', function() {
+                    modal.classList.add('level-up-hiding');
+                    setTimeout(function() {
+                        if (modal.parentNode) {
+                            document.body.removeChild(modal);
+                        }
+                    }, 400);
+                });
+                
+                // 点击遮罩关闭
+                const overlay = modal.querySelector('.level-up-overlay');
+                overlay.addEventListener('click', function() {
+                    closeBtn.click();
+                });
             };
             
             // 显示经验获得提示
