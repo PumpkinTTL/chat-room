@@ -1,4 +1,4 @@
-/* ==================== 好感度系统样式 ==================== */
+/* ==================== 好感度系统样式 - 优化版 ==================== */
 
 /* 私密标签中的等级显示 */
 .intimacy-level-mini {
@@ -24,38 +24,84 @@
     }
 }
 
-/* 展开式好感度卡片 - 使用绝对定位浮在上方 */
+/* ==================== 展开式好感度卡片 ==================== */
 .intimacy-card-expanded {
     position: absolute;
     top: 100%;
     left: 0;
     right: 0;
-    background: var(--glass-bg);
-    border: 1px solid var(--glass-border);
-    border-top: none;
-    padding: 12px 16px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    background: var(--header-bg);
+    border-bottom: 1px solid var(--header-border);
+    padding: 22px 24px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
     z-index: 100;
-    backdrop-filter: blur(10px);
 }
 
-/* 好感度头部 */
-.intimacy-header {
+/* 关闭按钮 */
+.intimacy-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: rgba(236, 72, 153, 0.1);
+    border: none;
+    color: #ec4899;
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+    font-size: 14px;
     display: flex;
     align-items: center;
+    justify-content: center;
+    z-index: 10;
+}
+
+.intimacy-close:hover {
+    background: rgba(236, 72, 153, 0.2);
+    transform: rotate(90deg);
+}
+
+/* ==================== 顶部区域：等级和经验 ==================== */
+.intimacy-top-section {
+    display: flex;
     justify-content: space-between;
-    margin-bottom: 12px;
+    align-items: center;
+    margin-bottom: 18px;
+    padding-right: 40px;
 }
 
-.intimacy-level {
+.intimacy-level-display {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 14px;
 }
 
-.intimacy-level-icon {
-    font-size: 18px;
+/* 爱心图标包装器 - 添加发光效果 */
+.intimacy-heart-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.intimacy-heart-icon {
+    font-size: 40px;
+    position: relative;
+    z-index: 2;
     animation: heart-pulse 2s ease-in-out infinite;
+    filter: drop-shadow(0 2px 8px rgba(236, 72, 153, 0.4));
+}
+
+.heart-glow {
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    opacity: 0.15;
+    filter: blur(12px);
+    animation: glow-pulse 2s ease-in-out infinite;
 }
 
 @keyframes heart-pulse {
@@ -63,88 +109,294 @@
         transform: scale(1);
     }
     50% {
-        transform: scale(1.1);
+        transform: scale(1.08);
     }
 }
 
+@keyframes glow-pulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 0.15;
+    }
+    50% {
+        transform: scale(1.2);
+        opacity: 0.25;
+    }
+}
+
+.intimacy-level-text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.level-name-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
 .intimacy-level-name {
-    font-size: 15px;
-    font-weight: 600;
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1;
 }
 
 .intimacy-level-badge {
     font-size: 11px;
-    padding: 2px 8px;
-    border-radius: 10px;
-    background: rgba(0, 0, 0, 0.05);
-    color: var(--text-secondary);
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-weight: 600;
+    border: 1px solid;
+    line-height: 1;
 }
 
-/* 关闭按钮 */
-.intimacy-close {
-    background: none;
-    border: none;
+.level-subtitle {
+    font-size: 11px;
     color: var(--text-secondary);
-    cursor: pointer;
-    padding: 4px 8px;
-    border-radius: 6px;
-    transition: all 0.2s ease;
+    font-weight: 500;
+    opacity: 0.8;
+}
+
+/* 经验显示区域 */
+.intimacy-exp-display {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+}
+
+.exp-label {
+    font-size: 10px;
+    color: var(--text-secondary);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.exp-numbers {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    font-weight: 600;
+}
+
+.exp-current {
+    font-size: 20px;
+    color: #ec4899;
+    line-height: 1;
+}
+
+.exp-separator {
     font-size: 14px;
+    color: var(--text-secondary);
+    opacity: 0.5;
 }
 
-.intimacy-close:hover {
-    background: rgba(0, 0, 0, 0.05);
-    color: var(--text-primary);
+.exp-max {
+    font-size: 14px;
+    color: var(--text-secondary);
 }
 
-/* 经验进度条 */
-.intimacy-progress {
+/* ==================== 进度条区域 ==================== */
+.intimacy-progress-section {
+    margin-bottom: 18px;
+}
+
+.progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 8px;
 }
 
-.intimacy-progress-label {
+.progress-label {
     display: flex;
-    justify-content: space-between;
+    align-items: center;
+    gap: 6px;
     font-size: 12px;
     color: var(--text-secondary);
-    margin-bottom: 6px;
+    font-weight: 500;
+}
+
+.progress-label i {
+    font-size: 11px;
+    opacity: 0.7;
+}
+
+.progress-percent {
+    font-size: 13px;
+    font-weight: 700;
 }
 
 .intimacy-progress-bar {
-    height: 6px;
-    background: rgba(0, 0, 0, 0.05);
-    border-radius: 10px;
+    height: 10px;
+    background: rgba(236, 72, 153, 0.1);
+    border-radius: 20px;
     overflow: hidden;
     position: relative;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .intimacy-progress-fill {
     height: 100%;
-    border-radius: 10px;
-    transition: width 0.5s ease, background 0.3s ease;
+    border-radius: 20px;
+    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
     background: linear-gradient(90deg, var(--level-color, #ec4899), var(--level-color-light, #f472b6));
-    box-shadow: 0 0 6px var(--level-color, #ec4899);
+    box-shadow: 0 0 12px var(--level-color, #ec4899);
+    position: relative;
+    overflow: hidden;
 }
 
-/* 好感度统计 */
-.intimacy-stats {
+.progress-shine {
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    animation: progress-shine 2s ease-in-out infinite;
+}
+
+@keyframes progress-shine {
+    0% {
+        left: -100%;
+    }
+    100% {
+        left: 200%;
+    }
+}
+
+/* ==================== 底部区域：统计和设置 ==================== */
+.intimacy-bottom-section {
     display: flex;
-    gap: 16px;
-    font-size: 12px;
-    color: var(--text-secondary);
+    flex-direction: column;
+    gap: 14px;
 }
 
-.intimacy-stat-item {
+.intimacy-message-count {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 12px;
+    padding: 12px 16px;
+    background: rgba(236, 72, 153, 0.08);
+    border-radius: 12px;
+    transition: all 0.3s ease;
 }
 
-.intimacy-stat-item i {
+.intimacy-message-count:hover {
+    background: rgba(236, 72, 153, 0.12);
+}
+
+.message-icon-wrapper {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: rgba(236, 72, 153, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.message-icon-wrapper i {
+    font-size: 18px;
+    color: #ec4899;
+}
+
+.message-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.message-label {
     font-size: 11px;
+    color: var(--text-secondary);
+    font-weight: 500;
 }
 
-/* 展开/收缩动画 - 流畅的滑入滑出效果 */
+.message-value {
+    font-size: 15px;
+    color: #ec4899;
+    font-weight: 700;
+}
+
+.intimacy-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(236, 72, 153, 0.15), transparent);
+    margin: 2px 0;
+}
+
+.intimacy-settings {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 4px;
+}
+
+.settings-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.settings-label i {
+    font-size: 14px;
+    color: #ec4899;
+}
+
+/* ==================== 开关样式 ==================== */
+.intimacy-switch {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+}
+
+.intimacy-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.intimacy-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.15);
+    transition: 0.3s;
+    border-radius: 24px;
+}
+
+.intimacy-slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background: white;
+    transition: 0.3s;
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.intimacy-switch input:checked + .intimacy-slider {
+    background: linear-gradient(135deg, #ec4899, #f472b6);
+}
+
+.intimacy-switch input:checked + .intimacy-slider:before {
+    transform: translateX(20px);
+}
+
+/* ==================== 展开/收缩动画 ==================== */
 .intimacy-slide-enter-active {
     animation: intimacy-slide-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -175,7 +427,7 @@
     }
 }
 
-/* 升级动画提示 */
+/* ==================== 升级动画提示 ==================== */
 .level-up-toast {
     position: fixed;
     top: 50%;
@@ -275,36 +527,180 @@
     }
 }
 
-/* 暗色模式 */
+/* ==================== 暗色模式 ==================== */
 .dark-mode .intimacy-card-expanded {
-    background: rgba(30, 41, 59, 0.95);
-    border-color: rgba(255, 255, 255, 0.1);
+    background: #0f172a;
+    border-color: #1e293b;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
 }
 
-.dark-mode .intimacy-progress-bar {
-    background: rgba(255, 255, 255, 0.1);
-}
-
-.dark-mode .intimacy-level-badge {
-    background: rgba(255, 255, 255, 0.1);
+.dark-mode .intimacy-close {
+    background: rgba(236, 72, 153, 0.15);
 }
 
 .dark-mode .intimacy-close:hover {
+    background: rgba(236, 72, 153, 0.25);
+}
+
+.dark-mode .intimacy-progress-bar {
+    background: rgba(236, 72, 153, 0.12);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.dark-mode .intimacy-message-count {
+    background: rgba(236, 72, 153, 0.1);
+}
+
+.dark-mode .intimacy-message-count:hover {
+    background: rgba(236, 72, 153, 0.15);
+}
+
+.dark-mode .message-icon-wrapper {
+    background: rgba(236, 72, 153, 0.2);
+}
+
+.dark-mode .intimacy-divider {
+    background: linear-gradient(90deg, transparent, rgba(236, 72, 153, 0.2), transparent);
+}
+
+.dark-mode .intimacy-slider {
     background: rgba(255, 255, 255, 0.1);
 }
 
-/* 移动端适配 */
+.dark-mode .intimacy-slider:before {
+    background-color: rgba(255, 255, 255, 0.95);
+}
+
+/* ==================== 移动端适配 ==================== */
 @media (max-width: 768px) {
     .intimacy-card-expanded {
-        padding: 10px 12px;
+        padding: 18px 16px;
+    }
+    
+    .intimacy-close {
+        top: 12px;
+        right: 12px;
+        width: 28px;
+        height: 28px;
+        font-size: 12px;
+    }
+    
+    .intimacy-top-section {
+        margin-bottom: 16px;
+        padding-right: 36px;
+    }
+    
+    .intimacy-level-display {
+        gap: 12px;
+    }
+    
+    .intimacy-heart-icon {
+        font-size: 32px;
+    }
+    
+    .heart-glow {
+        width: 40px;
+        height: 40px;
     }
     
     .intimacy-level-name {
+        font-size: 18px;
+    }
+    
+    .intimacy-level-badge {
+        font-size: 10px;
+        padding: 2px 8px;
+    }
+    
+    .level-subtitle {
+        font-size: 10px;
+    }
+    
+    .exp-label {
+        font-size: 9px;
+    }
+    
+    .exp-current {
+        font-size: 18px;
+    }
+    
+    .exp-max {
+        font-size: 13px;
+    }
+    
+    .intimacy-progress-section {
+        margin-bottom: 16px;
+    }
+    
+    .progress-header {
+        margin-bottom: 7px;
+    }
+    
+    .progress-label {
+        font-size: 11px;
+        gap: 5px;
+    }
+    
+    .progress-label i {
+        font-size: 10px;
+    }
+    
+    .progress-percent {
+        font-size: 12px;
+    }
+    
+    .intimacy-progress-bar {
+        height: 8px;
+    }
+    
+    .intimacy-bottom-section {
+        gap: 12px;
+    }
+    
+    .intimacy-message-count {
+        padding: 10px 14px;
+        gap: 10px;
+    }
+    
+    .message-icon-wrapper {
+        width: 36px;
+        height: 36px;
+        border-radius: 9px;
+    }
+    
+    .message-icon-wrapper i {
+        font-size: 16px;
+    }
+    
+    .message-label {
+        font-size: 10px;
+    }
+    
+    .message-value {
         font-size: 14px;
     }
     
-    .intimacy-level-icon {
-        font-size: 16px;
+    .settings-label {
+        font-size: 12px;
+        gap: 7px;
+    }
+    
+    .settings-label i {
+        font-size: 13px;
+    }
+    
+    .intimacy-switch {
+        width: 40px;
+        height: 22px;
+    }
+    
+    .intimacy-slider:before {
+        height: 16px;
+        width: 16px;
+    }
+    
+    .intimacy-switch input:checked + .intimacy-slider:before {
+        transform: translateX(18px);
     }
     
     .level-up-toast {

@@ -1857,6 +1857,9 @@ try {
             
             // 显示经验获得提示
             const showExpGainToast = function (expGain) {
+                // 检查是否开启经验提示
+                if (!showExpToast.value) return;
+                
                 const toast = document.createElement('div');
                 toast.className = 'exp-gain-toast';
                 toast.innerHTML = `<i class="fas fa-heart"></i> +${expGain} 经验`;
@@ -1873,6 +1876,11 @@ try {
             const toggleIntimacyCard = function () {
                 showIntimacyCard.value = !showIntimacyCard.value;
             };
+            
+            // 保存经验提示设置
+            const saveExpToastSetting = function () {
+                localStorage.setItem('showExpToast', showExpToast.value);
+            };
 
             // 聊天数据
             const onlineUsers = ref(0);      // 实时在线人数（Redis）
@@ -1882,6 +1890,7 @@ try {
             const showFloatingHearts = ref(false); // 显示飘动爱心动画
             const intimacyInfo = ref(null); // 好感度信息
             const showIntimacyCard = ref(false); // 是否展开好感度卡片
+            const showExpToast = ref(localStorage.getItem('showExpToast') === 'true'); // 是否显示经验提示（默认关闭，有缓存才按缓存）
             const onlineUsersList = ref([]);
             const roomList = ref([]);
             const contactList = ref([]);     // 联系人列表
@@ -4153,6 +4162,8 @@ try {
                 intimacyInfo,
                 showIntimacyCard,
                 toggleIntimacyCard,
+                showExpToast,
+                saveExpToastSetting,
                 showFloatingHearts,
                 heartsAnimationKey,
                 onlineUsersList,

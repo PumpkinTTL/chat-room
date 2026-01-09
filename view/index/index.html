@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="/static/css/index.css?v=116">
     <link rel="stylesheet" href="/static/css/index-modal.css?v=2">
     <link rel="stylesheet" href="/static/css/message-types.css?v=22">
-    <link rel="stylesheet" href="/static/css/intimacy.css?v=1">
+    <link rel="stylesheet" href="/static/css/intimacy.css?v=6">
     <!-- 关键：在Vue加载前隐藏整个应用，防止模板闪现 -->
     <style>
         [v-cloak] {
@@ -209,22 +209,52 @@
                 <!-- 好感度卡片（展开式，仅私密房间显示） -->
                 <transition name="intimacy-slide">
                     <div v-if="currentRoomPrivate && intimacyInfo && showIntimacyCard" class="intimacy-card-expanded">
-                        <div class="intimacy-header">
-                            <div class="intimacy-level">
-                                <i class="fas fa-heart intimacy-level-icon" :style="{ color: intimacyInfo.level_color }"></i>
-                                <span class="intimacy-level-name" :style="{ color: intimacyInfo.level_color }">
-                                    {{ intimacyInfo.level_name }}
-                                </span>
-                                <span class="intimacy-level-badge">Lv.{{ intimacyInfo.current_level }}</span>
+                        <button class="intimacy-close" @click="toggleIntimacyCard">
+                            <i class="fas fa-times"></i>
+                        </button>
+                        
+                        <!-- 顶部：等级和经验 -->
+                        <div class="intimacy-top-section">
+                            <div class="intimacy-level-display">
+                                <div class="intimacy-heart-wrapper">
+                                    <i class="fas fa-heart intimacy-heart-icon" :style="{ color: intimacyInfo.level_color }"></i>
+                                    <div class="heart-glow" :style="{ background: intimacyInfo.level_color }"></div>
+                                </div>
+                                <div class="intimacy-level-text">
+                                    <div class="level-name-row">
+                                        <span class="intimacy-level-name" :style="{ color: intimacyInfo.level_color }">
+                                            {{ intimacyInfo.level_name }}
+                                        </span>
+                                        <span class="intimacy-level-badge" :style="{ 
+                                            background: intimacyInfo.level_color + '15',
+                                            borderColor: intimacyInfo.level_color + '30',
+                                            color: intimacyInfo.level_color
+                                        }">Lv.{{ intimacyInfo.current_level }}</span>
+                                    </div>
+                                    <div class="level-subtitle">亲密关系</div>
+                                </div>
                             </div>
-                            <button class="intimacy-close" @click="toggleIntimacyCard">
-                                <i class="fas fa-times"></i>
-                            </button>
+                            
+                            <div class="intimacy-exp-display">
+                                <div class="exp-label">经验值</div>
+                                <div class="exp-numbers">
+                                    <span class="exp-current">{{ intimacyInfo.current_exp }}</span>
+                                    <span class="exp-separator">/</span>
+                                    <span class="exp-max">{{ intimacyInfo.next_level_exp }}</span>
+                                </div>
+                            </div>
                         </div>
-                        <div class="intimacy-progress">
-                            <div class="intimacy-progress-label">
-                                <span>{{ intimacyInfo.current_exp }} / {{ intimacyInfo.next_level_exp }}</span>
-                                <span>{{ intimacyInfo.progress_percent }}%</span>
+                        
+                        <!-- 进度条 -->
+                        <div class="intimacy-progress-section">
+                            <div class="progress-header">
+                                <span class="progress-label">
+                                    <i class="fas fa-chart-line"></i>
+                                    升级进度
+                                </span>
+                                <span class="progress-percent" :style="{ color: intimacyInfo.level_color }">
+                                    {{ intimacyInfo.progress_percent }}%
+                                </span>
                             </div>
                             <div class="intimacy-progress-bar">
                                 <div class="intimacy-progress-fill" 
@@ -232,13 +262,35 @@
                                          width: intimacyInfo.progress_percent + '%',
                                          '--level-color': intimacyInfo.level_color,
                                          '--level-color-light': intimacyInfo.level_color + '99'
-                                     }"></div>
+                                     }">
+                                    <div class="progress-shine"></div>
+                                </div>
                             </div>
                         </div>
-                        <div class="intimacy-stats">
-                            <div class="intimacy-stat-item">
-                                <i class="fas fa-comment"></i>
-                                <span>{{ intimacyInfo.total_messages }} 条消息</span>
+                        
+                        <!-- 底部：统计和开关 -->
+                        <div class="intimacy-bottom-section">
+                            <div class="intimacy-message-count">
+                                <div class="message-icon-wrapper">
+                                    <i class="fas fa-comments"></i>
+                                </div>
+                                <div class="message-text">
+                                    <span class="message-label">我们已经聊了</span>
+                                    <span class="message-value">{{ intimacyInfo.total_messages }} 条消息</span>
+                                </div>
+                            </div>
+                            
+                            <div class="intimacy-divider"></div>
+                            
+                            <div class="intimacy-settings">
+                                <div class="settings-label">
+                                    <i class="fas fa-bell"></i>
+                                    <span>经验提示</span>
+                                </div>
+                                <label class="intimacy-switch">
+                                    <input type="checkbox" v-model="showExpToast" @change="saveExpToastSetting">
+                                    <span class="intimacy-slider"></span>
+                                </label>
                             </div>
                         </div>
                     </div>
