@@ -1541,6 +1541,7 @@ try {
 
                         roomName.value = targetRoom.name;
                         roomId.value = targetRoom.id;
+                        currentRoomPrivate.value = targetRoom.private == 1;
 
                         // 保存当前房间ID
                         localStorage.setItem('lastRoomId', targetRoom.id);
@@ -1739,6 +1740,8 @@ try {
             const onlineUsers = ref(0);      // 实时在线人数（Redis）
             const totalUsers = ref(0);       // 群成员总数（SQL）
             const currentRoomOwnerId = ref(null); // 当前房间的房主ID
+            const currentRoomPrivate = ref(false); // 当前房间是否私密
+            const showFloatingHearts = ref(false); // 显示飘动爱心动画
             const onlineUsersList = ref([]);
             const roomList = ref([]);
             const contactList = ref([]);     // 联系人列表
@@ -2024,6 +2027,11 @@ try {
 
                             // 通过 WebSocket 广播通知其他用户（使用统一函数）
                             broadcastMessageViaWebSocket(result.data.id, 'text', messageText, null, result.data.reply_to);
+                            
+                            // 私密房间：触发爱心飘动动画
+                            if (currentRoomPrivate.value) {
+                                triggerFloatingHearts();
+                            }
                         }
 
                         // 清除引用状态
@@ -2618,6 +2626,14 @@ try {
                 scrollToBottom();
                 showScrollToBottom.value = false;
             };
+            
+            // 触发爱心飘动动画（私密房间发送消息时）
+            const triggerFloatingHearts = function () {
+                showFloatingHearts.value = true;
+                setTimeout(function () {
+                    showFloatingHearts.value = false;
+                }, 1600);
+            };
 
             // 处理粘贴事件
             const handlePaste = function (e) {
@@ -2658,6 +2674,7 @@ try {
 
                 roomName.value = room.name;
                 roomId.value = room.id;
+                currentRoomPrivate.value = room.private == 1;
 
                 // 清空已读状态（切换房间时重置）
                 clearReadStatusForRoom();
@@ -3970,6 +3987,8 @@ try {
                 onlineUsers,
                 totalUsers,
                 currentRoomOwnerId,
+                currentRoomPrivate,
+                showFloatingHearts,
                 onlineUsersList,
                 roomList,
                 contactList,
