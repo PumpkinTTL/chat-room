@@ -982,6 +982,12 @@ try {
                             const wasAtBottom = isUserAtBottom();
 
                             messages.value.push(newMsg);
+                            
+                            // 私密房间：处理好感度更新（WebSocket携带）
+                            if (currentRoomPrivate.value && data.intimacy) {
+                                console.log('[好感度] WebSocket收到更新:', data.intimacy);
+                                handleIntimacyUpdate({ code: 0, data: data.intimacy });
+                            }
 
                             nextTick(function () {
                                 if (isOwn || wasAtBottom) {
@@ -1705,12 +1711,13 @@ try {
             // 获取房间信息
             const getRoomInfo = async (roomIdValue) => {
                 try {
-                    // 获取房间详情（包含owner_id）
+                    // 获取房间详情（包含owner_id和private）
                     const roomResponse = await apiRequest(`/api/room/${roomIdValue}`);
                     const roomResult = await roomResponse.json();
 
                     if (roomResult.code === 0 && roomResult.data) {
                         currentRoomOwnerId.value = roomResult.data.owner_id;
+                        currentRoomPrivate.value = roomResult.data.private === 1; // 设置私密状态
                     }
 
                     // 获取在线人数和群成员总数
@@ -1736,9 +1743,135 @@ try {
                             };
                         });
                     }
+                    
+                    // 如果是私密房间，获取好感度信息
+                    if (currentRoomPrivate.value) {
+                        await loadIntimacyInfo(roomIdValue);
+                    }
                 } catch (error) {
                     // 获取房间信息失败，静默处理
                 }
+            };
+            
+            // 加载好感度信息
+            const loadIntimacyInfo = async function (roomIdValue) {
+                try {
+                    const response = await apiRequest(`/api/intimacy/info/${roomIdValue}`);
+                    const result = await response.json();
+                    
+                    if (result.code === 0) {
+                        intimacyInfo.value = result.data;
+                    }
+                } catch (error) {
+                    console.error('[好感度] 加载失败:', error);
+                }
+            };
+            
+            // 处理好感度更新
+            const handleIntimacyUpdate = function (intimacyData) {
+                if (!intimacyData || intimacyData.code !== 0) return;
+                
+                const data = intimacyData.data;
+                if (!data) return;
+                
+                // 如果intimacyInfo还未初始化，先加载
+                if (!intimacyInfo.value) {
+                    loadIntimacyInfo(roomId.value);
+                    return;
+                }
+                
+                // 增量更新：只增加本次获得的经验
+                if (data.exp_gain) {
+                    intimacyInfo.value.current_exp = (intimacyInfo.value.current_exp || 0) + data.exp_gain;
+                    
+                    // 显示经验获得提示
+                    showExpGainToast(data.exp_gain);
+                }
+                
+                // 消息数+1（实时统计）
+                intimacyInfo.value.total_messages = (intimacyInfo.value.total_messages || 0) + 1;
+                
+                // 检查是否需要升级（经验值超过下一级所需经验）
+                if (intimacyInfo.value.next_level_exp && intimacyInfo.value.current_exp >= intimacyInfo.value.next_level_exp) {
+                    // 如果后端返回了升级信息，显示升级提示
+                    if (data.level_up && data.level_name) {
+                        showLevelUpToast(data.level_name, data.current_level);
+                    }
+                    
+                    // 重新加载完整信息（包含新等级和新的next_level_exp）
+                    loadIntimacyInfo(roomId.value).then(function() {
+                        // 加载完成后，重新计算进度（无缝衔接）
+                        updateIntimacyProgress();
+                    });
+                    return;
+                }
+                
+                // 没有升级，直接更新进度
+                updateIntimacyProgress();
+            };
+            
+            // 更新好感度进度条
+            const updateIntimacyProgress = function() {
+                if (!intimacyInfo.value || !intimacyInfo.value.next_level_exp) return;
+                
+                const currentExp = intimacyInfo.value.current_exp || 0;
+                const currentLevel = intimacyInfo.value.current_level || 1;
+                const nextLevelExp = intimacyInfo.value.next_level_exp;
+                
+                // 获取当前等级的起始经验值
+                // 根据等级配置：Lv1=0, Lv2=500, Lv3=1500...
+                const levelExpMap = {
+                    1: 0,
+                    2: 500,
+                    3: 1500,
+                    4: 3000,
+                    5: 5000,
+                    6: 8000,
+                    7: 12000,
+                    8: 18000
+                };
+                
+                const currentLevelStartExp = levelExpMap[currentLevel] || 0;
+                const expInCurrentLevel = currentExp - currentLevelStartExp;
+                const expNeededForNext = nextLevelExp - currentLevelStartExp;
+                
+                const progressPercent = Math.min(100, Math.max(0, (expInCurrentLevel / expNeededForNext) * 100));
+                intimacyInfo.value.progress_percent = progressPercent.toFixed(1);
+            };
+            
+            // 显示升级提示
+            const showLevelUpToast = function (levelName, level) {
+                const toast = document.createElement('div');
+                toast.className = 'level-up-toast';
+                toast.innerHTML = `
+                    <div class="level-up-icon"><i class="fas fa-heart"></i></div>
+                    <div class="level-up-text">好感度提升</div>
+                    <div class="level-up-name">${levelName}</div>
+                `;
+                document.body.appendChild(toast);
+                
+                setTimeout(function () {
+                    document.body.removeChild(toast);
+                }, 2000);
+            };
+            
+            // 显示经验获得提示
+            const showExpGainToast = function (expGain) {
+                const toast = document.createElement('div');
+                toast.className = 'exp-gain-toast';
+                toast.innerHTML = `<i class="fas fa-heart"></i> +${expGain} 经验`;
+                document.body.appendChild(toast);
+                
+                setTimeout(function () {
+                    if (toast.parentNode) {
+                        document.body.removeChild(toast);
+                    }
+                }, 2000);
+            };
+            
+            // 切换好感度卡片展开/收缩
+            const toggleIntimacyCard = function () {
+                showIntimacyCard.value = !showIntimacyCard.value;
             };
 
             // 聊天数据
@@ -1747,6 +1880,8 @@ try {
             const currentRoomOwnerId = ref(null); // 当前房间的房主ID
             const currentRoomPrivate = ref(false); // 当前房间是否私密
             const showFloatingHearts = ref(false); // 显示飘动爱心动画
+            const intimacyInfo = ref(null); // 好感度信息
+            const showIntimacyCard = ref(false); // 是否展开好感度卡片
             const onlineUsersList = ref([]);
             const roomList = ref([]);
             const contactList = ref([]);     // 联系人列表
@@ -2030,14 +2165,22 @@ try {
                             delete messageSendStatus.value[tempId];
                             messageSendStatus.value[result.data.id] = 'success';
 
-                            // 通过 WebSocket 广播通知其他用户（使用统一函数）
-                            broadcastMessageViaWebSocket(result.data.id, 'text', messageText, null, result.data.reply_to);
+                            // 通过 WebSocket 广播通知其他用户（携带好感度信息）
+                            broadcastMessageViaWebSocket(result.data.id, 'text', messageText, null, result.data.reply_to, result.intimacy);
                             
                             // 私密房间且两人都在线：触发爱心飘动动画
                             console.log('[爱心动画] private:', currentRoomPrivate.value, 'online:', onlineUsers.value, 'lit:', isPrivateRoomLit.value);
                             if (currentRoomPrivate.value && onlineUsers.value >= 2) {
                                 console.log('[爱心动画] 触发动画');
                                 triggerFloatingHearts();
+                            }
+                            
+                            // 私密房间：处理好感度信息
+                            if (currentRoomPrivate.value && result.intimacy) {
+                                console.log('[好感度] 收到更新:', result.intimacy);
+                                handleIntimacyUpdate(result.intimacy);
+                            } else {
+                                console.log('[好感度] 未收到更新 - private:', currentRoomPrivate.value, 'intimacy:', result.intimacy);
                             }
                         }
 
@@ -2685,6 +2828,9 @@ try {
                 roomName.value = room.name;
                 roomId.value = room.id;
                 currentRoomPrivate.value = room.private == 1;
+                
+                // 清空好感度信息
+                intimacyInfo.value = null;
 
                 // 清空已读状态（切换房间时重置）
                 clearReadStatusForRoom();
@@ -3550,7 +3696,7 @@ try {
             // 统一的WebSocket消息广播函数
             // fileInfo 参数用于视频/文件消息，包含完整的元数据
             // replyTo 参数用于引用回复，包含被引用消息的信息
-            const broadcastMessageViaWebSocket = (messageId, messageType, content, fileInfo = null, replyTo = null) => {
+            const broadcastMessageViaWebSocket = (messageId, messageType, content, fileInfo = null, replyTo = null, intimacyData = null) => {
                 if (!wsClient.value || !wsClient.value.isConnected || !messageId) {
                     return;
                 }
@@ -3587,6 +3733,11 @@ try {
                 // 引用回复：附加引用信息
                 if (replyTo) {
                     messageData.reply_to = replyTo;
+                }
+                
+                // 私密房间：附加好感度信息
+                if (intimacyData && intimacyData.code === 0) {
+                    messageData.intimacy = intimacyData.data;
                 }
 
                 wsClient.value.send(messageData);
@@ -3999,6 +4150,9 @@ try {
                 currentRoomOwnerId,
                 currentRoomPrivate,
                 isPrivateRoomLit,
+                intimacyInfo,
+                showIntimacyCard,
+                toggleIntimacyCard,
                 showFloatingHearts,
                 heartsAnimationKey,
                 onlineUsersList,

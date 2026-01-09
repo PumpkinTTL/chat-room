@@ -109,11 +109,15 @@ class MessageService
             if ($replyToData) {
                 $resultData['reply_to'] = $replyToData;
             }
+            
+            // 私密房间：处理好感度系统
+            $intimacyResult = self::handleIntimacySystem($roomId, $userId, $replyTo ? 'reply' : 'text');
 
             return [
                 'code' => 0,
                 'msg' => '发送成功',
-                'data' => $resultData
+                'data' => $resultData,
+                'intimacy' => $intimacyResult // 好感度信息
             ];
 
         } catch (\Exception $e) {
@@ -893,5 +897,46 @@ class MessageService
             ->where('room_id', $roomId)
             ->whereNotNull('delete_time')
             ->count();
+    }
+    
+    /**
+     * 处理好感度系统（仅私密房间）
+     * @param int $roomId 房间ID
+     * @param int $userId 用户ID
+     * @param string $messageType 消息类型
+     * @return array|null
+     */
+    private static function handleIntimacySystem($roomId, $userId, $messageType = 'text')
+    {
+        // 检查是否为私密房间
+        $room = Db::name('ch_rooms')->where('id', $roomId)->find();
+        if (!$room || $room['private'] != 1) {
+            return null; // 非私密房间不处理好感度
+        }
+        
+        // 获取房间内的另一个用户（伴侣）
+        $roomUsers = Db::name('ch_room_users')
+            ->where('room_id', $roomId)
+            ->where('status', 1)
+            ->column('user_id');
+            
+        if (count($roomUsers) != 2) {
+            return null; // 私密房间必须恰好有2个用户
+        }
+        
+        $partnerId = null;
+        foreach ($roomUsers as $uid) {
+            if ($uid != $userId) {
+                $partnerId = $uid;
+                break;
+            }
+        }
+        
+        if (!$partnerId) {
+            return null;
+        }
+        
+        // 调用好感度服务增加经验
+        return IntimacyService::addExpForMessage($roomId, $userId, $partnerId, $messageType);
     }
 }

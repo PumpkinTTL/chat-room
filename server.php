@@ -443,6 +443,12 @@ function handleMessage($connection, $msg, &$localConnections)
     if (isset($msg['reply_to']) && $msg['reply_to']) {
         $broadcastData['reply_to'] = $msg['reply_to'];
     }
+    
+    // 私密房间：附加好感度信息
+    if (isset($msg['intimacy']) && $msg['intimacy']) {
+        $broadcastData['intimacy'] = $msg['intimacy'];
+        echo "[" . date('H:i:s') . "] 携带好感度信息: exp={$msg['intimacy']['current_exp']}, level={$msg['intimacy']['current_level']}\n";
+    }
 
     // 广播给房间内所有用户（排除当前连接，但包括发送者的其他设备）
     broadcastToRoom($connData['room_id'], $broadcastData, $localConnections, $connection->id);

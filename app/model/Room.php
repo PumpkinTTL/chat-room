@@ -18,6 +18,7 @@ class Room extends Model
         'name'        => 'string',
         'description' => 'string',
         'owner_id'    => 'int',
+        'private'     => 'int',
         'status'      => 'int',
         'create_time' => 'datetime',
     ];

@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="/static/css/index.css?v=116">
     <link rel="stylesheet" href="/static/css/index-modal.css?v=2">
     <link rel="stylesheet" href="/static/css/message-types.css?v=22">
+    <link rel="stylesheet" href="/static/css/intimacy.css?v=1">
     <!-- 关键：在Vue加载前隐藏整个应用，防止模板闪现 -->
     <style>
         [v-cloak] {
@@ -186,9 +187,10 @@
                                 <i :class="wsConnected ? 'fas fa-bolt' : 'fas fa-globe'"></i>
                                 <span v-text="wsConnected ? 'Socket' : 'HTTP'"></span>
                             </span>
-                            <span v-if="currentRoomPrivate" class="private-badge" :class="{ 'lit': isPrivateRoomLit, 'dim': !isPrivateRoomLit }">
+                            <span v-if="currentRoomPrivate" class="private-badge" :class="{ 'lit': isPrivateRoomLit, 'dim': !isPrivateRoomLit }" @click.stop="toggleIntimacyCard">
                                 <i class="fas fa-heart"></i>
                                 <span>私密</span>
+                                <span v-if="intimacyInfo" class="intimacy-level-mini">Lv.{{ intimacyInfo.current_level }}</span>
                                 <!-- 爱心飘动动画 -->
                                 <div v-if="showFloatingHearts" class="floating-hearts" :key="heartsAnimationKey">
                                     <i class="fas fa-heart fh fh-1"></i>
@@ -203,6 +205,44 @@
                         </span>
                     </div>
                 </div>
+                
+                <!-- 好感度卡片（展开式，仅私密房间显示） -->
+                <transition name="intimacy-slide">
+                    <div v-if="currentRoomPrivate && intimacyInfo && showIntimacyCard" class="intimacy-card-expanded">
+                        <div class="intimacy-header">
+                            <div class="intimacy-level">
+                                <i class="fas fa-heart intimacy-level-icon" :style="{ color: intimacyInfo.level_color }"></i>
+                                <span class="intimacy-level-name" :style="{ color: intimacyInfo.level_color }">
+                                    {{ intimacyInfo.level_name }}
+                                </span>
+                                <span class="intimacy-level-badge">Lv.{{ intimacyInfo.current_level }}</span>
+                            </div>
+                            <button class="intimacy-close" @click="toggleIntimacyCard">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="intimacy-progress">
+                            <div class="intimacy-progress-label">
+                                <span>{{ intimacyInfo.current_exp }} / {{ intimacyInfo.next_level_exp }}</span>
+                                <span>{{ intimacyInfo.progress_percent }}%</span>
+                            </div>
+                            <div class="intimacy-progress-bar">
+                                <div class="intimacy-progress-fill" 
+                                     :style="{ 
+                                         width: intimacyInfo.progress_percent + '%',
+                                         '--level-color': intimacyInfo.level_color,
+                                         '--level-color-light': intimacyInfo.level_color + '99'
+                                     }"></div>
+                            </div>
+                        </div>
+                        <div class="intimacy-stats">
+                            <div class="intimacy-stat-item">
+                                <i class="fas fa-comment"></i>
+                                <span>{{ intimacyInfo.total_messages }} 条消息</span>
+                            </div>
+                        </div>
+                    </div>
+                </transition>
             </header>
 
             <!-- 消息区域 -->
@@ -818,7 +858,7 @@
     <script src="/static/js/upload/handlers/file-handler.js?v=1"></script>
     <script src="/static/js/upload/upload-manager.js?v=4"></script>
 
-    <script src="/static/js/index.js?v=120"></script>
+    <script src="/static/js/index.js?v=122"></script>
 </body>
 
 </html>

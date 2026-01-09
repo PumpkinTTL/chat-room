@@ -83,6 +83,12 @@ Route::group('api', function () {
         Route::post('restoreRoom', 'Message/restoreRoom');
         Route::get('deletedCount', 'Message/deletedCount');
     });
+    
+    // 好感度系统模块
+    Route::group('intimacy', function () {
+        Route::get('info/:room_id', 'Intimacy/getIntimacyInfo');
+        Route::get('levels', 'Intimacy/getLevels');
+    });
 
 });
 

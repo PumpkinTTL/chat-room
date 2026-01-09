@@ -869,6 +869,7 @@ body {
 
 /* ========== 旧样式兼容（保留但不使用）========== */
 .chat-navbar {
+    position: relative;
     height: 60px;
     display: flex;
     align-items: center;
