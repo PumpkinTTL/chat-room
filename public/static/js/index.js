@@ -2033,8 +2033,10 @@ try {
                             // 通过 WebSocket 广播通知其他用户（使用统一函数）
                             broadcastMessageViaWebSocket(result.data.id, 'text', messageText, null, result.data.reply_to);
                             
-                            // 私密房间：触发爱心飘动动画
-                            if (currentRoomPrivate.value) {
+                            // 私密房间且两人都在线：触发爱心飘动动画
+                            console.log('[爱心动画] private:', currentRoomPrivate.value, 'online:', onlineUsers.value, 'lit:', isPrivateRoomLit.value);
+                            if (currentRoomPrivate.value && onlineUsers.value >= 2) {
+                                console.log('[爱心动画] 触发动画');
                                 triggerFloatingHearts();
                             }
                         }
@@ -2633,7 +2635,10 @@ try {
             };
             
             // 触发爱心飘动动画（私密房间发送消息时）
+            let heartsAnimationKey = ref(0);
             const triggerFloatingHearts = function () {
+                // 通过改变key强制重新渲染动画元素
+                heartsAnimationKey.value++;
                 showFloatingHearts.value = true;
                 setTimeout(function () {
                     showFloatingHearts.value = false;
@@ -3995,6 +4000,7 @@ try {
                 currentRoomPrivate,
                 isPrivateRoomLit,
                 showFloatingHearts,
+                heartsAnimationKey,
                 onlineUsersList,
                 roomList,
                 contactList,

@@ -7,7 +7,7 @@
     <title>端对端聊天系统</title>
     <link rel="stylesheet" href="/static/css/animate.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="/static/css/index.css?v=113">
+    <link rel="stylesheet" href="/static/css/index.css?v=116">
     <link rel="stylesheet" href="/static/css/index-modal.css?v=2">
     <link rel="stylesheet" href="/static/css/message-types.css?v=22">
     <!-- 关键：在Vue加载前隐藏整个应用，防止模板闪现 -->
@@ -190,7 +190,7 @@
                                 <i class="fas fa-heart"></i>
                                 <span>私密</span>
                                 <!-- 爱心飘动动画 -->
-                                <div v-if="showFloatingHearts" class="floating-hearts">
+                                <div v-if="showFloatingHearts" class="floating-hearts" :key="heartsAnimationKey">
                                     <i class="fas fa-heart fh fh-1"></i>
                                     <i class="fas fa-heart fh fh-2"></i>
                                     <i class="fas fa-heart fh fh-3"></i>
@@ -818,7 +818,7 @@
     <script src="/static/js/upload/handlers/file-handler.js?v=1"></script>
     <script src="/static/js/upload/upload-manager.js?v=4"></script>
 
-    <script src="/static/js/index.js?v=117"></script>
+    <script src="/static/js/index.js?v=120"></script>
 </body>
 
 </html>

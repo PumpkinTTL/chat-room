@@ -983,7 +983,7 @@ body {
     font-size: 10px;
 }
 
-/* 私密房间徽章 */
+/* 私密房间徽章 - 默认暗淡状态 */
 .private-badge {
     display: inline-flex;
     align-items: center;
@@ -994,23 +994,33 @@ body {
     font-weight: 500;
     position: relative;
     transition: all 0.5s ease;
+    overflow: visible;
+    /* 默认暗淡状态 */
+    background: rgba(148, 163, 184, 0.1);
+    color: #94a3b8;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    box-shadow: none;
+    animation: none;
 }
 
 .private-badge i {
     font-size: 10px;
     transition: all 0.5s ease;
+    color: #94a3b8;
 }
 
-/* 暗淡状态（只有一人在线） */
+/* 暗淡状态（只有一人在线）- 与默认相同 */
 .private-badge.dim {
     background: rgba(148, 163, 184, 0.1);
     color: #94a3b8;
     border: 1px solid rgba(148, 163, 184, 0.25);
     box-shadow: none;
+    animation: none;
 }
 
 .private-badge.dim i {
     color: #94a3b8;
+    animation: none;
 }
 
 /* 点亮状态（两人都在线） */
@@ -1025,6 +1035,23 @@ body {
 .private-badge.lit i {
     color: #ec4899;
     animation: heart-beat 1.5s ease-in-out infinite;
+}
+
+/* 飘动爱心不受heart-beat影响 */
+.private-badge.lit .floating-hearts .fh {
+    animation: none;
+}
+
+.private-badge.lit .floating-hearts .fh-1 {
+    animation: heart-float 1.2s ease-out forwards;
+}
+
+.private-badge.lit .floating-hearts .fh-2 {
+    animation: heart-float 1.2s ease-out 0.15s forwards;
+}
+
+.private-badge.lit .floating-hearts .fh-3 {
+    animation: heart-float 1.2s ease-out 0.3s forwards;
 }
 
 @keyframes private-glow {
@@ -1043,6 +1070,17 @@ body {
     50% {
         transform: scale(1.15);
     }
+}
+
+/* 暗色模式 - 默认暗淡状态 */
+.dark-mode .private-badge {
+    background: rgba(100, 116, 139, 0.15);
+    color: #64748b;
+    border-color: rgba(100, 116, 139, 0.3);
+}
+
+.dark-mode .private-badge i {
+    color: #64748b;
 }
 
 /* 暗色模式 - 暗淡状态 */
@@ -1071,10 +1109,11 @@ body {
 /* 爱心飘动动画 */
 .floating-hearts {
     position: absolute;
-    top: 0;
+    top: -5px;
     left: 50%;
     transform: translateX(-50%);
     pointer-events: none;
+    z-index: 100;
 }
 
 .floating-hearts .fh {
