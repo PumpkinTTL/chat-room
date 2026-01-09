@@ -3603,7 +3603,6 @@ button:disabled {
     padding: 10px 14px;
     background: var(--bg-secondary, #f0f2f5);
     border-radius: 10px;
-    border-left: 3px solid var(--primary-color, #4a90e2);
     margin: 0 12px 8px 12px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
@@ -3611,7 +3610,7 @@ button:disabled {
 .reply-preview-content {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     flex: 1;
     min-width: 0;
 }
@@ -3781,7 +3780,6 @@ button:disabled {
 /* 暗色模式 */
 .dark-mode .reply-preview-bar {
     background: rgba(255, 255, 255, 0.08);
-    border-left-color: #60a5fa;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
