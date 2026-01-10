@@ -3458,6 +3458,68 @@ try {
                 hideContextMenu();
             };
 
+            // 复制消息内容
+            const copyMessage = async () => {
+                const message = contextMenu.value.message;
+                if (!message) {
+                    hideContextMenu();
+                    return;
+                }
+
+                const text = message.text || message.content || '';
+                if (!text) {
+                    window.Toast.error('没有可复制的内容');
+                    hideContextMenu();
+                    return;
+                }
+
+                try {
+                    await navigator.clipboard.writeText(text);
+                    window.Toast.success('已复制到剪贴板');
+                } catch (error) {
+                    // 降级方案
+                    const textarea = document.createElement('textarea');
+                    textarea.value = text;
+                    textarea.style.position = 'fixed';
+                    textarea.style.opacity = '0';
+                    document.body.appendChild(textarea);
+                    textarea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textarea);
+                    window.Toast.success('已复制到剪贴板');
+                }
+                hideContextMenu();
+            };
+
+            // 仅复制链接
+            const copyMessageLink = async () => {
+                const message = contextMenu.value.message;
+                if (!message || !message.urlCards || message.urlCards.length === 0) {
+                    hideContextMenu();
+                    return;
+                }
+
+                // 提取所有链接
+                const links = message.urlCards.map(card => card.url).join('\n');
+
+                try {
+                    await navigator.clipboard.writeText(links);
+                    window.Toast.success('链接已复制');
+                } catch (error) {
+                    // 降级方案
+                    const textarea = document.createElement('textarea');
+                    textarea.value = links;
+                    textarea.style.position = 'fixed';
+                    textarea.style.opacity = '0';
+                    document.body.appendChild(textarea);
+                    textarea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textarea);
+                    window.Toast.success('链接已复制');
+                }
+                hideContextMenu();
+            };
+
             // ==================== 引用回复相关方法 ====================
 
             // 获取引用预览文本（输入框上方显示）
@@ -4373,6 +4435,8 @@ try {
                 showContextMenu,
                 hideContextMenu,
                 burnMessage,
+                copyMessage,
+                copyMessageLink,
                 replyToMessage,
                 replyToMessageFn,
                 cancelReply,
