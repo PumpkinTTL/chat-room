@@ -1203,6 +1203,40 @@ body {
     .typing-indicator.pc-typing {
         display: none;
     }
+    
+    /* 移动端徽章样式优化 */
+    .header-badges {
+        gap: 4px;
+        flex-wrap: nowrap;
+    }
+    
+    .online-badge {
+        padding: 3px 8px;
+        font-size: 11px;
+        gap: 4px;
+        white-space: nowrap;
+    }
+    
+    .online-dot {
+        width: 5px;
+        height: 5px;
+    }
+    
+    .conn-badge {
+        padding: 3px 6px;
+        font-size: 10px;
+        gap: 3px;
+    }
+    
+    .private-badge {
+        padding: 3px 6px;
+        font-size: 10px;
+        gap: 3px;
+    }
+    
+    .private-badge .intimacy-level-mini {
+        font-size: 9px;
+    }
 }
 
 @keyframes fadeInOut {
