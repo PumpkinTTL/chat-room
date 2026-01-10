@@ -1376,6 +1376,11 @@ try {
                     messageType = 'text';
                 }
                 
+                // 重要：normal 类型的消息也应该被当作 text 类型渲染
+                if (messageType === 'normal') {
+                    messageType = 'text';
+                }
+                
                 // 判断是否是时间分隔消息（system类型 + 内容格式为 MM-DD HH:mm）
                 let isTimeSeparator = false;
                 if (messageType === 'system') {
