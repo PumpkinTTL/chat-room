@@ -53,7 +53,6 @@ try {
             const savedTheme = localStorage.getItem('isDarkMode');
             const isDarkMode = ref(savedTheme === 'true');
             const showEmojiPicker = ref(false);
-            const showMorePanel = ref(false);
             const activeEmojiCategory = ref(0);
             const autoRefresh = ref(true);
             const autoRefreshTimer = ref(null);
@@ -388,14 +387,7 @@ try {
                 newMessage.value += emoji.char;
             };
 
-            // 更多面板相关方法
-            const toggleMorePanel = () => {
-                showMorePanel.value = !showMorePanel.value;
-            };
 
-            const hideMorePanel = () => {
-                showMorePanel.value = false;
-            };
 
             // 表情触摸处理 - 防止滑动误触
             const handleEmojiTouchStart = (event, emoji) => {
@@ -1173,6 +1165,13 @@ try {
                         // 提示用户
                         window.Toast.info(clearedBy + ' 清理了房间消息');
                     },
+                    
+                    // 收到房间锁定状态变化广播
+                    onRoomLockChanged: (data) => {
+                        console.log('[WebSocket] 收到房间锁定状态变化:', data);
+                        currentRoomLocked.value = data.lock === 1;
+                        window.Toast.info(data.lock === 1 ? '房间已被锁定' : '房间已解锁');
+                    },
 
                     // 服务器业务错误（如"您未加入此房间"）
                     onServerError: (error) => {
@@ -1553,6 +1552,8 @@ try {
                         roomName.value = targetRoom.name;
                         roomId.value = targetRoom.id;
                         currentRoomPrivate.value = targetRoom.private == 1;
+                        currentRoomLocked.value = targetRoom.lock == 1;
+                        currentRoomOwnerId.value = targetRoom.owner_id;
 
                         // 保存当前房间ID
                         localStorage.setItem('lastRoomId', targetRoom.id);
@@ -1683,11 +1684,16 @@ try {
                         roomName.value = joinedRoomName;
                         roomId.value = roomIdValue;
                         
+                        // 设置房间信息（复用checkResult，避免重复请求）
+                        currentRoomOwnerId.value = checkResult.data.owner_id;
+                        currentRoomPrivate.value = checkResult.data.private === 1;
+                        currentRoomLocked.value = checkResult.data.lock === 1;
+                        
                         // 清空旧房间的已读状态
                         clearReadStatusForRoom();
 
-                        // 获取房间信息
-                        await getRoomInfo(roomIdValue);
+                        // 获取在线人数等信息
+                        await getRoomOnlineInfo(roomIdValue);
 
                         // 加载历史消息
                         await loadRoomMessages(roomIdValue);
@@ -1708,25 +1714,16 @@ try {
                 }
             };
 
-            // 获取房间信息
-            const getRoomInfo = async (roomIdValue) => {
+            // 获取房间在线信息（不包含房间详情，避免重复请求）
+            const getRoomOnlineInfo = async (roomIdValue) => {
                 try {
-                    // 获取房间详情（包含owner_id和private）
-                    const roomResponse = await apiRequest(`/api/room/${roomIdValue}`);
-                    const roomResult = await roomResponse.json();
-
-                    if (roomResult.code === 0 && roomResult.data) {
-                        currentRoomOwnerId.value = roomResult.data.owner_id;
-                        currentRoomPrivate.value = roomResult.data.private === 1; // 设置私密状态
-                    }
-
                     // 获取在线人数和群成员总数
                     const countResponse = await apiRequest(`/api/roomUser/count/${roomIdValue}`);
                     const countResult = await countResponse.json();
 
                     if (countResult.code === 0) {
-                        onlineUsers.value = countResult.data.online_count;   // 实时在线
-                        totalUsers.value = countResult.data.total_count;     // 群成员总数
+                        onlineUsers.value = countResult.data.online_count;
+                        totalUsers.value = countResult.data.total_count;
                     }
 
                     // 获取在线用户列表
@@ -1734,7 +1731,6 @@ try {
                     const listResult = await listResponse.json();
 
                     if (listResult.code === 0) {
-                        // iOS Safari 兼容性：避免箭头函数
                         onlineUsersList.value = listResult.data.users.map(function (user) {
                             return {
                                 id: user.id,
@@ -1749,7 +1745,27 @@ try {
                         await loadIntimacyInfo(roomIdValue);
                     }
                 } catch (error) {
-                    // 获取房间信息失败，静默处理
+                    // 静默处理
+                }
+            };
+
+            // 获取房间信息（完整版，包含房间详情）
+            const getRoomInfo = async (roomIdValue) => {
+                try {
+                    // 获取房间详情（包含owner_id和private）
+                    const roomResponse = await apiRequest(`/api/room/${roomIdValue}`);
+                    const roomResult = await roomResponse.json();
+
+                    if (roomResult.code === 0 && roomResult.data) {
+                        currentRoomOwnerId.value = roomResult.data.owner_id;
+                        currentRoomPrivate.value = roomResult.data.private === 1;
+                        currentRoomLocked.value = roomResult.data.lock === 1;
+                    }
+
+                    // 获取在线信息
+                    await getRoomOnlineInfo(roomIdValue);
+                } catch (error) {
+                    // 静默处理
                 }
             };
             
@@ -1948,6 +1964,7 @@ try {
             const totalUsers = ref(0);       // 群成员总数（SQL）
             const currentRoomOwnerId = ref(null); // 当前房间的房主ID
             const currentRoomPrivate = ref(false); // 当前房间是否私密
+            const currentRoomLocked = ref(false); // 当前房间是否锁定
             const showFloatingHearts = ref(false); // 显示飘动爱心动画
             const intimacyInfo = ref(null); // 好感度信息
             const showIntimacyCard = ref(false); // 是否展开好感度卡片
@@ -2898,6 +2915,8 @@ try {
                 roomName.value = room.name;
                 roomId.value = room.id;
                 currentRoomPrivate.value = room.private == 1;
+                currentRoomLocked.value = room.lock == 1;
+                currentRoomOwnerId.value = room.owner_id;
                 
                 // 清空好感度信息
                 intimacyInfo.value = null;
@@ -4006,6 +4025,51 @@ try {
                 // 管理员或房主可以清理
                 return userId == ADMIN_ID || (ownerId && userId == ownerId);
             });
+            
+            // 锁定/解锁房间
+            const toggleRoomLock = async () => {
+                if (!roomId.value) {
+                    window.Toast.error('请先加入房间');
+                    return;
+                }
+                
+                const newLockStatus = currentRoomLocked.value ? 0 : 1;
+                const action = newLockStatus === 1 ? '锁定' : '解锁';
+                
+                if (!confirm('确定要' + action + '该房间吗？')) {
+                    return;
+                }
+                
+                try {
+                    const response = await apiRequest('/api/room/toggleLock', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            room_id: roomId.value,
+                            lock: newLockStatus
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.code === 0) {
+                        currentRoomLocked.value = newLockStatus === 1;
+                        window.Toast.success(result.msg);
+                        hideAttachPanel();
+                        
+                        // 通过WebSocket广播锁定状态变化
+                        if (wsClient.value && wsConnected.value) {
+                            wsClient.value.send({
+                                type: 'room_lock_changed',
+                                lock: newLockStatus
+                            });
+                        }
+                    } else {
+                        window.Toast.error(result.msg || action + '失败');
+                    }
+                } catch (error) {
+                    window.Toast.error(action + '失败：' + error.message);
+                }
+            };
 
             // 退出登录
             const handleLogout = () => {
@@ -4219,6 +4283,7 @@ try {
                 totalUsers,
                 currentRoomOwnerId,
                 currentRoomPrivate,
+                currentRoomLocked,
                 isPrivateRoomLit,
                 intimacyInfo,
                 showIntimacyCard,
@@ -4330,10 +4395,6 @@ try {
                 hideEmojiPicker,
                 hideAllPanels,
                 insertEmoji,
-                // 更多面板
-                showMorePanel,
-                toggleMorePanel,
-                hideMorePanel,
                 handleEmojiTouchStart,
                 handleEmojiTouchMove,
                 handleEmojiTouchEnd,
@@ -4354,6 +4415,7 @@ try {
                 clearMessages,
                 // 清理房间消息
                 canClearRoom,
+                toggleRoomLock,
                 clearRoomMessages,
                 showClearRoomDialog,
                 clearRoomHardDelete,

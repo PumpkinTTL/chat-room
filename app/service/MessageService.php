@@ -27,6 +27,12 @@ class MessageService
         if (empty($roomId) || empty($userId) || empty($content)) {
             return ['code' => 1, 'msg' => '参数错误'];
         }
+        
+        // 检查房间是否被锁定
+        $room = Room::find($roomId);
+        if ($room && $room->lock == Room::LOCK_LOCKED) {
+            return ['code' => 1, 'msg' => '房间已锁定'];
+        }
 
         // 验证用户是否在房间内
         if (!RoomUserService::isUserInRoom($roomId, $userId)) {
@@ -164,6 +170,12 @@ class MessageService
         if (empty($roomId) || empty($userId) || empty($fileInfo)) {
             return ['code' => 1, 'msg' => '参数错误'];
         }
+        
+        // 检查房间是否被锁定
+        $room = Room::find($roomId);
+        if ($room && $room->lock == Room::LOCK_LOCKED) {
+            return ['code' => 1, 'msg' => '房间已锁定'];
+        }
 
         // 验证用户是否在房间内
         if (!RoomUserService::isUserInRoom($roomId, $userId)) {
@@ -214,6 +226,12 @@ class MessageService
     {
         if (empty($roomId) || empty($userId) || empty($fileInfo)) {
             return ['code' => 1, 'msg' => '参数错误'];
+        }
+        
+        // 检查房间是否被锁定
+        $room = Room::find($roomId);
+        if ($room && $room->lock == Room::LOCK_LOCKED) {
+            return ['code' => 1, 'msg' => '房间已锁定'];
         }
 
         // 验证用户是否在房间内
@@ -267,6 +285,12 @@ class MessageService
     {
         if (empty($roomId) || empty($userId) || empty($fileInfo)) {
             return ['code' => 1, 'msg' => '参数错误'];
+        }
+        
+        // 检查房间是否被锁定
+        $room = Room::find($roomId);
+        if ($room && $room->lock == Room::LOCK_LOCKED) {
+            return ['code' => 1, 'msg' => '房间已锁定'];
         }
 
         // 验证用户是否在房间内

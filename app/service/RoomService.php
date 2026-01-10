@@ -189,4 +189,34 @@ class RoomService
         }
         return ['code' => 1, 'msg' => '房间不存在'];
     }
+
+    /**
+     * 锁定/解锁房间（仅管理员3306可操作）
+     * @param int $roomId 房间ID
+     * @param int $userId 操作用户ID
+     * @param int $lockStatus 锁定状态 0=解锁 1=锁定
+     * @return array
+     */
+    public static function toggleRoomLock($roomId, $userId, $lockStatus)
+    {
+        // 只有管理员3306可以操作
+        if ($userId != 3306) {
+            return ['code' => 1, 'msg' => '权限不足'];
+        }
+        
+        $room = Room::find($roomId);
+        if (!$room) {
+            return ['code' => 1, 'msg' => '房间不存在'];
+        }
+        
+        try {
+            $room->lock = $lockStatus;
+            $room->save();
+            
+            $msg = $lockStatus == Room::LOCK_LOCKED ? '房间已锁定' : '房间已解锁';
+            return ['code' => 0, 'msg' => $msg, 'data' => ['lock' => $lockStatus]];
+        } catch (\Exception $e) {
+            return ['code' => 1, 'msg' => '操作失败：' . $e->getMessage()];
+        }
+    }
 }

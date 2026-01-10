@@ -52,6 +52,7 @@ Route::group('api', function () {
         Route::get(':id', 'Room/read');
         Route::post('/', 'Room/save');
         Route::post('create', 'Room/save');
+        Route::post('toggleLock', 'Room/toggleLock');
         Route::put(':id', 'Room/update');
         Route::delete(':id', 'Room/delete');
     });

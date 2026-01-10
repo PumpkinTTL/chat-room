@@ -138,7 +138,7 @@ class RoomUserService
             ->where('ru.user_id', $userId)
             ->where('ru.status', RoomUser::STATUS_IN_ROOM)
             ->where('r.status', 1) // 只返回正常状态的房间
-            ->field('r.id, r.name, r.description, r.private, ru.join_time')
+            ->field('r.id, r.name, r.description, r.private, r.lock, r.owner_id, ru.join_time')
             ->select()
             ->toArray();
     }

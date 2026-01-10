@@ -694,25 +694,27 @@
                 </div>
 
                 <div class="input-bar">
-                    <button class="attach-btn" @click.stop="toggleAttachPanel">
+                    <button class="attach-btn" @click.stop="toggleAttachPanel" :disabled="currentRoomLocked && !canClearRoom">
                         <i class="fas" :class="showAttachPanel ? 'fa-times' : 'fa-plus-circle'"></i>
                     </button>
                     <button class="voice-btn" :class="{ 'recording': isRecording }" @mousedown="startVoiceRecord"
                         @mouseup="stopVoiceRecord" @mouseleave="cancelVoiceRecord"
                         @touchstart.prevent="startVoiceRecord" @touchend.prevent="stopVoiceRecord"
-                        @touchcancel.prevent="cancelVoiceRecord" :title="isRecording ? '松开发送' : '按住说话'">
+                        @touchcancel.prevent="cancelVoiceRecord" :title="isRecording ? '松开发送' : '按住说话'"
+                        :disabled="currentRoomLocked && !canClearRoom">
                         <i class="fas" :class="isRecording ? 'fa-stop' : 'fa-microphone'"></i>
                         <span v-if="isRecording" class="recording-time" v-text="recordingTimeText"></span>
                     </button>
                     <div class="text-input-wrapper">
-                        <input v-model="newMessage" type="text" placeholder="说点什么..." @keyup.enter="sendMessage"
-                            @focus="onInputFocus" @blur="onInputBlur" @input="onInputChange" class="text-input">
-                        <button class="emoji-btn" @click.stop="toggleEmojiPicker">
+                        <input v-model="newMessage" type="text" :placeholder="currentRoomLocked && !canClearRoom ? '房间已锁定' : '说点什么...'" @keyup.enter="sendMessage"
+                            @focus="onInputFocus" @blur="onInputBlur" @input="onInputChange" class="text-input"
+                            :disabled="currentRoomLocked && !canClearRoom">
+                        <button class="emoji-btn" @click.stop="toggleEmojiPicker" :disabled="currentRoomLocked && !canClearRoom">
                             <i class="far fa-smile"></i>
                         </button>
                     </div>
                     <button class="send-btn" @click="sendMessage"
-                        :disabled="(!newMessage.trim() && !selectedImageFile) || isSending"
+                        :disabled="(!newMessage.trim() && !selectedImageFile) || isSending || (currentRoomLocked && !canClearRoom)"
                         :class="{ 'btn-loading': isSending }">
                         <i v-if="!isSending" class="fas fa-paper-plane"></i>
                         <i v-else class="fas fa-spinner fa-spin"></i>
@@ -748,6 +750,12 @@
                                     <i class="fas fa-trash-alt"></i>
                                 </div>
                                 <span>清理房间</span>
+                            </div>
+                            <div class="attach-item" v-if="canClearRoom" @click="toggleRoomLock">
+                                <div class="attach-icon" :style="currentRoomLocked ? 'background: linear-gradient(135deg, #22c55e, #16a34a);' : 'background: linear-gradient(135deg, #6b7280, #4b5563);'">
+                                    <i class="fas" :class="currentRoomLocked ? 'fa-lock-open' : 'fa-lock'"></i>
+                                </div>
+                                <span>{{ currentRoomLocked ? '解锁房间' : '锁定房间' }}</span>
                             </div>
                             <div class="attach-item" v-if="canRestoreMessages" @click="restoreRoomMessages">
                                 <div class="attach-icon" style="background: linear-gradient(135deg, #22c55e, #16a34a);">
@@ -788,35 +796,6 @@
                     </div>
                 </transition>
 
-                <!-- 更多功能面板 -->
-                <transition name="more-panel-fade">
-                    <div v-if="showMorePanel" class="more-panel" v-click-outside="hideMorePanel" @click.stop>
-                        <div class="more-panel-header">
-                            <span>更多功能</span>
-                            <button class="more-panel-close" @click="hideMorePanel">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
-                        <div class="more-panel-content">
-                            <button class="more-item danger" @click="confirmClearMessages">
-                                <i class="fas fa-trash-alt"></i>
-                                <span>清空消息</span>
-                            </button>
-                            <button class="more-item" @click="showComingSoon('语音通话')">
-                                <i class="fas fa-phone"></i>
-                                <span>语音通话</span>
-                            </button>
-                            <button class="more-item" @click="showComingSoon('视频通话')">
-                                <i class="fas fa-video"></i>
-                                <span>视频通话</span>
-                            </button>
-                            <button class="more-item" @click="showComingSoon('房间信息')">
-                                <i class="fas fa-info-circle"></i>
-                                <span>房间信息</span>
-                            </button>
-                        </div>
-                    </div>
-                </transition>
             </div>
         </main>
     </div>
@@ -910,7 +889,7 @@
     <script src="/static/js/upload/handlers/file-handler.js?v=1"></script>
     <script src="/static/js/upload/upload-manager.js?v=4"></script>
 
-    <script src="/static/js/index.js?v=128"></script>
+    <script src="/static/js/index.js?v=136"></script>
 </body>
 
 </html>

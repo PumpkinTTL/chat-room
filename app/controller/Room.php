@@ -92,4 +92,25 @@ class Room
 
         return json($result, 400);
     }
+    
+    /**
+     * 锁定/解锁房间
+     * @param Request $request
+     * @return Response
+     */
+    public function toggleLock(Request $request)
+    {
+        $roomId = $request->param('room_id');
+        $lockStatus = $request->param('lock', 0); // 0=解锁 1=锁定
+        $userId = $request->userId;
+        
+        if (empty($roomId)) {
+            return json(['code' => 1, 'msg' => '参数错误'], 400);
+        }
+        
+        $result = RoomService::toggleRoomLock($roomId, $userId, $lockStatus);
+        $code = $result['code'] === 0 ? 200 : 400;
+        
+        return json($result, $code);
+    }
 }

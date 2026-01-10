@@ -29,6 +29,7 @@
         this.onMessageRead = this.options.onMessageRead || null;  // 已读回执
         this.onMessageBurned = this.options.onMessageBurned || null;  // 消息焚毁
         this.onRoomCleared = this.options.onRoomCleared || null;  // 房间清理
+        this.onRoomLockChanged = this.options.onRoomLockChanged || null;  // 房间锁定状态变化
         this.onError = this.options.onError || null;           // 连接错误
         this.onServerError = this.options.onServerError || null; // 服务器业务错误
         this.onClose = this.options.onClose || null;
@@ -294,6 +295,12 @@
             case 'room_cleared':
                 if (this.onRoomCleared) {
                     this.onRoomCleared(data);
+                }
+                break;
+
+            case 'room_lock_changed':
+                if (this.onRoomLockChanged) {
+                    this.onRoomLockChanged(data);
                 }
                 break;
 

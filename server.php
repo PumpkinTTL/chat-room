@@ -135,6 +135,9 @@ $wsWorker->onMessage = function ($connection, $data) use (&$localConnections) {
             case 'room_cleared':
                 handleRoomCleared($connection, $msg, $localConnections);
                 break;
+            case 'room_lock_changed':
+                handleRoomLockChanged($connection, $msg, $localConnections);
+                break;
             case 'ping':
                 handlePing($connection, $localConnections);
                 break;
@@ -599,6 +602,26 @@ function handleRoomCleared($connection, $msg, &$localConnections)
         'cleared_by_nickname' => $nickname,
         'hard_delete' => $hardDelete
     ], $localConnections, $userId);
+}
+
+// 处理房间锁定状态变化广播
+function handleRoomLockChanged($connection, $msg, &$localConnections)
+{
+    $connData = $localConnections[$connection->id];
+    if (!$connData['authed'] || !$connData['room_id']) {
+        return;
+    }
+
+    $roomId = $connData['room_id'];
+    $lockStatus = $msg['lock'] ?? 0;
+
+    echo "[" . date('H:i:s') . "] 房间 {$roomId} 锁定状态变更: " . ($lockStatus ? '锁定' : '解锁') . "\n";
+
+    // 广播给房间内所有用户（包括操作者）
+    broadcastToRoom($roomId, [
+        'type' => 'room_lock_changed',
+        'lock' => $lockStatus
+    ], $localConnections);
 }
 
 // 处理心跳检测检测

@@ -19,6 +19,7 @@ class Room extends Model
         'description' => 'string',
         'owner_id'    => 'int',
         'private'     => 'int',
+        'lock'        => 'int',
         'status'      => 'int',
         'create_time' => 'datetime',
     ];
@@ -26,4 +27,8 @@ class Room extends Model
     // 类型常量
     public const STATUS_NORMAL = 1;    // 正常
     public const STATUS_DISABLED = 0;  // 禁用
+    
+    // 锁定状态常量
+    public const LOCK_NORMAL = 0;      // 未锁定
+    public const LOCK_LOCKED = 1;      // 已锁定
 }
