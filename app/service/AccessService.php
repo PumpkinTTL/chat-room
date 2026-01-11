@@ -72,15 +72,13 @@ class AccessService
 
     /**
      * 检查访问记录是否存在
-     * @param string $ip IP地址
      * @param string $remark 备注
      * @return bool
      */
-    public static function checkAccessExists($ip, $remark)
+    public static function checkAccessExists($remark)
     {
         try {
-            $count = Access::where('ip', $ip)
-                ->where('remark', $remark)
+            $count = Access::where('remark', $remark)
                 ->count();
 
             return $count > 0;

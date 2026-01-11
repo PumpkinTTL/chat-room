@@ -1,0 +1,324 @@
+/**
+ * 互动卡片样式 - 现代装饰版
+ */
+
+/* ========== 卡片容器 ========== */
+.interactive-card {
+    max-width: 300px;
+    min-width: 260px;
+    border-radius: 16px;
+    overflow: hidden;
+    color: #fff;
+    position: relative;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.dark-mode .interactive-card {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+/* 卡片消息包装器 - 无边框无背景 */
+.card-message-wrapper {
+    background: transparent !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+.msg-bubble .card-message-wrapper,
+.msg-bubble.msg-card {
+    background: transparent !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+}
+
+.msg-content-left .msg-bubble.msg-card,
+.msg-content-right .msg-bubble.msg-card {
+    background: transparent !important;
+}
+
+/* ========== 卡片顶部装饰区 ========== */
+.card-header-deco {
+    height: 100px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+/* 装饰圆圈 */
+.card-header-deco::before {
+    content: '';
+    position: absolute;
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    top: -60px;
+    right: -40px;
+}
+
+.card-header-deco::after {
+    content: '';
+    position: absolute;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.08);
+    bottom: -40px;
+    left: -30px;
+}
+
+/* 主图标 */
+.card-main-icon {
+    font-size: 48px;
+    color: #fff;
+    position: relative;
+    z-index: 1;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+}
+
+/* ========== 卡片内容区 ========== */
+.card-body {
+    padding: 20px;
+    background: #fff;
+}
+
+.dark-mode .card-body {
+    background: #2a2a2a;
+}
+
+.card-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #333;
+    margin: 0 0 8px 0;
+    line-height: 1.3;
+}
+
+.dark-mode .card-title {
+    color: #e0e0e0;
+}
+
+.card-message {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #666;
+    margin: 0;
+    word-wrap: break-word;
+}
+
+.dark-mode .card-message {
+    color: #aaa;
+}
+
+/* ========== 卡片底部标签 ========== */
+.card-footer-tag {
+    padding: 10px 20px;
+    background: #f8f9fa;
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #999;
+}
+
+.dark-mode .card-footer-tag {
+    background: #222;
+    border-top-color: rgba(255, 255, 255, 0.05);
+}
+
+.card-footer-tag i {
+    font-size: 14px;
+}
+
+/* ========== 打卡卡片特殊布局 ========== */
+.card-checkin-stats {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.card-checkin-number {
+    font-size: 36px;
+    font-weight: 800;
+    color: #4facfe;
+    line-height: 1;
+}
+
+.dark-mode .card-checkin-number {
+    color: #00f2fe;
+}
+
+.card-checkin-unit {
+    font-size: 14px;
+    color: #999;
+}
+
+/* ========== 祝福卡片 ========== */
+.card-blessing .card-header-deco {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.card-blessing .card-footer-tag {
+    color: #f5576c;
+}
+
+/* ========== 表白卡片 ========== */
+.card-confession .card-header-deco {
+    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a5a 100%);
+}
+
+.card-confession .card-footer-tag {
+    color: #ee5a5a;
+}
+
+/* ========== 打卡卡片 ========== */
+.card-checkin .card-header-deco {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+.card-checkin .card-footer-tag {
+    color: #4facfe;
+}
+
+/* ========== 节日卡片 ========== */
+.card-holiday .card-header-deco {
+    background: linear-gradient(135deg, #ff9a44 0%, #fc6076 100%);
+}
+
+.card-holiday .card-footer-tag {
+    color: #fc6076;
+}
+
+/* ========== 鼓励卡片 ========== */
+.card-encourage .card-header-deco {
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+}
+
+.card-encourage .card-footer-tag {
+    color: #11998e;
+}
+
+/* ========== 感谢卡片 ========== */
+.card-thanks .card-header-deco {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.card-thanks .card-footer-tag {
+    color: #667eea;
+}
+
+
+/* ========== 卡片选择器面板 ========== */
+.card-selector-panel {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
+    max-height: 400px;
+    overflow-y: auto;
+    z-index: 100;
+}
+
+.dark-mode .card-selector-panel {
+    background: #2a2a2a;
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.slide-up-enter-active,
+.slide-up-leave-active {
+    transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+}
+
+.slide-up-enter-from,
+.slide-up-leave-to {
+    transform: translateY(100%);
+    opacity: 0;
+}
+
+.card-selector-header {
+    padding: 16px;
+    border-bottom: 1px solid #e9ecef;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    background: white;
+    z-index: 1;
+}
+
+.dark-mode .card-selector-header {
+    background: #2a2a2a;
+    border-bottom-color: #3a3a3a;
+}
+
+.card-selector-title {
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.card-selector-close {
+    background: none;
+    border: none;
+    font-size: 18px;
+    cursor: pointer;
+    color: #999;
+    padding: 4px;
+    line-height: 1;
+}
+
+.card-selector-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    padding: 16px;
+}
+
+.card-template-item {
+    padding: 16px 12px;
+    border-radius: 12px;
+    border: 2px solid #e9ecef;
+    cursor: pointer;
+    text-align: center;
+    background: #fff;
+}
+
+.dark-mode .card-template-item {
+    border-color: #3a3a3a;
+    background: #2a2a2a;
+}
+
+.card-template-icon {
+    font-size: 28px;
+    margin-bottom: 8px;
+    color: #667eea;
+}
+
+.dark-mode .card-template-icon {
+    color: #8b9aff;
+}
+
+.card-template-name {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: #333;
+}
+
+.dark-mode .card-template-name {
+    color: #e0e0e0;
+}
+
+.card-template-desc {
+    font-size: 11px;
+    color: #999;
+}

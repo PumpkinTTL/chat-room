@@ -53,14 +53,13 @@ class Index extends BaseController
      */
     public function checkAccess()
     {
-        $ip = request()->param('ip', '');
         $remark = request()->param('remark', '');
 
-        if (empty($ip) || empty($remark)) {
+        if (empty($remark)) {
             return json(['code' => 1, 'msg' => '参数错误', 'data' => ['exists' => false]]);
         }
 
-        $exists = AccessService::checkAccessExists($ip, $remark);
+        $exists = AccessService::checkAccessExists($remark);
 
         return json(['code' => 0, 'msg' => 'ok', 'data' => ['exists' => $exists]]);
     }
