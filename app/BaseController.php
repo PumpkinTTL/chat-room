@@ -114,13 +114,23 @@ abstract class BaseController
                     $ips = explode(',', $ip);
                     $ip = trim($ips[0]);
                 }
+                // 验证是否为公网IP
                 if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+                    trace("从 {$header} 获取到真实IP: {$ip}", 'info');
                     return $ip;
                 }
             }
         }
 
-        return $this->request->ip();
+        // 如果没有从代理头获取到，使用request的ip方法
+        $ip = $this->request->ip();
+        
+        // 记录日志，方便排查问题
+        if ($ip === '127.0.0.1' || $ip === '::1') {
+            trace('警告：获取到本地IP，可能是本地开发环境或前端IP获取失败', 'warning');
+        }
+        
+        return $ip;
     }
 
 }

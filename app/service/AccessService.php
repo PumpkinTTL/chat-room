@@ -69,4 +69,24 @@ class AccessService
             ];
         }
     }
+
+    /**
+     * 检查访问记录是否存在
+     * @param string $ip IP地址
+     * @param string $remark 备注
+     * @return bool
+     */
+    public static function checkAccessExists($ip, $remark)
+    {
+        try {
+            $count = Access::where('ip', $ip)
+                ->where('remark', $remark)
+                ->count();
+
+            return $count > 0;
+        } catch (\Exception $e) {
+            trace('检查访问记录失败：' . $e->getMessage(), 'error');
+            return false;
+        }
+    }
 }

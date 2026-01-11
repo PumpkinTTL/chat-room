@@ -33,9 +33,12 @@ class Index extends BaseController
         $ip = $data['client_ip'] ?? '';
         $page = $data['page'] ?? '未知页面';
 
-        // 如果前端没传IP，从header获取真实IP
+        // 如果前端没传IP或传的是空字符串，从header获取真实IP
         if (empty($ip)) {
             $ip = $this->getRealIp();
+            trace("访问记录使用后端获取的IP: {$ip}", 'info');
+        } else {
+            trace("访问记录使用前端传递的IP: {$ip}", 'info');
         }
 
         $userAgent = request()->header('user-agent', '');
@@ -43,6 +46,23 @@ class Index extends BaseController
         AccessService::logAccess($ip, $page, $userAgent);
 
         return json(['code' => 0, 'msg' => 'ok']);
+    }
+
+    /**
+     * 检查访问记录是否存在
+     */
+    public function checkAccess()
+    {
+        $ip = request()->param('ip', '');
+        $remark = request()->param('remark', '');
+
+        if (empty($ip) || empty($remark)) {
+            return json(['code' => 1, 'msg' => '参数错误', 'data' => ['exists' => false]]);
+        }
+
+        $exists = AccessService::checkAccessExists($ip, $remark);
+
+        return json(['code' => 0, 'msg' => 'ok', 'data' => ['exists' => $exists]]);
     }
 
     /**

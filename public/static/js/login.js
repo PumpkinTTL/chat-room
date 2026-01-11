@@ -25,15 +25,22 @@ const IP_SERVICES = [
     { url: 'https://ifconfig.me/ip', type: 'text' }, // 纯文本
 ];
 
-// 从第三方接口获取真实IP
+// 从第三方接口获取真实IP（带超时控制）
 const getRealIpFromThirdParty = async function () {
     for (let i = 0; i < IP_SERVICES.length; i++) {
         try {
             console.log('尝试IP服务 ' + (i + 1) + ':', IP_SERVICES[i].url);
 
+            // 创建超时控制器（3秒超时）
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 3000);
+
             const response = await fetch(IP_SERVICES[i].url, {
-                method: 'GET'
+                method: 'GET',
+                signal: controller.signal
             });
+
+            clearTimeout(timeoutId);
 
             if (!response.ok) {
                 console.warn('IP服务 ' + (i + 1) + ' 响应失败:', response.status);
@@ -51,14 +58,18 @@ const getRealIpFromThirdParty = async function () {
                 ip = ip.trim();
             }
 
-            // 验证IP格式
-            if (ip && /^[\d.]+$/.test(ip)) {
+            // 验证IP格式（支持IPv4和IPv6）
+            if (ip && (/^[\d.]+$/.test(ip) || /^[0-9a-fA-F:]+$/.test(ip))) {
                 console.log('成功获取IP:', ip);
                 return ip;
             }
 
         } catch (error) {
-            console.warn('IP服务 ' + (i + 1) + ' 失败:', error.message);
+            if (error.name === 'AbortError') {
+                console.warn('IP服务 ' + (i + 1) + ' 超时');
+            } else {
+                console.warn('IP服务 ' + (i + 1) + ' 失败:', error.message);
+            }
             continue;
         }
     }

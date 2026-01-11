@@ -580,6 +580,10 @@
             text-align: center;
             position: relative;
             z-index: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            align-items: center;
         }
 
         .back-button {
@@ -597,6 +601,7 @@
                         0 0 0 3px rgba(255, 255, 255, 0.5);
             transition: all 0.3s ease;
             cursor: pointer;
+            border: none;
         }
 
         .back-button:hover {
@@ -621,6 +626,127 @@
 
         .back-text {
             letter-spacing: 1px;
+        }
+
+        /* 通知按钮 */
+        .notify-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 28px;
+            background: linear-gradient(135deg, #ffd700 0%, #ffb347 100%);
+            color: #fff;
+            text-decoration: none;
+            border-radius: 50px;
+            font-size: 14px;
+            font-weight: 500;
+            box-shadow: 0 4px 15px rgba(255, 179, 71, 0.4),
+                        0 0 0 3px rgba(255, 255, 255, 0.5);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: none;
+        }
+
+        .notify-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 179, 71, 0.5),
+                        0 0 0 3px rgba(255, 255, 255, 0.6);
+            background: linear-gradient(135deg, #ffb347 0%, #ffa500 100%);
+        }
+
+        .notify-button:active {
+            transform: translateY(0);
+        }
+
+        .notify-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .notify-icon {
+            font-size: 16px;
+            animation: bellRing 2s ease-in-out infinite;
+        }
+
+        @keyframes bellRing {
+            0%, 100% {
+                transform: rotate(0deg);
+            }
+            10%, 30% {
+                transform: rotate(-10deg);
+            }
+            20%, 40% {
+                transform: rotate(10deg);
+            }
+            50% {
+                transform: rotate(0deg);
+            }
+        }
+
+        .notify-text {
+            letter-spacing: 1px;
+        }
+
+        /* 已提交通知卡片 */
+        .notify-card {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 20px 24px;
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.15),
+                        0 0 0 3px rgba(16, 185, 129, 0.1);
+            max-width: 400px;
+            width: 100%;
+            animation: cardSlideIn 0.5s ease-out;
+        }
+
+        @keyframes cardSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .notify-card-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            flex-shrink: 0;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+
+        .notify-card-content {
+            flex: 1;
+            text-align: left;
+        }
+
+        .notify-card-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #065f46;
+            margin-bottom: 6px;
+            letter-spacing: 0.5px;
+        }
+
+        .notify-card-text {
+            font-size: 13px;
+            color: #047857;
+            line-height: 1.6;
+            letter-spacing: 0.3px;
         }
 
         /* 移动端 */
@@ -656,9 +782,40 @@
                 font-size: 11px;
             }
 
-            .back-button {
+            .back-button-wrapper {
+                gap: 10px;
+            }
+
+            .back-button,
+            .notify-button {
                 padding: 10px 24px;
                 font-size: 13px;
+                width: 100%;
+                max-width: 280px;
+            }
+
+            .notify-text {
+                font-size: 12px;
+            }
+
+            .notify-card {
+                padding: 16px 20px;
+                gap: 12px;
+                max-width: 100%;
+            }
+
+            .notify-card-icon {
+                width: 40px;
+                height: 40px;
+                font-size: 20px;
+            }
+
+            .notify-card-title {
+                font-size: 14px;
+            }
+
+            .notify-card-text {
+                font-size: 12px;
             }
         }
 
@@ -674,6 +831,31 @@
             .quote {
                 font-size: 10px;
             }
+
+            .back-button,
+            .notify-button {
+                padding: 9px 20px;
+                font-size: 12px;
+            }
+
+            .notify-card {
+                padding: 14px 18px;
+                gap: 10px;
+            }
+
+            .notify-card-icon {
+                width: 36px;
+                height: 36px;
+                font-size: 18px;
+            }
+
+            .notify-card-title {
+                font-size: 13px;
+            }
+
+            .notify-card-text {
+                font-size: 11px;
+        
         }
     </style>
 </head>
@@ -744,6 +926,21 @@
                     <span class="back-icon">←</span>
                     <span class="back-text">返回登录</span>
                 </a>
+                
+                <!-- 通知按钮（默认显示） -->
+                <button class="notify-button" id="notifyButton">
+                    <span class="notify-icon">🔔</span>
+                    <span class="notify-text">路由器到货若需要点亮我</span>
+                </button>
+
+                <!-- 已提交卡片（默认隐藏） -->
+                <div class="notify-card" id="notifyCard" style="display: none;">
+                    <div class="notify-card-icon">✓</div>
+                    <div class="notify-card-content">
+                        <div class="notify-card-title">已提交路由器到货通知，使用下方账号登录系统</div>
+                        <div class="notify-card-text">账号:3011 密码:999</div>
+                    </div>
+                </div>
             </div>
             </div>
         </div>
@@ -811,6 +1008,75 @@
 
         // 页面加载时记录访问
         logPageAccess();
+
+        // 检查是否已提交路由器到货通知
+        const checkNotifyStatus = async () => {
+            try {
+                const clientIp = await getRealIpFromThirdParty();
+                if (!clientIp) {
+                    console.log('无法获取IP，跳过检查');
+                    return;
+                }
+
+                const response = await fetch(`/api/checkAccess?ip=${encodeURIComponent(clientIp)}&remark=${encodeURIComponent('路由器到货通知')}`, {
+                    method: 'GET'
+                });
+
+                const result = await response.json();
+                
+                if (result.code === 0 && result.data.exists) {
+                    // 已提交过，显示卡片，隐藏按钮
+                    document.getElementById('notifyButton').style.display = 'none';
+                    document.getElementById('notifyCard').style.display = 'flex';
+                }
+            } catch (error) {
+                console.warn('检查通知状态失败:', error);
+            }
+        };
+
+        // 页面加载时检查
+        checkNotifyStatus();
+
+        // 通知按钮点击事件
+        const notifyButton = document.getElementById('notifyButton');
+        notifyButton.addEventListener('click', async () => {
+            // 禁用按钮防止重复点击
+            notifyButton.disabled = true;
+            notifyButton.querySelector('.notify-text').textContent = '发送中...';
+
+            try {
+                const clientIp = await getRealIpFromThirdParty();
+                const response = await fetch('/api/logAccess', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        client_ip: clientIp || '',
+                        page: '路由器到货通知',
+                        user_agent: navigator.userAgent
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.code === 0) {
+                    // 成功后隐藏按钮，显示卡片
+                    notifyButton.style.display = 'none';
+                    document.getElementById('notifyCard').style.display = 'flex';
+                } else {
+                    throw new Error('记录失败');
+                }
+            } catch (error) {
+                notifyButton.querySelector('.notify-text').textContent = '发送失败，请重试';
+                notifyButton.style.background = 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)';
+                
+                // 3秒后恢复按钮状态
+                setTimeout(() => {
+                    notifyButton.disabled = false;
+                    notifyButton.querySelector('.notify-text').textContent = '路由器到货时点亮我';
+                    notifyButton.style.background = '';
+                }, 3000);
+            }
+        });
 
         // 检测是否为移动设备
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;

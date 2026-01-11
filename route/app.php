@@ -14,6 +14,9 @@ Route::get('login', 'Index/login');
 // 记录页面访问
 Route::post('api/logAccess', 'Index/logAccess');
 
+// 检查访问记录
+Route::get('api/checkAccess', 'Index/checkAccess');
+
 // 聊天室首页
 Route::get('chat', 'Index/index');
 

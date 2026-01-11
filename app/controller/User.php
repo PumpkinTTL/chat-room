@@ -110,9 +110,11 @@ class User extends BaseController
         // IP获取策略：优先使用前端传递的IP，否则使用后端获取
         if (!empty($data['client_ip'])) {
             $data['ip'] = $data['client_ip'];
+            trace("登录使用前端传递的IP: {$data['ip']}", 'info');
         } else {
             // 后端备用方案
             $data['ip'] = $this->getRealIp();
+            trace("登录使用后端获取的IP: {$data['ip']}", 'info');
         }
 
         // 获取User-Agent用于识别平台
