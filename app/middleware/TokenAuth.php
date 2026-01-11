@@ -20,9 +20,9 @@ class TokenAuth
      */
     public function handle(Request $request, \Closure $next, $options = [])
     {
-        // 跳过登录接口、登录页面、首页和聊天页面
+        // 跳过登录接口、登录页面、首页、聊天页面和访问记录接口
         $path = $request->pathinfo();
-        $skipPaths = ['api/user/login', 'login', '', 'index', 'chat'];
+        $skipPaths = ['api/user/login', 'api/logAccess', 'login', '', 'index', 'chat'];
         
         // 检查是否需要跳过
         if (in_array($path, $skipPaths) || strpos($path, 'login') === 0) {
