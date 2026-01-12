@@ -16,6 +16,22 @@ const computed = Vue.computed;
 const onMounted = Vue.onMounted;
 const nextTick = Vue.nextTick;
 
+// 导入工具函数模块
+import {
+    formatTime,
+    formatUrl,
+    formatFileSize,
+    formatDuration,
+    getFileExtension,
+    getFileNameFromUrl,
+    isAudioFile
+} from './utils/format.js';
+
+import {
+    getFileIcon,
+    getFileIconClass
+} from './utils/constants.js';
+
 try {
     // 自定义点击外部指令
     const clickOutside = {
@@ -3700,184 +3716,6 @@ try {
                 } catch (error) {
                     console.error('[滚动] 滚动失败:', error);
                 }
-            };
-
-            const formatTime = (date) => {
-                if (!date) return '';
-                
-                const messageDate = date instanceof Date ? date : new Date(date);
-
-                if (isNaN(messageDate.getTime())) {
-                    return '';
-                }
-
-                const now = new Date();
-                const diffInMinutes = Math.floor((now - messageDate) / 60000);
-
-                if (diffInMinutes < 1) return '刚刚';
-                if (diffInMinutes < 60) return diffInMinutes + '分钟前';
-
-                if (diffInMinutes < 1440) {
-                    const hour = messageDate.getHours().toString().padStart(2, '0');
-                    const minute = messageDate.getMinutes().toString().padStart(2, '0');
-                    return hour + ':' + minute;
-                }
-
-                const month = (messageDate.getMonth() + 1).toString().padStart(2, '0');
-                const day = messageDate.getDate().toString().padStart(2, '0');
-                const hour = messageDate.getHours().toString().padStart(2, '0');
-                const minute = messageDate.getMinutes().toString().padStart(2, '0');
-                return month + '-' + day + ' ' + hour + ':' + minute;
-            };
-
-            // 格式化URL显示（保留完整链接）
-            const formatUrl = function (url) {
-                if (!url) return '';
-                // 直接返回完整URL
-                return url;
-            };
-
-            const formatFileSize = (bytes) => {
-                if (bytes === 0) return '0 B';
-                const k = 1024;
-                const sizes = ['B', 'KB', 'MB', 'GB'];
-                const i = Math.floor(Math.log(bytes) / Math.log(k));
-                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-            };
-
-            // 格式化视频时长（秒 -> MM:SS 或 HH:MM:SS）
-            const formatDuration = (seconds) => {
-                if (!seconds || seconds < 0) return '0:00';
-                const hours = Math.floor(seconds / 3600);
-                const minutes = Math.floor((seconds % 3600) / 60);
-                const secs = Math.floor(seconds % 60);
-
-                if (hours > 0) {
-                    return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-                }
-                return `${minutes}:${secs.toString().padStart(2, '0')}`;
-            };
-
-            // 获取文件扩展名（从文件名或文件路径提取）
-            const getFileExtension = (fileNameOrUrl) => {
-                if (!fileNameOrUrl) return '';
-                // 如果是URL路径，先提取文件名部分
-                let fileName = fileNameOrUrl;
-                if (fileNameOrUrl.includes('/')) {
-                    fileName = fileNameOrUrl.split('/').pop();
-                }
-                const lastDot = fileName.lastIndexOf('.');
-                if (lastDot > -1 && lastDot < fileName.length - 1) {
-                    return fileName.substring(lastDot + 1).toUpperCase();
-                }
-                return '';
-            };
-
-            // 获取文件图标（根据文件扩展名）
-            const getFileIcon = (fileNameOrExtension) => {
-                const ext = (fileNameOrExtension || '').toString().toLowerCase().replace('.', '').split('.').pop();
-                const iconMap = {
-                    // 图片
-                    'jpg': 'fas fa-file-image', 'jpeg': 'fas fa-file-image', 'png': 'fas fa-file-image',
-                    'gif': 'fas fa-file-image', 'webp': 'fas fa-file-image', 'svg': 'fas fa-file-image',
-                    'bmp': 'fas fa-file-image', 'ico': 'fas fa-file-image', 'tiff': 'fas fa-file-image',
-                    'psd': 'fas fa-file-image', 'ai': 'fas fa-file-image', 'eps': 'fas fa-file-image',
-                    // 视频
-                    'mp4': 'fas fa-file-video', 'webm': 'fas fa-file-video', 'ogg': 'fas fa-file-video',
-                    'mov': 'fas fa-file-video', 'avi': 'fas fa-file-video', 'mkv': 'fas fa-file-video',
-                    'flv': 'fas fa-file-video', 'wmv': 'fas fa-file-video', 'm4v': 'fas fa-file-video',
-                    '3gp': 'fas fa-file-video', 'ts': 'fas fa-file-video', 'mts': 'fas fa-file-video',
-                    // 音频
-                    'mp3': 'fas fa-file-audio', 'wav': 'fas fa-file-audio', 'ogg': 'fas fa-file-audio',
-                    'flac': 'fas fa-file-audio', 'aac': 'fas fa-file-audio', 'm4a': 'fas fa-file-audio',
-                    'wma': 'fas fa-file-audio', 'opus': 'fas fa-file-audio',
-                    // 文档
-                    'pdf': 'fas fa-file-pdf', 'doc': 'fas fa-file-word', 'docx': 'fas fa-file-word',
-                    'xls': 'fas fa-file-excel', 'xlsx': 'fas fa-file-excel', 'ppt': 'fas fa-file-powerpoint',
-                    'pptx': 'fas fa-file-powerpoint', 'txt': 'fas fa-file-alt', 'md': 'fas fa-file-alt',
-                    'rtf': 'fas fa-file-alt', 'odt': 'fas fa-file-word', 'ods': 'fas fa-file-excel',
-                    'odp': 'fas fa-file-powerpoint', 'csv': 'fas fa-file-csv',
-                    // 压缩包
-                    'zip': 'fas fa-file-archive', 'rar': 'fas fa-file-archive', '7z': 'fas fa-file-archive',
-                    'tar': 'fas fa-file-archive', 'gz': 'fas fa-file-archive', 'bz2': 'fas fa-file-archive',
-                    'xz': 'fas fa-file-archive', 'cab': 'fas fa-file-archive', 'iso': 'fas fa-file-archive',
-                    // 代码
-                    'js': 'fas fa-file-code', 'ts': 'fas fa-file-code', 'html': 'fas fa-file-code',
-                    'css': 'fas fa-file-code', 'json': 'fas fa-file-code', 'xml': 'fas fa-file-code',
-                    'py': 'fas fa-file-code', 'java': 'fas fa-file-code', 'php': 'fas fa-file-code',
-                    'cpp': 'fas fa-file-code', 'c': 'fas fa-file-code', 'h': 'fas fa-file-code',
-                    'go': 'fas fa-file-code', 'rs': 'fas fa-file-code', 'swift': 'fas fa-file-code',
-                    'kt': 'fas fa-file-code', 'dart': 'fas fa-file-code', 'vue': 'fas fa-file-code',
-                    'jsx': 'fas fa-file-code', 'tsx': 'fas fa-file-code', 'sql': 'fas fa-file-code',
-                    'sh': 'fas fa-file-code', 'bash': 'fas fa-file-code', 'yml': 'fas fa-file-code',
-                    'yaml': 'fas fa-file-code', 'toml': 'fas fa-file-code', 'ini': 'fas fa-file-code',
-                    'conf': 'fas fa-file-code', 'cfg': 'fas fa-file-code', 'rb': 'fas fa-file-code',
-                    'pl': 'fas fa-file-code', 'scala': 'fas fa-file-code', 'r': 'fas fa-file-code',
-                    'm': 'fas fa-file-code', 'mm': 'fas fa-file-code', 'swift': 'fas fa-file-code',
-                    // 可执行文件
-                    'exe': 'fas fa-file', 'msi': 'fas fa-file', 'app': 'fas fa-file',
-                    'dmg': 'fas fa-file', 'deb': 'fas fa-file', 'rpm': 'fas fa-file',
-                    'apk': 'fas fa-file', 'ipa': 'fas fa-file', 'bin': 'fas fa-file',
-                    'elf': 'fas fa-file', 'so': 'fas fa-file', 'dll': 'fas fa-file',
-                    'sys': 'fas fa-file', 'drv': 'fas fa-file',
-                    // 数据库
-                    'db': 'fas fa-database', 'sqlite': 'fas fa-database', 'mdb': 'fas fa-database',
-                    'accdb': 'fas fa-database',
-                    // 其他常见格式
-                    'key': 'fas fa-key', 'pem': 'fas fa-key', 'cert': 'fas fa-certificate',
-                    'torrent': 'fas fa-download', 'jar': 'fas fa-file-archive'
-                };
-                return iconMap[ext] || 'fas fa-file';
-            };
-
-            // 获取文件图标CSS类（用于着色）
-            const getFileIconClass = (fileNameOrExtension) => {
-                const ext = (fileNameOrExtension || '').toString().toLowerCase().replace('.', '').split('.').pop();
-
-                if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico', 'tiff', 'psd', 'ai', 'eps'].includes(ext)) {
-                    return 'image';
-                }
-                if (['mp4', 'webm', 'ogg', 'mov', 'avi', 'mkv', 'flv', 'wmv', 'm4v', '3gp', 'ts', 'mts'].includes(ext)) {
-                    return 'video';
-                }
-                if (['mp3', 'wav', 'flac', 'aac', 'm4a', 'wma', 'opus'].includes(ext)) {
-                    return 'audio';
-                }
-                if (['zip', 'rar', '7z', 'tar', 'gz', 'bz2', 'xz', 'cab', 'iso', 'jar'].includes(ext)) {
-                    return 'archive';
-                }
-                if (['js', 'ts', 'html', 'css', 'json', 'py', 'java', 'php', 'cpp', 'go', 'vue', 'jsx', 'tsx',
-                    'sh', 'bash', 'yml', 'yaml', 'toml', 'ini', 'conf', 'cfg', 'rb', 'pl', 'scala', 'r'].includes(ext)) {
-                    return 'code';
-                }
-                if (['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'md', 'rtf', 'odt', 'ods', 'odp', 'csv'].includes(ext)) {
-                    return 'document';
-                }
-                if (['exe', 'msi', 'app', 'dmg', 'deb', 'rpm', 'apk', 'ipa', 'bin', 'elf', 'so', 'dll', 'sys', 'drv'].includes(ext)) {
-                    return 'default';
-                }
-                if (['db', 'sqlite', 'mdb', 'accdb'].includes(ext)) {
-                    return 'document';
-                }
-                return 'default';
-            };
-
-            // 判断是否是音频文件
-            const isAudioFile = (fileNameOrUrl) => {
-                if (!fileNameOrUrl) return false;
-                // 如果是URL路径，先提取文件名部分
-                let fileName = fileNameOrUrl;
-                if (fileNameOrUrl.includes('/')) {
-                    fileName = fileNameOrUrl.split('/').pop();
-                }
-                const ext = fileName.toString().toLowerCase().split('.').pop();
-                return ['mp3', 'wav', 'ogg', 'flac', 'aac', 'm4a', 'wma', 'opus', 'webm'].includes(ext);
-            };
-
-            // 从URL中提取文件名
-            const getFileNameFromUrl = (url) => {
-                if (!url) return '';
-                return url.split('/').pop() || '';
             };
 
             // 下载文件
