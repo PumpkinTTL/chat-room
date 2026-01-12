@@ -180,6 +180,17 @@
     animation: bondAvatarFloat 3s ease-in-out infinite;
 }
 
+.bond-avatar-placeholder {
+    background: linear-gradient(135deg, #ff69b4 0%, #ff1493 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 24px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
 .bond-user:nth-child(1) .bond-avatar {
     animation-delay: 0s;
 }

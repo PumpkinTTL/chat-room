@@ -867,15 +867,22 @@ try {
                             
                             // 私密房间：两人都在线时触发羁绊上线特效
                             if (currentRoomPrivate.value && data.online_count === 2 && previousOnlineCount < 2 && data.users.length === 2) {
-                                const user1 = {
-                                    nick_name: data.users[0].nick_name,
-                                    avatar: data.users[0].avatar || '/static/images/default-avatar.png'
-                                };
-                                const user2 = {
-                                    nick_name: data.users[1].nick_name,
-                                    avatar: data.users[1].avatar || '/static/images/default-avatar.png'
-                                };
-                                triggerBondOnlineEffect(user1, user2);
+                                // 找出当前用户和对方用户
+                                const currentUserId = currentUser.value.id;
+                                const otherUser = data.users.find(u => u.user_id != currentUserId);
+                                const selfUser = data.users.find(u => u.user_id == currentUserId);
+                                
+                                if (otherUser && selfUser) {
+                                    const user1 = {
+                                        nick_name: selfUser.nick_name,
+                                        avatar: currentUser.value.avatar || selfUser.avatar
+                                    };
+                                    const user2 = {
+                                        nick_name: otherUser.nick_name,
+                                        avatar: otherUser.avatar
+                                    };
+                                    triggerBondOnlineEffect(user1, user2);
+                                }
                             }
                         }
 
@@ -2914,6 +2921,10 @@ try {
                 const notification = document.createElement('div');
                 notification.className = 'bond-online-notification';
                 
+                // 构建用户头像HTML
+                const user1Avatar = user1.avatar ? `<img src="${user1.avatar}" alt="${user1.nick_name}" class="bond-avatar">` : `<div class="bond-avatar bond-avatar-placeholder">${user1.nick_name.charAt(0)}</div>`;
+                const user2Avatar = user2.avatar ? `<img src="${user2.avatar}" alt="${user2.nick_name}" class="bond-avatar">` : `<div class="bond-avatar bond-avatar-placeholder">${user2.nick_name.charAt(0)}</div>`;
+                
                 notification.innerHTML = `
                     <div class="bond-card">
                         <div class="bond-particles">
@@ -2928,12 +2939,12 @@ try {
                         </div>
                         <div class="bond-users">
                             <div class="bond-user">
-                                <img src="${user1.avatar || '/static/images/default-avatar.png'}" alt="${user1.nick_name}" class="bond-avatar">
+                                ${user1Avatar}
                                 <div class="bond-username">${user1.nick_name}</div>
                             </div>
                             <div class="bond-connector">💗</div>
                             <div class="bond-user">
-                                <img src="${user2.avatar || '/static/images/default-avatar.png'}" alt="${user2.nick_name}" class="bond-avatar">
+                                ${user2Avatar}
                                 <div class="bond-username">${user2.nick_name}</div>
                             </div>
                         </div>
