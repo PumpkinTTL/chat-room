@@ -1,0 +1,385 @@
+/* 羁绊上线特效样式 */
+
+/* 飘屏容器 */
+.bond-notification-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 9999;
+    overflow: hidden;
+}
+
+/* 羁绊上线飘屏 */
+.bond-online-notification {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    pointer-events: none;
+    animation: bondOnlineAppear 3s ease-out forwards;
+}
+
+@keyframes bondOnlineAppear {
+    0% {
+        transform: translate(-50%, -50%) scale(0) rotate(-10deg);
+        opacity: 0;
+    }
+    15% {
+        transform: translate(-50%, -50%) scale(1.2) rotate(5deg);
+        opacity: 1;
+    }
+    25% {
+        transform: translate(-50%, -50%) scale(1) rotate(0deg);
+        opacity: 1;
+    }
+    75% {
+        transform: translate(-50%, -50%) scale(1) rotate(0deg);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(-50%, -60%) scale(0.8) rotate(0deg);
+        opacity: 0;
+    }
+}
+
+/* 主卡片 */
+.bond-card {
+    background: linear-gradient(135deg, 
+        rgba(255, 182, 193, 0.95) 0%, 
+        rgba(255, 192, 203, 0.95) 25%,
+        rgba(255, 218, 224, 0.95) 50%,
+        rgba(255, 192, 203, 0.95) 75%,
+        rgba(255, 182, 193, 0.95) 100%);
+    background-size: 200% 200%;
+    animation: bondGradientShift 3s ease infinite;
+    border-radius: 24px;
+    padding: 32px 48px;
+    box-shadow: 
+        0 20px 60px rgba(255, 105, 180, 0.4),
+        0 0 0 8px rgba(255, 255, 255, 0.3),
+        0 0 0 12px rgba(255, 182, 193, 0.2),
+        inset 0 2px 20px rgba(255, 255, 255, 0.5);
+    position: relative;
+    overflow: visible;
+    min-width: 400px;
+}
+
+@keyframes bondGradientShift {
+    0%, 100% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+}
+
+/* 光晕效果 */
+.bond-card::before {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: -4px;
+    right: -4px;
+    bottom: -4px;
+    background: linear-gradient(45deg, 
+        #ff69b4, #ff1493, #ff69b4, #ffc0cb, #ff69b4);
+    background-size: 400% 400%;
+    border-radius: 26px;
+    z-index: -1;
+    animation: bondGlow 2s ease infinite;
+    filter: blur(8px);
+    opacity: 0.6;
+}
+
+@keyframes bondGlow {
+    0%, 100% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+}
+
+/* 标题区域 */
+.bond-title-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.bond-heart-icon {
+    font-size: 48px;
+    animation: bondHeartBeat 1.5s ease-in-out infinite;
+    filter: drop-shadow(0 4px 12px rgba(255, 105, 180, 0.6));
+}
+
+@keyframes bondHeartBeat {
+    0%, 100% {
+        transform: scale(1);
+    }
+    10%, 30% {
+        transform: scale(1.2);
+    }
+    20%, 40% {
+        transform: scale(1.1);
+    }
+    50% {
+        transform: scale(1);
+    }
+}
+
+.bond-title {
+    font-size: 36px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #ff1493 0%, #ff69b4 50%, #ff1493 100%);
+    background-size: 200% 200%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: bondTextShine 2s ease infinite;
+    letter-spacing: 4px;
+    text-shadow: 0 0 20px rgba(255, 105, 180, 0.5);
+}
+
+@keyframes bondTextShine {
+    0%, 100% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+}
+
+/* 用户信息 */
+.bond-users {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    margin-bottom: 16px;
+}
+
+.bond-user {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.bond-avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    border: 4px solid #fff;
+    box-shadow: 0 8px 24px rgba(255, 105, 180, 0.4);
+    animation: bondAvatarFloat 3s ease-in-out infinite;
+}
+
+.bond-user:nth-child(1) .bond-avatar {
+    animation-delay: 0s;
+}
+
+.bond-user:nth-child(2) .bond-avatar {
+    animation-delay: 0.5s;
+}
+
+@keyframes bondAvatarFloat {
+    0%, 100% {
+        transform: translateY(0) scale(1);
+    }
+    50% {
+        transform: translateY(-8px) scale(1.05);
+    }
+}
+
+.bond-username {
+    font-size: 16px;
+    font-weight: 600;
+    color: #fff;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.bond-connector {
+    font-size: 32px;
+    animation: bondConnectorPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes bondConnectorPulse {
+    0%, 100% {
+        transform: scale(1) rotate(0deg);
+        opacity: 0.8;
+    }
+    50% {
+        transform: scale(1.3) rotate(180deg);
+        opacity: 1;
+    }
+}
+
+/* 消息文本 */
+.bond-message {
+    text-align: center;
+    font-size: 18px;
+    color: #fff;
+    font-weight: 500;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    letter-spacing: 2px;
+}
+
+/* 粒子效果容器 */
+.bond-particles {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    overflow: visible;
+}
+
+/* 粒子 */
+.bond-particle {
+    position: absolute;
+    pointer-events: none;
+    animation: bondParticleFloat 3s ease-out forwards;
+}
+
+@keyframes bondParticleFloat {
+    0% {
+        transform: translate(0, 0) scale(0) rotate(0deg);
+        opacity: 0;
+    }
+    10% {
+        opacity: 1;
+    }
+    100% {
+        transform: translate(var(--tx), var(--ty)) scale(1) rotate(360deg);
+        opacity: 0;
+    }
+}
+
+/* 心形粒子 */
+.bond-particle.heart {
+    font-size: 24px;
+    color: #ff69b4;
+    filter: drop-shadow(0 2px 8px rgba(255, 105, 180, 0.6));
+}
+
+/* 星星粒子 */
+.bond-particle.star {
+    font-size: 20px;
+    color: #ffd700;
+    filter: drop-shadow(0 2px 8px rgba(255, 215, 0, 0.6));
+}
+
+/* 花朵粒子 */
+.bond-particle.flower {
+    font-size: 22px;
+    color: #ffb6c1;
+    filter: drop-shadow(0 2px 8px rgba(255, 182, 193, 0.6));
+}
+
+/* 光圈效果 */
+.bond-ring {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 200px;
+    height: 200px;
+    border: 3px solid rgba(255, 105, 180, 0.6);
+    border-radius: 50%;
+    animation: bondRingExpand 2s ease-out infinite;
+}
+
+.bond-ring:nth-child(2) {
+    animation-delay: 0.5s;
+}
+
+.bond-ring:nth-child(3) {
+    animation-delay: 1s;
+}
+
+@keyframes bondRingExpand {
+    0% {
+        width: 200px;
+        height: 200px;
+        opacity: 1;
+    }
+    100% {
+        width: 600px;
+        height: 600px;
+        opacity: 0;
+    }
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+    .bond-card {
+        min-width: 320px;
+        padding: 24px 32px;
+    }
+
+    .bond-title {
+        font-size: 28px;
+        letter-spacing: 2px;
+    }
+
+    .bond-heart-icon {
+        font-size: 36px;
+    }
+
+    .bond-avatar {
+        width: 48px;
+        height: 48px;
+    }
+
+    .bond-username {
+        font-size: 14px;
+    }
+
+    .bond-message {
+        font-size: 15px;
+        letter-spacing: 1px;
+    }
+
+    .bond-connector {
+        font-size: 24px;
+    }
+}
+
+@media (max-width: 480px) {
+    .bond-card {
+        min-width: 280px;
+        padding: 20px 24px;
+    }
+
+    .bond-title {
+        font-size: 24px;
+    }
+
+    .bond-heart-icon {
+        font-size: 32px;
+    }
+
+    .bond-users {
+        gap: 16px;
+    }
+
+    .bond-avatar {
+        width: 40px;
+        height: 40px;
+    }
+
+    .bond-username {
+        font-size: 12px;
+    }
+
+    .bond-message {
+        font-size: 14px;
+    }
+}

@@ -855,6 +855,7 @@ try {
 
                         // 更新在线用户列表
                         if (data.users && data.users.length > 0) {
+                            const previousOnlineCount = onlineUsersList.value.length;
                             onlineUsersList.value = data.users.map(function (u) {
                                 return {
                                     id: u.user_id,
@@ -862,6 +863,24 @@ try {
                                     online: true
                                 };
                             });
+                            
+                            // 私密房间：检查是否触发羁绊上线特效
+                            if (currentRoomPrivate.value && data.online_count === 2 && previousOnlineCount < 2) {
+                                // 两人都在线了，触发羁绊上线特效
+                                const users = onlineUsersList.value;
+                                if (users.length === 2) {
+                                    // 获取两个用户的完整信息
+                                    const user1 = {
+                                        nick_name: users[0].name,
+                                        avatar: users[0].avatar || '/static/images/default-avatar.png'
+                                    };
+                                    const user2 = {
+                                        nick_name: users[1].name,
+                                        avatar: users[1].avatar || '/static/images/default-avatar.png'
+                                    };
+                                    triggerBondOnlineEffect(user1, user2);
+                                }
+                            }
                         }
 
                         // 加入房间成功后停止轮询
@@ -1963,6 +1982,11 @@ try {
             const saveExpToastSetting = function () {
                 localStorage.setItem('showExpToast', showExpToast.value);
             };
+            
+            // 保存羁绊上线特效设置
+            const saveBondOnlineEffectSetting = function () {
+                localStorage.setItem('showBondOnlineEffect', showBondOnlineEffect.value);
+            };
 
             // 聊天数据
             const onlineUsers = ref(0);      // 实时在线人数（Redis）
@@ -1974,6 +1998,7 @@ try {
             const intimacyInfo = ref(null); // 好感度信息
             const showIntimacyCard = ref(false); // 是否展开好感度卡片
             const showExpToast = ref(localStorage.getItem('showExpToast') === 'true'); // 是否显示经验提示（默认关闭，有缓存才按缓存）
+            const showBondOnlineEffect = ref(localStorage.getItem('showBondOnlineEffect') !== 'false'); // 是否显示羁绊上线特效（默认开启）
             const onlineUsersList = ref([]);
             const roomList = ref([]);
             const contactList = ref([]);     // 联系人列表
@@ -2878,6 +2903,80 @@ try {
                 setTimeout(function () {
                     showFloatingHearts.value = false;
                 }, 1600);
+            };
+
+            // 触发羁绊上线特效
+            const triggerBondOnlineEffect = function (user1, user2) {
+                if (!showBondOnlineEffect.value) return;
+                
+                // 创建飘屏容器
+                const container = document.createElement('div');
+                container.className = 'bond-notification-container';
+                
+                // 创建主通知元素
+                const notification = document.createElement('div');
+                notification.className = 'bond-online-notification';
+                
+                notification.innerHTML = `
+                    <div class="bond-card">
+                        <div class="bond-particles">
+                            <div class="bond-ring"></div>
+                            <div class="bond-ring"></div>
+                            <div class="bond-ring"></div>
+                        </div>
+                        <div class="bond-title-wrapper">
+                            <div class="bond-heart-icon">💕</div>
+                            <div class="bond-title">羁绊上线</div>
+                            <div class="bond-heart-icon">💕</div>
+                        </div>
+                        <div class="bond-users">
+                            <div class="bond-user">
+                                <img src="${user1.avatar || '/static/images/default-avatar.png'}" alt="${user1.nick_name}" class="bond-avatar">
+                                <div class="bond-username">${user1.nick_name}</div>
+                            </div>
+                            <div class="bond-connector">💗</div>
+                            <div class="bond-user">
+                                <img src="${user2.avatar || '/static/images/default-avatar.png'}" alt="${user2.nick_name}" class="bond-avatar">
+                                <div class="bond-username">${user2.nick_name}</div>
+                            </div>
+                        </div>
+                        <div class="bond-message">双向奔赴的爱最美好</div>
+                    </div>
+                `;
+                
+                container.appendChild(notification);
+                document.body.appendChild(container);
+                
+                // 创建粒子效果
+                setTimeout(function() {
+                    const particlesContainer = notification.querySelector('.bond-particles');
+                    const particles = ['💖', '💗', '💓', '💕', '✨', '⭐', '🌸', '🌺', '🌹'];
+                    
+                    for (let i = 0; i < 30; i++) {
+                        const particle = document.createElement('div');
+                        particle.className = 'bond-particle';
+                        particle.textContent = particles[Math.floor(Math.random() * particles.length)];
+                        
+                        // 随机位置
+                        const angle = (Math.random() * 360) * (Math.PI / 180);
+                        const distance = 150 + Math.random() * 200;
+                        const tx = Math.cos(angle) * distance;
+                        const ty = Math.sin(angle) * distance;
+                        
+                        particle.style.setProperty('--tx', tx + 'px');
+                        particle.style.setProperty('--ty', ty + 'px');
+                        particle.style.left = '50%';
+                        particle.style.top = '50%';
+                        particle.style.animationDelay = (Math.random() * 0.5) + 's';
+                        
+                        particlesContainer.appendChild(particle);
+                    }
+                }, 200);
+                
+                // 3秒后移除
+                setTimeout(function() {
+                    container.remove();
+                }, 3000);
             };
 
             // 处理粘贴事件
@@ -4357,6 +4456,8 @@ try {
                 toggleIntimacyCard,
                 showExpToast,
                 saveExpToastSetting,
+                showBondOnlineEffect,
+                saveBondOnlineEffectSetting,
                 showFloatingHearts,
                 heartsAnimationKey,
                 onlineUsersList,
