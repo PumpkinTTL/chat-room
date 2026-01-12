@@ -4120,7 +4120,7 @@ try {
                     
                     if (result.code === 0) {
                         currentRoomLocked.value = newLockStatus === 1;
-                        window.Toast.success(result.msg);
+                        // 不在这里显示Toast，等待WebSocket广播后统一显示
                         hideAttachPanel();
                         
                         // 通过WebSocket广播锁定状态变化
