@@ -849,6 +849,7 @@ try {
 
                     onRoomJoined: (data) => {
                         console.log('[WebSocket] 加入房间: ' + data.room_id);
+                        console.log('[WebSocket] 用户数据:', data.users);
 
                         // 更新在线人数
                         onlineUsers.value = data.online_count;
@@ -860,24 +861,28 @@ try {
                                 return {
                                     id: u.user_id,
                                     name: u.nick_name,
+                                    avatar: u.avatar,
                                     online: true
                                 };
                             });
                             
                             // 私密房间：检查是否触发羁绊上线特效
                             if (currentRoomPrivate.value && data.online_count === 2 && previousOnlineCount < 2) {
+                                console.log('[羁绊特效] 检测到两人在线，准备触发特效');
                                 // 两人都在线了，触发羁绊上线特效
-                                const users = onlineUsersList.value;
+                                const users = data.users;
                                 if (users.length === 2) {
-                                    // 获取两个用户的完整信息
+                                    // 直接使用WebSocket返回的用户信息
                                     const user1 = {
-                                        nick_name: users[0].name,
+                                        nick_name: users[0].nick_name,
                                         avatar: users[0].avatar || '/static/images/default-avatar.png'
                                     };
                                     const user2 = {
-                                        nick_name: users[1].name,
+                                        nick_name: users[1].nick_name,
                                         avatar: users[1].avatar || '/static/images/default-avatar.png'
                                     };
+                                    console.log('[羁绊特效] 用户1:', user1);
+                                    console.log('[羁绊特效] 用户2:', user2);
                                     triggerBondOnlineEffect(user1, user2);
                                 }
                             }
@@ -1759,6 +1764,7 @@ try {
                             return {
                                 id: user.id,
                                 name: user.nick_name || ('用户' + user.id),
+                                avatar: user.avatar,
                                 online: true
                             };
                         });
@@ -2907,7 +2913,17 @@ try {
 
             // 触发羁绊上线特效
             const triggerBondOnlineEffect = function (user1, user2) {
-                if (!showBondOnlineEffect.value) return;
+                console.log('[羁绊特效] 函数被调用');
+                console.log('[羁绊特效] showBondOnlineEffect.value:', showBondOnlineEffect.value);
+                console.log('[羁绊特效] user1:', user1);
+                console.log('[羁绊特效] user2:', user2);
+                
+                if (!showBondOnlineEffect.value) {
+                    console.log('[羁绊特效] 特效已关闭，不显示');
+                    return;
+                }
+                
+                console.log('[羁绊特效] 开始创建特效元素');
                 
                 // 创建飘屏容器
                 const container = document.createElement('div');
@@ -2946,6 +2962,7 @@ try {
                 
                 container.appendChild(notification);
                 document.body.appendChild(container);
+                console.log('[羁绊特效] 特效元素已添加到页面');
                 
                 // 创建粒子效果
                 setTimeout(function() {
