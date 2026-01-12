@@ -1,4 +1,4 @@
-/* 羁绊上线特效样式 - 性能优化+视觉增强版 */
+/* 羁绊上线特效样式 - 顶部弹出优化版 */
 
 /* 飘屏容器 */
 .bond-notification-container {
@@ -12,49 +12,53 @@
     overflow: hidden;
 }
 
-/* 羁绊上线飘屏 */
+/* 羁绊上线飘屏 - 顶部弹出 */
 .bond-online-notification {
     position: absolute;
-    top: 50%;
+    top: 20px;
     left: 50%;
-    transform: translate(-50%, -50%) scale(0);
+    transform: translate(-50%, -120%) scale(0.9);
     pointer-events: none;
-    animation: bondOnlineAppear 3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    animation: bondSlideDown 3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
     will-change: transform, opacity;
 }
 
-@keyframes bondOnlineAppear {
+@keyframes bondSlideDown {
     0% {
-        transform: translate(-50%, -50%) scale(0) rotate(-15deg);
+        transform: translate(-50%, -120%) scale(0.9);
         opacity: 0;
     }
     15% {
-        transform: translate(-50%, -50%) scale(1.15) rotate(8deg);
+        transform: translate(-50%, 0) scale(1.05);
         opacity: 1;
     }
     25% {
-        transform: translate(-50%, -50%) scale(0.98) rotate(-3deg);
+        transform: translate(-50%, 0) scale(0.98);
         opacity: 1;
     }
     35% {
-        transform: translate(-50%, -50%) scale(1.02) rotate(2deg);
+        transform: translate(-50%, 0) scale(1.01);
         opacity: 1;
     }
     45% {
-        transform: translate(-50%, -50%) scale(1) rotate(0deg);
+        transform: translate(-50%, 0) scale(1);
         opacity: 1;
     }
     75% {
-        transform: translate(-50%, -50%) scale(1) rotate(0deg);
+        transform: translate(-50%, 0) scale(1);
+        opacity: 1;
+    }
+    90% {
+        transform: translate(-50%, 0) scale(1);
         opacity: 1;
     }
     100% {
-        transform: translate(-50%, -60%) scale(0.85) rotate(0deg);
+        transform: translate(-50%, -120%) scale(0.9);
         opacity: 0;
     }
 }
 
-/* 主卡片 */
+/* 主卡片 - 降低高度 */
 .bond-card {
     background: linear-gradient(135deg, 
         rgba(255, 182, 193, 0.98) 0%, 
@@ -64,18 +68,18 @@
         rgba(255, 182, 193, 0.98) 100%);
     background-size: 200% 200%;
     animation: bondGradientFlow 4s ease-in-out infinite;
-    border-radius: 28px;
-    padding: 32px 48px;
+    border-radius: 20px;
+    padding: 20px 36px;
     box-shadow: 
-        0 25px 70px rgba(255, 105, 180, 0.45),
-        0 10px 30px rgba(255, 105, 180, 0.3),
+        0 20px 50px rgba(255, 105, 180, 0.4),
+        0 8px 20px rgba(255, 105, 180, 0.25),
         0 0 0 1px rgba(255, 255, 255, 0.8),
-        0 0 0 8px rgba(255, 255, 255, 0.4),
-        0 0 0 12px rgba(255, 182, 193, 0.25),
-        inset 0 2px 25px rgba(255, 255, 255, 0.6);
+        0 0 0 6px rgba(255, 255, 255, 0.3),
+        0 0 0 10px rgba(255, 182, 193, 0.2),
+        inset 0 2px 20px rgba(255, 255, 255, 0.5);
     position: relative;
     overflow: visible;
-    min-width: 400px;
+    min-width: 360px;
     will-change: transform;
 }
 
@@ -92,10 +96,10 @@
 .bond-card::before {
     content: '';
     position: absolute;
-    top: -6px;
-    left: -6px;
-    right: -6px;
-    bottom: -6px;
+    top: -5px;
+    left: -5px;
+    right: -5px;
+    bottom: -5px;
     background: linear-gradient(45deg, 
         rgba(255, 105, 180, 0.6), 
         rgba(255, 20, 147, 0.6), 
@@ -121,21 +125,21 @@
     }
 }
 
-/* 标题区域 */
+/* 标题区域 - 缩小尺寸 */
 .bond-title-wrapper {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 16px;
-    margin-bottom: 20px;
+    gap: 12px;
+    margin-bottom: 14px;
 }
 
 .bond-heart-icon {
-    font-size: 48px;
+    font-size: 32px;
     color: #ff1493;
     animation: bondHeartBeat 1.2s ease-in-out infinite;
     will-change: transform;
-    text-shadow: 0 4px 15px rgba(255, 20, 147, 0.5);
+    text-shadow: 0 3px 12px rgba(255, 20, 147, 0.5);
 }
 
 @keyframes bondHeartBeat {
@@ -143,16 +147,16 @@
         transform: scale(1);
     }
     10% {
-        transform: scale(1.25);
+        transform: scale(1.2);
     }
     20% {
-        transform: scale(1.15);
+        transform: scale(1.1);
     }
     30% {
-        transform: scale(1.25);
+        transform: scale(1.2);
     }
     40% {
-        transform: scale(1.15);
+        transform: scale(1.1);
     }
     50% {
         transform: scale(1);
@@ -160,7 +164,7 @@
 }
 
 .bond-title {
-    font-size: 36px;
+    font-size: 28px;
     font-weight: 700;
     background: linear-gradient(135deg, 
         #ff1493 0%, 
@@ -173,7 +177,7 @@
     -webkit-text-fill-color: transparent;
     background-clip: text;
     animation: bondTextShimmer 3s ease-in-out infinite;
-    letter-spacing: 4px;
+    letter-spacing: 3px;
     text-shadow: 0 0 30px rgba(255, 105, 180, 0.6);
 }
 
@@ -186,30 +190,30 @@
     }
 }
 
-/* 用户信息 */
+/* 用户信息 - 缩小间距 */
 .bond-users {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 24px;
-    margin-bottom: 16px;
+    gap: 20px;
+    margin-bottom: 12px;
 }
 
 .bond-user {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
 }
 
 .bond-avatar {
     position: relative;
-    width: 64px;
-    height: 64px;
+    width: 56px;
+    height: 56px;
     border-radius: 50%;
-    border: 4px solid #fff;
+    border: 3px solid #fff;
     box-shadow: 
-        0 8px 24px rgba(255, 105, 180, 0.5),
+        0 6px 20px rgba(255, 105, 180, 0.5),
         0 0 0 2px rgba(255, 182, 193, 0.3);
     animation: bondAvatarFloat 3s ease-in-out infinite;
     will-change: transform;
@@ -232,7 +236,7 @@
     align-items: center;
     justify-content: center;
     color: #fff;
-    font-size: 24px;
+    font-size: 20px;
     font-weight: 600;
     text-transform: uppercase;
 }
@@ -261,20 +265,20 @@
 }
 
 .bond-username {
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 600;
     color: #fff;
     text-shadow: 
-        0 2px 8px rgba(0, 0, 0, 0.3),
-        0 0 15px rgba(255, 105, 180, 0.4);
+        0 2px 6px rgba(0, 0, 0, 0.3),
+        0 0 12px rgba(255, 105, 180, 0.4);
 }
 
 .bond-connector {
-    font-size: 32px;
+    font-size: 26px;
     color: #ff1493;
     animation: bondConnectorPulse 1.5s ease-in-out infinite;
     will-change: transform, opacity;
-    text-shadow: 0 4px 15px rgba(255, 20, 147, 0.5);
+    text-shadow: 0 3px 12px rgba(255, 20, 147, 0.5);
 }
 
 @keyframes bondConnectorPulse {
@@ -296,24 +300,24 @@
     }
 }
 
-/* 消息文本 */
+/* 消息文本 - 缩小字体 */
 .bond-message {
     text-align: center;
-    font-size: 18px;
+    font-size: 15px;
     color: #fff;
     font-weight: 500;
     text-shadow: 
-        0 2px 10px rgba(0, 0, 0, 0.3),
-        0 0 20px rgba(255, 105, 180, 0.4);
-    letter-spacing: 2px;
+        0 2px 8px rgba(0, 0, 0, 0.3),
+        0 0 16px rgba(255, 105, 180, 0.4);
+    letter-spacing: 1.5px;
     animation: bondMessageGlow 2s ease-in-out infinite;
 }
 
 @keyframes bondMessageGlow {
     0%, 100% {
         text-shadow: 
-            0 2px 10px rgba(0, 0, 0, 0.3),
-            0 0 20px rgba(255, 105, 180, 0.4);
+            0 2px 8px rgba(0, 0, 0, 0.3),
+            0 0 16px rgba(255, 105, 180, 0.4);
     }
     50% {
         text-shadow: 
@@ -396,33 +400,49 @@
     }
 }
 
-/* 移动端适配 */
+/* 移动端适配 - 进一步缩小 */
 @media (max-width: 768px) {
     .bond-card {
-        min-width: 320px;
-        padding: 24px 32px;
+        min-width: 300px;
+        padding: 16px 24px;
+        border-radius: 16px;
+    }
+
+    .bond-title-wrapper {
+        gap: 8px;
+        margin-bottom: 10px;
     }
 
     .bond-title {
-        font-size: 28px;
+        font-size: 22px;
         letter-spacing: 2px;
     }
 
     .bond-heart-icon {
-        font-size: 36px;
+        font-size: 26px;
+    }
+
+    .bond-users {
+        gap: 16px;
+        margin-bottom: 10px;
     }
 
     .bond-avatar {
-        width: 48px;
-        height: 48px;
+        width: 44px;
+        height: 44px;
+        border: 2px solid #fff;
     }
 
     .bond-username {
-        font-size: 14px;
+        font-size: 13px;
+    }
+
+    .bond-connector {
+        font-size: 22px;
     }
 
     .bond-message {
-        font-size: 15px;
+        font-size: 13px;
         letter-spacing: 1px;
     }
 
@@ -444,20 +464,20 @@
 
 @media (max-width: 480px) {
     .bond-card {
-        min-width: 280px;
-        padding: 20px 24px;
+        min-width: 260px;
+        padding: 14px 20px;
     }
 
     .bond-title {
-        font-size: 24px;
+        font-size: 20px;
     }
 
     .bond-heart-icon {
-        font-size: 32px;
+        font-size: 24px;
     }
 
     .bond-users {
-        gap: 16px;
+        gap: 14px;
     }
 
     .bond-avatar {
@@ -469,7 +489,11 @@
         font-size: 12px;
     }
 
+    .bond-connector {
+        font-size: 20px;
+    }
+
     .bond-message {
-        font-size: 14px;
+        font-size: 12px;
     }
 }

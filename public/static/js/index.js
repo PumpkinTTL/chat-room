@@ -504,7 +504,6 @@ try {
                         // 检查是否过期（7天）
                         if (parsedData.updateTime && Date.now() - parsedData.updateTime > 7 * 24 * 60 * 60 * 1000) {
                             localStorage.removeItem(storageKey);
-                            console.log('[已读] 清理过期的已读记录');
                             return;
                         }
                         // 恢复已读状态（只加载最近的500条）
@@ -512,7 +511,6 @@ try {
                             parsedData.readIds.slice(-500).forEach(function (id) {
                                 markedAsReadIds.value.add(Number(id));
                             });
-                            console.log('[已读] 从localStorage加载了', markedAsReadIds.value.size, '条已读记录');
                         }
                     }
                 } catch (e) {
@@ -561,8 +559,6 @@ try {
                 const idsToSend = pendingReadBatch.slice();
                 pendingReadBatch = [];
                 
-                console.log('[已读] 批量发送已读标记:', idsToSend.length, '条');
-
                 // 通过WebSocket发送已读标记
                 if (wsClient.value && wsConnected.value) {
                     wsClient.value.send({
@@ -818,8 +814,6 @@ try {
                 const host = window.location.host;
                 const wsUrl = protocol + '//' + host + '/ws';
 
-                console.log('[WebSocket] 初始化: ' + wsUrl);
-
                 wsClient.value = new WebSocketClient({
                     wsUrl: wsUrl,
                     token: currentUser.value.token,
@@ -828,7 +822,6 @@ try {
                     pingInterval: 30000,
 
                     onConnected: () => {
-                        console.log('[WebSocket] 已连接');
                         wsConnected.value = true;
                         usePolling.value = false;  // 重连成功，关闭轮询模式标记
 
@@ -839,8 +832,6 @@ try {
                     },
 
                     onAuthSuccess: (data) => {
-                        console.log('[WebSocket] 认证成功: ' + data.nickname);
-
                         // 认证成功后加入当前房间
                         if (roomId.value) {
                             wsClient.value.joinRoom(roomId.value);
@@ -848,8 +839,6 @@ try {
                     },
 
                     onRoomJoined: (data) => {
-                        console.log('[WebSocket] 加入房间: ' + data.room_id);
-
                         // 更新在线人数
                         onlineUsers.value = data.online_count;
 
@@ -882,8 +871,6 @@ try {
                     },
 
                     onMessage: (data) => {
-                        console.log('[WebSocket] 收到消息:', data);
-
                         // 添加消息到列表
                         if (data.type === 'message') {
                             // 使用 == 进行宽松比较，避免类型不一致问题
@@ -915,7 +902,6 @@ try {
                                     return m.id == data.message_id;
                                 });
                                 if (existingMsg) {
-                                    console.log('[WebSocket] 消息已存在，忽略: ' + data.message_id);
                                     return;
                                 }
                             }
@@ -978,7 +964,6 @@ try {
                             
                             // 私密房间：处理好感度更新（WebSocket携带）
                             if (currentRoomPrivate.value && data.intimacy) {
-                                console.log('[好感度] WebSocket收到更新:', data.intimacy);
                                 handleIntimacyUpdate({ code: 0, data: data.intimacy });
                             }
 
@@ -1001,7 +986,6 @@ try {
                     },
 
                     onUserJoined: (data) => {
-                        console.log('[WebSocket] 用户加入: ' + data.nickname);
                         // 只更新在线人数，总人数不变
                         onlineUsers.value = data.online_count;
 
@@ -1023,7 +1007,6 @@ try {
                     },
 
                     onUserLeft: (data) => {
-                        console.log('[WebSocket] 用户离开: ' + data.nickname);
                         // 只更新在线人数，总人数不变
                         onlineUsers.value = data.online_count;
 
@@ -1034,16 +1017,12 @@ try {
                     },
 
                     onTyping: (data) => {
-                        console.log('[WebSocket] 收到输入状态:', data);
-
                         // 不显示自己的输入状态
                         if (data.user_id == currentUser.value.id) {
-                            console.log('[WebSocket] 忽略自己的输入状态');
                             return;
                         }
 
                         const oderId = String(data.user_id);
-                        console.log('[WebSocket] 处理用户输入:', oderId, data.nickname, data.typing);
 
                         if (data.typing) {
                             // 清除该用户之前的定时器
@@ -1065,7 +1044,6 @@ try {
                                 timer: timer
                             };
                             typingUsers.value = newUsers;
-                            console.log('[WebSocket] 更新 typingUsers:', JSON.stringify(Object.keys(typingUsers.value)));
                         } else {
                             // 用户停止输入，清除
                             if (typingUsers.value[oderId]) {
@@ -1075,15 +1053,12 @@ try {
                                 const newUsers = Object.assign({}, typingUsers.value);
                                 delete newUsers[oderId];
                                 typingUsers.value = newUsers;
-                                console.log('[WebSocket] 用户停止输入:', oderId);
                             }
                         }
                     },
 
                     // 收到已读回执
                     onMessageRead: (data) => {
-                        console.log('[WebSocket] 收到已读回执:', data);
-
                         // 更新消息的已读状态
                         const messageIds = data.message_ids || [];
                         const readerInfo = {
@@ -1129,14 +1104,11 @@ try {
                                 msg.readUsers.unshift(readerInfo);
                             }
 
-                            console.log('[WebSocket] 更新消息已读状态:', msg.id, '已读人数:', msg.readCount);
                         });
                     },
 
                     // 收到消息焚毁广播
                     onMessageBurned: (data) => {
-                        console.log('[WebSocket] 收到消息焚毁广播:', data);
-                        
                         const messageId = data.message_id;
                         if (!messageId) return;
                         
@@ -1166,8 +1138,6 @@ try {
 
                     // 收到房间清理广播
                     onRoomCleared: (data) => {
-                        console.log('[WebSocket] 收到房间清理广播:', data);
-                        
                         const clearedBy = data.cleared_by_nickname || '管理员';
                         
                         // 清空本地消息列表
@@ -1180,7 +1150,6 @@ try {
                     
                     // 收到房间锁定状态变化广播
                     onRoomLockChanged: (data) => {
-                        console.log('[WebSocket] 收到房间锁定状态变化:', data);
                         currentRoomLocked.value = data.lock === 1;
                         window.Toast.info(data.lock === 1 ? '房间已被锁定' : '房间已解锁');
                     },
@@ -1213,7 +1182,6 @@ try {
                     },
 
                     onClose: () => {
-                        console.log('[WebSocket] 连接关闭');
                         wsConnected.value = false;
                     }
                 });
@@ -1631,13 +1599,10 @@ try {
                     });
 
                     const result = await response.json();
-                    console.log('[创建房间] 返回数据:', result);
 
                     if (result.code === 0) {
                         const roomData = result.data;
                         const newRoomId = roomData.id;
-
-                        console.log('[创建房间] 房间ID:', newRoomId);
 
                         if (!newRoomId) {
                             window.Toast.error('创建成功但无法获取房间ID');
@@ -3337,7 +3302,6 @@ try {
                             }, 200);
                         } else {
                             // WebSocket 未连接，等待连接后再检测
-                            console.log('[已读] 页面重新可见，等待WebSocket连接后再检测...');
 
                             // 设置一个超时，如果 WebSocket 一直不连接，就使用 HTTP 降级
                             let waitCount = 0;
@@ -3348,7 +3312,6 @@ try {
                                     checkAndMarkVisibleMessages();
                                 } else if (waitCount >= 10) {
                                     // 等待超过2秒仍没连接，使用 HTTP 降级
-                                    console.log('[已读] WebSocket未连接，使用HTTP标记已读');
                                     checkAndMarkVisibleMessages();
                                 } else {
                                     // 继续等待
@@ -4325,7 +4288,6 @@ try {
                                 avatar: profile.avatar
                             });
                             username.value = profile.nickname;
-                            console.log('[init] 从服务器获取最新用户信息成功');
                         }
                     })
                     .catch(error => {
@@ -4358,7 +4320,6 @@ try {
                     // 如果3秒后 WebSocket 还没连接成功，才启动轮询
                     setTimeout(function () {
                         if (autoRefresh.value && roomId.value && !wsConnected.value) {
-                            console.log('[轮询] WebSocket未连接，启动轮询');
                             startAutoRefresh();
                         }
                     }, 3000);
