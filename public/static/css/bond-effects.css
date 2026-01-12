@@ -1,4 +1,4 @@
-/* 羁绊上线特效样式 */
+/* 羁绊上线特效样式 - 性能优化+视觉增强版 */
 
 /* 飘屏容器 */
 .bond-notification-container {
@@ -19,19 +19,28 @@
     left: 50%;
     transform: translate(-50%, -50%) scale(0);
     pointer-events: none;
-    animation: bondOnlineAppear 3s ease-out forwards;
+    animation: bondOnlineAppear 3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    will-change: transform, opacity;
 }
 
 @keyframes bondOnlineAppear {
     0% {
-        transform: translate(-50%, -50%) scale(0) rotate(-10deg);
+        transform: translate(-50%, -50%) scale(0) rotate(-15deg);
         opacity: 0;
     }
     15% {
-        transform: translate(-50%, -50%) scale(1.2) rotate(5deg);
+        transform: translate(-50%, -50%) scale(1.15) rotate(8deg);
         opacity: 1;
     }
     25% {
+        transform: translate(-50%, -50%) scale(0.98) rotate(-3deg);
+        opacity: 1;
+    }
+    35% {
+        transform: translate(-50%, -50%) scale(1.02) rotate(2deg);
+        opacity: 1;
+    }
+    45% {
         transform: translate(-50%, -50%) scale(1) rotate(0deg);
         opacity: 1;
     }
@@ -40,7 +49,7 @@
         opacity: 1;
     }
     100% {
-        transform: translate(-50%, -60%) scale(0.8) rotate(0deg);
+        transform: translate(-50%, -60%) scale(0.85) rotate(0deg);
         opacity: 0;
     }
 }
@@ -48,26 +57,29 @@
 /* 主卡片 */
 .bond-card {
     background: linear-gradient(135deg, 
-        rgba(255, 182, 193, 0.95) 0%, 
-        rgba(255, 192, 203, 0.95) 25%,
-        rgba(255, 218, 224, 0.95) 50%,
-        rgba(255, 192, 203, 0.95) 75%,
-        rgba(255, 182, 193, 0.95) 100%);
+        rgba(255, 182, 193, 0.98) 0%, 
+        rgba(255, 192, 203, 0.98) 30%,
+        rgba(255, 218, 224, 0.98) 50%,
+        rgba(255, 192, 203, 0.98) 70%,
+        rgba(255, 182, 193, 0.98) 100%);
     background-size: 200% 200%;
-    animation: bondGradientShift 3s ease infinite;
-    border-radius: 24px;
+    animation: bondGradientFlow 4s ease-in-out infinite;
+    border-radius: 28px;
     padding: 32px 48px;
     box-shadow: 
-        0 20px 60px rgba(255, 105, 180, 0.4),
-        0 0 0 8px rgba(255, 255, 255, 0.3),
-        0 0 0 12px rgba(255, 182, 193, 0.2),
-        inset 0 2px 20px rgba(255, 255, 255, 0.5);
+        0 25px 70px rgba(255, 105, 180, 0.45),
+        0 10px 30px rgba(255, 105, 180, 0.3),
+        0 0 0 1px rgba(255, 255, 255, 0.8),
+        0 0 0 8px rgba(255, 255, 255, 0.4),
+        0 0 0 12px rgba(255, 182, 193, 0.25),
+        inset 0 2px 25px rgba(255, 255, 255, 0.6);
     position: relative;
     overflow: visible;
     min-width: 400px;
+    will-change: transform;
 }
 
-@keyframes bondGradientShift {
+@keyframes bondGradientFlow {
     0%, 100% {
         background-position: 0% 50%;
     }
@@ -76,30 +88,36 @@
     }
 }
 
-/* 光晕效果 */
+/* 光晕效果 - 使用transform代替blur */
 .bond-card::before {
     content: '';
     position: absolute;
-    top: -4px;
-    left: -4px;
-    right: -4px;
-    bottom: -4px;
+    top: -6px;
+    left: -6px;
+    right: -6px;
+    bottom: -6px;
     background: linear-gradient(45deg, 
-        #ff69b4, #ff1493, #ff69b4, #ffc0cb, #ff69b4);
-    background-size: 400% 400%;
-    border-radius: 26px;
+        rgba(255, 105, 180, 0.6), 
+        rgba(255, 20, 147, 0.6), 
+        rgba(255, 105, 180, 0.6), 
+        rgba(255, 192, 203, 0.6));
+    background-size: 300% 300%;
+    border-radius: 32px;
     z-index: -1;
-    animation: bondGlow 2s ease infinite;
-    filter: blur(8px);
-    opacity: 0.6;
+    animation: bondGlowPulse 3s ease-in-out infinite;
+    opacity: 0.7;
 }
 
-@keyframes bondGlow {
+@keyframes bondGlowPulse {
     0%, 100% {
         background-position: 0% 50%;
+        transform: scale(1);
+        opacity: 0.6;
     }
     50% {
         background-position: 100% 50%;
+        transform: scale(1.02);
+        opacity: 0.8;
     }
 }
 
@@ -114,19 +132,27 @@
 
 .bond-heart-icon {
     font-size: 48px;
-    animation: bondHeartBeat 1.5s ease-in-out infinite;
-    filter: drop-shadow(0 4px 12px rgba(255, 105, 180, 0.6));
+    color: #ff1493;
+    animation: bondHeartBeat 1.2s ease-in-out infinite;
+    will-change: transform;
+    text-shadow: 0 4px 15px rgba(255, 20, 147, 0.5);
 }
 
 @keyframes bondHeartBeat {
     0%, 100% {
         transform: scale(1);
     }
-    10%, 30% {
-        transform: scale(1.2);
+    10% {
+        transform: scale(1.25);
     }
-    20%, 40% {
-        transform: scale(1.1);
+    20% {
+        transform: scale(1.15);
+    }
+    30% {
+        transform: scale(1.25);
+    }
+    40% {
+        transform: scale(1.15);
     }
     50% {
         transform: scale(1);
@@ -136,17 +162,22 @@
 .bond-title {
     font-size: 36px;
     font-weight: 700;
-    background: linear-gradient(135deg, #ff1493 0%, #ff69b4 50%, #ff1493 100%);
+    background: linear-gradient(135deg, 
+        #ff1493 0%, 
+        #ff69b4 25%, 
+        #ff1493 50%, 
+        #ff69b4 75%, 
+        #ff1493 100%);
     background-size: 200% 200%;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    animation: bondTextShine 2s ease infinite;
+    animation: bondTextShimmer 3s ease-in-out infinite;
     letter-spacing: 4px;
-    text-shadow: 0 0 20px rgba(255, 105, 180, 0.5);
+    text-shadow: 0 0 30px rgba(255, 105, 180, 0.6);
 }
 
-@keyframes bondTextShine {
+@keyframes bondTextShimmer {
     0%, 100% {
         background-position: 0% 50%;
     }
@@ -176,8 +207,11 @@
     height: 64px;
     border-radius: 50%;
     border: 4px solid #fff;
-    box-shadow: 0 8px 24px rgba(255, 105, 180, 0.4);
+    box-shadow: 
+        0 8px 24px rgba(255, 105, 180, 0.5),
+        0 0 0 2px rgba(255, 182, 193, 0.3);
     animation: bondAvatarFloat 3s ease-in-out infinite;
+    will-change: transform;
 }
 
 .bond-avatar-placeholder {
@@ -195,7 +229,7 @@
     animation-delay: 0s;
 }
 
-.bond-user:nth-child(2) .bond-avatar {
+.bond-user:nth-child(3) .bond-avatar {
     animation-delay: 0.5s;
 }
 
@@ -203,8 +237,14 @@
     0%, 100% {
         transform: translateY(0) scale(1);
     }
+    25% {
+        transform: translateY(-6px) scale(1.03);
+    }
     50% {
-        transform: translateY(-8px) scale(1.05);
+        transform: translateY(-10px) scale(1.05);
+    }
+    75% {
+        transform: translateY(-6px) scale(1.03);
     }
 }
 
@@ -212,21 +252,34 @@
     font-size: 16px;
     font-weight: 600;
     color: #fff;
-    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    text-shadow: 
+        0 2px 8px rgba(0, 0, 0, 0.3),
+        0 0 15px rgba(255, 105, 180, 0.4);
 }
 
 .bond-connector {
     font-size: 32px;
+    color: #ff1493;
     animation: bondConnectorPulse 1.5s ease-in-out infinite;
+    will-change: transform, opacity;
+    text-shadow: 0 4px 15px rgba(255, 20, 147, 0.5);
 }
 
 @keyframes bondConnectorPulse {
     0%, 100% {
         transform: scale(1) rotate(0deg);
-        opacity: 0.8;
+        opacity: 0.85;
+    }
+    25% {
+        transform: scale(1.2) rotate(15deg);
+        opacity: 1;
     }
     50% {
-        transform: scale(1.3) rotate(180deg);
+        transform: scale(1.35) rotate(0deg);
+        opacity: 1;
+    }
+    75% {
+        transform: scale(1.2) rotate(-15deg);
         opacity: 1;
     }
 }
@@ -237,8 +290,24 @@
     font-size: 18px;
     color: #fff;
     font-weight: 500;
-    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    text-shadow: 
+        0 2px 10px rgba(0, 0, 0, 0.3),
+        0 0 20px rgba(255, 105, 180, 0.4);
     letter-spacing: 2px;
+    animation: bondMessageGlow 2s ease-in-out infinite;
+}
+
+@keyframes bondMessageGlow {
+    0%, 100% {
+        text-shadow: 
+            0 2px 10px rgba(0, 0, 0, 0.3),
+            0 0 20px rgba(255, 105, 180, 0.4);
+    }
+    50% {
+        text-shadow: 
+            0 2px 10px rgba(0, 0, 0, 0.3),
+            0 0 30px rgba(255, 105, 180, 0.6);
+    }
 }
 
 /* 粒子效果容器 */
@@ -257,6 +326,9 @@
     position: absolute;
     pointer-events: none;
     animation: bondParticleFloat 3s ease-out forwards;
+    will-change: transform, opacity;
+    color: #ff69b4;
+    text-shadow: 0 0 10px rgba(255, 105, 180, 0.8);
 }
 
 @keyframes bondParticleFloat {
@@ -268,30 +340,9 @@
         opacity: 1;
     }
     100% {
-        transform: translate(var(--tx), var(--ty)) scale(1) rotate(360deg);
+        transform: translate(var(--tx), var(--ty)) scale(1.2) rotate(360deg);
         opacity: 0;
     }
-}
-
-/* 心形粒子 */
-.bond-particle.heart {
-    font-size: 24px;
-    color: #ff69b4;
-    filter: drop-shadow(0 2px 8px rgba(255, 105, 180, 0.6));
-}
-
-/* 星星粒子 */
-.bond-particle.star {
-    font-size: 20px;
-    color: #ffd700;
-    filter: drop-shadow(0 2px 8px rgba(255, 215, 0, 0.6));
-}
-
-/* 花朵粒子 */
-.bond-particle.flower {
-    font-size: 22px;
-    color: #ffb6c1;
-    filter: drop-shadow(0 2px 8px rgba(255, 182, 193, 0.6));
 }
 
 /* 光圈效果 */
@@ -302,29 +353,34 @@
     transform: translate(-50%, -50%);
     width: 200px;
     height: 200px;
-    border: 3px solid rgba(255, 105, 180, 0.6);
+    border: 3px solid rgba(255, 105, 180, 0.5);
     border-radius: 50%;
-    animation: bondRingExpand 2s ease-out infinite;
+    animation: bondRingExpand 2.5s ease-out infinite;
+    will-change: transform, opacity;
 }
 
 .bond-ring:nth-child(2) {
-    animation-delay: 0.5s;
+    animation-delay: 0.6s;
+    border-color: rgba(255, 20, 147, 0.4);
 }
 
 .bond-ring:nth-child(3) {
-    animation-delay: 1s;
+    animation-delay: 1.2s;
+    border-color: rgba(255, 192, 203, 0.4);
 }
 
 @keyframes bondRingExpand {
     0% {
         width: 200px;
         height: 200px;
-        opacity: 1;
+        opacity: 0.8;
+        transform: translate(-50%, -50%) scale(1);
     }
     100% {
-        width: 600px;
-        height: 600px;
+        width: 550px;
+        height: 550px;
         opacity: 0;
+        transform: translate(-50%, -50%) scale(1);
     }
 }
 
@@ -360,6 +416,17 @@
 
     .bond-connector {
         font-size: 24px;
+    }
+    
+    /* 移动端减少粒子动画 */
+    .bond-particle {
+        display: none;
+    }
+    
+    /* 移动端只保留一个光圈 */
+    .bond-ring:nth-child(2),
+    .bond-ring:nth-child(3) {
+        display: none;
     }
 }
 

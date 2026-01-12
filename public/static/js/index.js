@@ -851,7 +851,6 @@ try {
                         console.log('[WebSocket] 加入房间: ' + data.room_id);
 
                         // 更新在线人数
-                        const previousOnlineCount = onlineUsers.value;
                         onlineUsers.value = data.online_count;
 
                         // 更新在线用户列表
@@ -864,26 +863,6 @@ try {
                                     online: true
                                 };
                             });
-                            
-                            // 私密房间：两人都在线时触发羁绊上线特效
-                            if (currentRoomPrivate.value && data.online_count === 2 && previousOnlineCount < 2 && data.users.length === 2) {
-                                // 找出当前用户和对方用户
-                                const currentUserId = currentUser.value.id;
-                                const otherUser = data.users.find(u => u.user_id != currentUserId);
-                                const selfUser = data.users.find(u => u.user_id == currentUserId);
-                                
-                                if (otherUser && selfUser) {
-                                    const user1 = {
-                                        nick_name: selfUser.nick_name,
-                                        avatar: currentUser.value.avatar || selfUser.avatar
-                                    };
-                                    const user2 = {
-                                        nick_name: otherUser.nick_name,
-                                        avatar: otherUser.avatar
-                                    };
-                                    triggerBondOnlineEffect(user1, user2);
-                                }
-                            }
                         }
 
                         // 加入房间成功后停止轮询
@@ -1029,6 +1008,17 @@ try {
                         // 刷新在线用户列表
                         if (roomId.value) {
                             getRoomInfo(roomId.value);
+                        }
+                        
+                        // 私密房间：当第二个人加入时，第一个人看到羁绊上线提醒
+                        if (currentRoomPrivate.value && data.online_count === 2) {
+                            // 从消息列表获取头像
+                            const getAvatar = (userId) => messages.value.find(m => m.sender?.id == userId)?.sender?.avatar;
+                            
+                            triggerBondOnlineEffect(
+                                { nick_name: currentUser.value.nick_name, avatar: getAvatar(currentUser.value.id) || currentUser.value.avatar },
+                                { nick_name: data.nickname, avatar: getAvatar(data.user_id) }
+                            );
                         }
                     },
 
@@ -2002,7 +1992,7 @@ try {
             const intimacyInfo = ref(null); // 好感度信息
             const showIntimacyCard = ref(false); // 是否展开好感度卡片
             const showExpToast = ref(localStorage.getItem('showExpToast') === 'true'); // 是否显示经验提示（默认关闭，有缓存才按缓存）
-            const showBondOnlineEffect = ref(localStorage.getItem('showBondOnlineEffect') !== 'false'); // 是否显示羁绊上线特效（默认开启）
+            const showBondOnlineEffect = ref(localStorage.getItem('showBondOnlineEffect') !== 'false'); // 是否显示羁绊上线提醒（默认开启）
             const onlineUsersList = ref([]);
             const roomList = ref([]);
             const contactList = ref([]);     // 联系人列表
@@ -2202,7 +2192,8 @@ try {
                     time: new Date(),
                     sender: {
                         id: currentUser.value.id,
-                        nickname: username.value
+                        nickname: username.value,
+                        avatar: currentUser.value.avatar
                     }
                 };
 
@@ -2913,17 +2904,18 @@ try {
             const triggerBondOnlineEffect = function (user1, user2) {
                 if (!showBondOnlineEffect.value) return;
                 
-                // 创建飘屏容器
+                const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+                
                 const container = document.createElement('div');
                 container.className = 'bond-notification-container';
                 
-                // 创建主通知元素
                 const notification = document.createElement('div');
                 notification.className = 'bond-online-notification';
                 
-                // 构建用户头像HTML
-                const user1Avatar = user1.avatar ? `<img src="${user1.avatar}" alt="${user1.nick_name}" class="bond-avatar">` : `<div class="bond-avatar bond-avatar-placeholder">${user1.nick_name.charAt(0)}</div>`;
-                const user2Avatar = user2.avatar ? `<img src="${user2.avatar}" alt="${user2.nick_name}" class="bond-avatar">` : `<div class="bond-avatar bond-avatar-placeholder">${user2.nick_name.charAt(0)}</div>`;
+                // 构建头像HTML
+                const avatarHTML = (user) => user.avatar 
+                    ? `<img src="${user.avatar}" alt="${user.nick_name}" class="bond-avatar">` 
+                    : `<div class="bond-avatar bond-avatar-placeholder">${user.nick_name.charAt(0)}</div>`;
                 
                 notification.innerHTML = `
                     <div class="bond-card">
@@ -2933,18 +2925,18 @@ try {
                             <div class="bond-ring"></div>
                         </div>
                         <div class="bond-title-wrapper">
-                            <div class="bond-heart-icon">💕</div>
+                            <div class="bond-heart-icon"><i class="fas fa-heart"></i></div>
                             <div class="bond-title">羁绊上线</div>
-                            <div class="bond-heart-icon">💕</div>
+                            <div class="bond-heart-icon"><i class="fas fa-heart"></i></div>
                         </div>
                         <div class="bond-users">
                             <div class="bond-user">
-                                ${user1Avatar}
+                                ${avatarHTML(user1)}
                                 <div class="bond-username">${user1.nick_name}</div>
                             </div>
-                            <div class="bond-connector">💗</div>
+                            <div class="bond-connector"><i class="fas fa-heart"></i></div>
                             <div class="bond-user">
-                                ${user2Avatar}
+                                ${avatarHTML(user2)}
                                 <div class="bond-username">${user2.nick_name}</div>
                             </div>
                         </div>
@@ -2955,36 +2947,33 @@ try {
                 container.appendChild(notification);
                 document.body.appendChild(container);
                 
-                // 创建粒子效果
-                setTimeout(function() {
-                    const particlesContainer = notification.querySelector('.bond-particles');
-                    const particles = ['💖', '💗', '💓', '💕', '✨', '⭐', '🌸', '🌺', '🌹'];
-                    
-                    for (let i = 0; i < 30; i++) {
-                        const particle = document.createElement('div');
-                        particle.className = 'bond-particle';
-                        particle.textContent = particles[Math.floor(Math.random() * particles.length)];
+                // 创建粒子效果（移动端不创建）
+                if (!isMobile) {
+                    setTimeout(function() {
+                        const particlesContainer = notification.querySelector('.bond-particles');
+                        const particles = ['<i class="fas fa-heart"></i>', '<i class="fas fa-star"></i>', '<i class="fas fa-sparkles"></i>'];
                         
-                        // 随机位置
-                        const angle = (Math.random() * 360) * (Math.PI / 180);
-                        const distance = 150 + Math.random() * 200;
-                        const tx = Math.cos(angle) * distance;
-                        const ty = Math.sin(angle) * distance;
-                        
-                        particle.style.setProperty('--tx', tx + 'px');
-                        particle.style.setProperty('--ty', ty + 'px');
-                        particle.style.left = '50%';
-                        particle.style.top = '50%';
-                        particle.style.animationDelay = (Math.random() * 0.5) + 's';
-                        
-                        particlesContainer.appendChild(particle);
-                    }
-                }, 200);
+                        for (let i = 0; i < 20; i++) {
+                            const particle = document.createElement('div');
+                            particle.className = 'bond-particle';
+                            particle.innerHTML = particles[Math.floor(Math.random() * particles.length)];
+                            
+                            const angle = (Math.random() * 360) * (Math.PI / 180);
+                            const distance = 150 + Math.random() * 200;
+                            
+                            particle.style.setProperty('--tx', Math.cos(angle) * distance + 'px');
+                            particle.style.setProperty('--ty', Math.sin(angle) * distance + 'px');
+                            particle.style.left = '50%';
+                            particle.style.top = '50%';
+                            particle.style.animationDelay = (Math.random() * 0.5) + 's';
+                            
+                            particlesContainer.appendChild(particle);
+                        }
+                    }, 200);
+                }
                 
                 // 3秒后移除
-                setTimeout(function() {
-                    container.remove();
-                }, 3000);
+                setTimeout(() => container.remove(), 3000);
             };
 
             // 处理粘贴事件
