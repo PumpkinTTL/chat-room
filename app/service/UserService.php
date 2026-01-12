@@ -384,23 +384,27 @@ class UserService
                 $extension = $mimeToExt[$mimeType] ?? 'jpg';
             }
 
-            // 使用固定文件名: avatars/{用户ID}.{扩展名}
-            // 这样同一用户的头像URL永远不变,浏览器可以缓存
-            $fileName = 'avatars/' . $userId . '.' . $extension;
+            // 删除旧头像文件
+            if (!empty($user->avatar)) {
+                $oldPath = public_path() . $user->avatar;
+                if (file_exists($oldPath)) {
+                    @unlink($oldPath);
+                }
+            }
 
-            // 保存文件(会自动覆盖旧文件)
+            // 生成随机文件名：avatars/随机字符串.扩展名
+            $randomName = 'avatars/' . uniqid() . '_' . time() . '.' . $extension;
+
+            // 保存文件
             $disk = \think\facade\Filesystem::disk('public');
-            $path = $disk->putFileAs('images', $file, $fileName);
+            $path = $disk->putFileAs('images', $file, $randomName);
 
             if (!$path) {
                 return ['code' => 1, 'msg' => '文件保存失败'];
             }
 
-            // 获取访问URL(固定URL,包含用户ID)
+            // 获取访问URL
             $url = '/storage/' . $path;
-
-            // 注意: 不需要删除旧文件,因为新文件会覆盖旧文件
-            // 如果扩展名改变了(例如从jpg改为png),旧的jpg文件会保留,但不影响使用
 
             // 更新用户头像
             $user->avatar = $url;

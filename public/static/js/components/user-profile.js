@@ -408,13 +408,18 @@
                 // 更新本地状态
                 state.profile.avatar = result.data.avatar;
 
+                // 更新localStorage中的用户信息
+                const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+                currentUser.avatar = result.data.avatar;
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+
                 // 更新显示
                 renderProfile();
 
-                // 延迟1秒后刷新页面
+                // 延迟500ms后刷新页面
                 setTimeout(() => {
                     location.reload();
-                }, 1000);
+                }, 500);
             } else {
                 throw new Error(result.msg || '上传失败');
             }
