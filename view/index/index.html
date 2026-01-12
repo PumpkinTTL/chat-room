@@ -7,11 +7,11 @@
     <title>端对端聊天系统</title>
     <link rel="stylesheet" href="/static/css/animate.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="/static/css/index.css?v=118">
+    <link rel="stylesheet" href="/static/css/index.css?v=120">
     <link rel="stylesheet" href="/static/css/index-modal.css?v=2">
     <link rel="stylesheet" href="/static/css/message-types.css?v=22">
     <link rel="stylesheet" href="/static/css/intimacy.css?v=10">
-    <link rel="stylesheet" href="/static/css/bond-effects.css?v=1">
+    <link rel="stylesheet" href="/static/css/bond-effects.css?v=3">
     <!-- 关键：在Vue加载前隐藏整个应用，防止模板闪现 -->
     <style>
         [v-cloak] {
@@ -41,10 +41,9 @@
                     <!-- 用户信息 -->
                     <div class="user-info" v-if="currentUser.id" @click="openUserProfile" style="cursor: pointer;"
                         title="点击查看个人资料">
-                        <div class="user-avatar"
-                            :style="isValidAvatar(currentUser.avatar) ? { backgroundImage: 'url(' + currentUser.avatar + ')' } : {}">
-                            <span v-if="!isValidAvatar(currentUser.avatar)"
-                                v-text="currentUser.nick_name.charAt(0)"></span>
+                        <div class="user-avatar">
+                            <img v-if="isValidAvatar(currentUser.avatar)" :src="currentUser.avatar" :alt="currentUser.nick_name">
+                            <span v-else v-text="currentUser.nick_name.charAt(0)"></span>
                             <i class="user-status-dot"></i>
                         </div>
                         <div class="user-detail">
@@ -362,15 +361,13 @@
                             @touchstart="handleMessageTouchStart($event, message)"
                             @touchend="handleMessageTouchEnd"
                             @touchmove="handleMessageTouchMove">
-                            <div v-if="!message.isOwn" class="msg-avatar"
-                                :style="message.sender && isValidAvatar(message.sender.avatar) ? { backgroundImage: 'url(' + message.sender.avatar + ')' } : {}">
-                                <span v-if="!message.sender || !isValidAvatar(message.sender.avatar)"
-                                    v-text="message.username.charAt(0)"></span>
+                            <div v-if="!message.isOwn" class="msg-avatar">
+                                <img v-if="message.sender && isValidAvatar(message.sender.avatar)" :src="message.sender.avatar" :alt="message.username">
+                                <span v-else v-text="message.username.charAt(0)"></span>
                             </div>
-                            <div v-else class="msg-avatar msg-avatar-own"
-                                :style="isValidAvatar(currentUser.avatar) ? { backgroundImage: 'url(' + currentUser.avatar + ')' } : {}">
-                                <span v-if="!isValidAvatar(currentUser.avatar)"
-                                    v-text="currentUser.nick_name.charAt(0)"></span>
+                            <div v-else class="msg-avatar msg-avatar-own">
+                                <img v-if="isValidAvatar(currentUser.avatar)" :src="currentUser.avatar" :alt="currentUser.nick_name">
+                                <span v-else v-text="currentUser.nick_name.charAt(0)"></span>
                             </div>
 
                             <!-- 他人的消息 -->
