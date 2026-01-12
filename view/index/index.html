@@ -102,10 +102,9 @@
                         </div>
                         <div v-else class="contact-list">
                             <div v-for="contact in contactList" :key="contact.id" class="contact-item">
-                                <div class="contact-avatar"
-                                    :style="contact.avatar && isValidAvatar(contact.avatar) ? { backgroundImage: 'url(' + contact.avatar + ')' } : {}">
-                                    <span v-if="!contact.avatar || !isValidAvatar(contact.avatar)"
-                                        v-text="contact.nickname.charAt(0)"></span>
+                                <div class="contact-avatar">
+                                    <img v-if="contact.avatar && isValidAvatar(contact.avatar)" :src="contact.avatar" :alt="contact.nickname">
+                                    <span v-else v-text="contact.nickname.charAt(0)"></span>
                                 </div>
                                 <div class="contact-info">
                                     <div class="contact-name" v-text="contact.nickname"></div>
