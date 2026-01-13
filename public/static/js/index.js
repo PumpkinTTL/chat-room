@@ -118,7 +118,7 @@ try {
             // 新消息提示
             const showNewMessageTip = ref(false);
             const newMessageCount = ref(0);
-            
+
             // 回到底部按钮
             const showScrollToBottom = ref(false);
 
@@ -155,13 +155,13 @@ try {
             // 插入时间分隔消息（如果需要）
             async function insertTimeSeparatorIfNeededFn() {
                 if (!shouldInsertTimeSeparator()) return;
-                
+
                 const now = new Date();
                 const text = String(now.getMonth() + 1).padStart(2, '0') + '-' +
-                             String(now.getDate()).padStart(2, '0') + ' ' +
-                             String(now.getHours()).padStart(2, '0') + ':' +
-                             String(now.getMinutes()).padStart(2, '0');
-                
+                    String(now.getDate()).padStart(2, '0') + ' ' +
+                    String(now.getHours()).padStart(2, '0') + ':' +
+                    String(now.getMinutes()).padStart(2, '0');
+
                 try {
                     const response = await apiRequest('/api/message/sendSystem', {
                         method: 'POST',
@@ -336,7 +336,7 @@ try {
                 if (users.length === 1) return users[0].nickname + ' 正在输入...';
                 return users[0].nickname + ' 等' + users.length + '人正在输入...';
             });
-            
+
             // 计算私密房间是否点亮（两人都在线）
             const isPrivateRoomLit = computed(() => {
                 return currentRoomPrivate.value && onlineUsers.value >= 2;
@@ -496,12 +496,12 @@ try {
             const markedAsReadIds = ref(new Set());
             // 正在标记中的消息ID（防止并发重复请求）
             const pendingMarkIds = ref(new Set());
-            
+
             // 批量已读请求聚合
             let pendingReadBatch = [];
             let batchReadTimer = null;
             const BATCH_READ_DELAY = 300; // 300ms 聚合窗口
-            
+
             // IntersectionObserver 实例
             let messageObserver = null;
 
@@ -560,7 +560,7 @@ try {
                     }
                 }, 2000); // 2秒节流
             };
-            
+
             // 清理旧的已读存储（切换房间时调用）
             const clearReadStatusForRoom = () => {
                 markedAsReadIds.value.clear();
@@ -571,10 +571,10 @@ try {
             // 实际发送已读标记请求
             const flushReadBatch = () => {
                 if (pendingReadBatch.length === 0) return;
-                
+
                 const idsToSend = pendingReadBatch.slice();
                 pendingReadBatch = [];
-                
+
                 // 通过WebSocket发送已读标记
                 if (wsClient.value && wsConnected.value) {
                     wsClient.value.send({
@@ -651,43 +651,43 @@ try {
                 if (messageObserver) {
                     messageObserver.disconnect();
                 }
-                
+
                 if (!('IntersectionObserver' in window)) {
                     console.warn('[已读] 浏览器不支持 IntersectionObserver，降级到滚动检测');
                     return;
                 }
-                
+
                 const container = messagesContainer.value;
                 if (!container) return;
-                
+
                 messageObserver = new IntersectionObserver(function (entries) {
                     if (document.visibilityState !== 'visible') return;
-                    
+
                     const visibleUnreadIds = [];
-                    
+
                     entries.forEach(function (entry) {
                         if (!entry.isIntersecting) return;
-                        
+
                         const el = entry.target;
                         const msgId = el.getAttribute('data-msg-id');
                         if (!msgId || msgId.startsWith('temp_')) return;
-                        
+
                         const numericMsgId = Number(msgId);
                         if (isNaN(numericMsgId)) return;
                         if (markedAsReadIds.value.has(numericMsgId)) return;
-                        
+
                         // 查找消息数据，只处理别人的消息
                         const msg = messages.value.find(function (m) {
                             return m.id == numericMsgId;
                         });
                         if (!msg || msg.isOwn) return;
-                        
+
                         visibleUnreadIds.push(numericMsgId);
-                        
+
                         // 已读后停止观察该元素
                         messageObserver.unobserve(el);
                     });
-                    
+
                     if (visibleUnreadIds.length > 0) {
                         markMessagesAsRead(visibleUnreadIds);
                     }
@@ -697,47 +697,47 @@ try {
                     threshold: 0.5 // 50% 可见时触发
                 });
             };
-            
+
             // 观察新消息元素
             const observeMessageElement = (msgId) => {
                 if (!messageObserver) return;
-                
+
                 nextTick(function () {
                     const container = messagesContainer.value;
                     if (!container) return;
-                    
+
                     const el = container.querySelector('.msg-row[data-msg-id="' + msgId + '"]');
                     if (el) {
                         messageObserver.observe(el);
                     }
                 });
             };
-            
+
             // 观察所有未读消息（加载消息后调用）
             const observeAllUnreadMessages = () => {
                 if (!messageObserver) {
                     initMessageObserver();
                 }
                 if (!messageObserver) return;
-                
+
                 nextTick(function () {
                     const container = messagesContainer.value;
                     if (!container) return;
-                    
+
                     const msgElements = container.querySelectorAll('.msg-row[data-msg-id]');
                     msgElements.forEach(function (el) {
                         const msgId = el.getAttribute('data-msg-id');
                         if (!msgId || msgId.startsWith('temp_')) return;
-                        
+
                         const numericMsgId = Number(msgId);
                         if (markedAsReadIds.value.has(numericMsgId)) return;
-                        
+
                         // 只观察别人的消息
                         const msg = messages.value.find(function (m) {
                             return m.id == numericMsgId;
                         });
                         if (!msg || msg.isOwn) return;
-                        
+
                         messageObserver.observe(el);
                     });
                 });
@@ -750,7 +750,7 @@ try {
                     observeAllUnreadMessages();
                     return;
                 }
-                
+
                 if (!roomId.value || document.visibilityState !== 'visible') return;
 
                 const container = messagesContainer.value;
@@ -796,12 +796,12 @@ try {
 
                 scrollCheckTimer = setTimeout(function () {
                     scrollCheckTimer = null;
-                    
+
                     const atBottom = isUserAtBottom();
-                    
+
                     // 控制回到底部按钮的显示
                     showScrollToBottom.value = !atBottom;
-                    
+
                     // IntersectionObserver 会自动处理，这里只处理新消息提示
                     if (atBottom && showNewMessageTip.value) {
                         showNewMessageTip.value = false;
@@ -931,7 +931,7 @@ try {
                             else if (msgType === 'video' || msgType === 5) normalizedType = 'video';
                             else if (msgType === 'file' || msgType === 3) normalizedType = 'file';
                             else if (msgType === 'text' || msgType === 1 || msgType === 'normal') normalizedType = 'text';
-                            
+
                             // 如果有引用信息，类型设为 reply（但渲染时会转为 text）
                             if (data.reply_to) {
                                 normalizedType = 'reply';
@@ -977,7 +977,7 @@ try {
                             const wasAtBottom = isUserAtBottom();
 
                             messages.value.push(newMsg);
-                            
+
                             // 私密房间：处理好感度更新（WebSocket携带）
                             if (currentRoomPrivate.value && data.intimacy) {
                                 handleIntimacyUpdate({ code: 0, data: data.intimacy });
@@ -1009,12 +1009,12 @@ try {
                         if (roomId.value) {
                             getRoomInfo(roomId.value);
                         }
-                        
+
                         // 私密房间：当第二个人加入时，第一个人看到羁绊上线提醒
                         if (currentRoomPrivate.value && data.online_count === 2) {
                             // 从消息列表获取头像
                             const getAvatar = (userId) => messages.value.find(m => m.sender?.id == userId)?.sender?.avatar;
-                            
+
                             triggerBondOnlineEffect(
                                 { nick_name: currentUser.value.nick_name, avatar: getAvatar(currentUser.value.id) || currentUser.value.avatar },
                                 { nick_name: data.nickname, avatar: getAvatar(data.user_id) }
@@ -1082,20 +1082,20 @@ try {
                             nickname: data.reader_nickname,
                             read_at: data.read_at
                         };
-                        
+
                         // 用 Set 加速消息ID匹配
-                        const messageIdSet = new Set(messageIds.map(function(id) { return String(id); }));
+                        const messageIdSet = new Set(messageIds.map(function (id) { return String(id); }));
 
                         messages.value.forEach(function (msg) {
                             // 使用 Set 快速查找
                             if (!msg.isOwn || !messageIdSet.has(String(msg.id))) return;
-                            
+
                             // 初始化已读用户 Set（用于快速去重）
                             if (!msg._readUserIds) {
                                 msg._readUserIds = new Set();
                                 // 从已有的 readUsers 初始化
                                 if (msg.readUsers) {
-                                    msg.readUsers.forEach(function(u) {
+                                    msg.readUsers.forEach(function (u) {
                                         msg._readUserIds.add(String(u.user_id));
                                     });
                                 }
@@ -1127,22 +1127,22 @@ try {
                     onMessageBurned: (data) => {
                         const messageId = data.message_id;
                         if (!messageId) return;
-                        
+
                         // 查找消息
-                        const msgIndex = messages.value.findIndex(function(m) {
+                        const msgIndex = messages.value.findIndex(function (m) {
                             return m.id == messageId;
                         });
-                        
+
                         if (msgIndex > -1) {
                             // 添加焚毁动画
                             const msgElement = document.querySelector('[data-msg-id="' + messageId + '"]');
                             if (msgElement) {
                                 msgElement.classList.add('msg-burning');
                             }
-                            
+
                             // 延迟删除消息（等待动画完成）
-                            setTimeout(function() {
-                                const index = messages.value.findIndex(function(m) {
+                            setTimeout(function () {
+                                const index = messages.value.findIndex(function (m) {
                                     return m.id == messageId;
                                 });
                                 if (index > -1) {
@@ -1155,15 +1155,15 @@ try {
                     // 收到房间清理广播
                     onRoomCleared: (data) => {
                         const clearedBy = data.cleared_by_nickname || '管理员';
-                        
+
                         // 清空本地消息列表
                         messages.value = [];
                         messageSendStatus.value = {};
-                        
+
                         // 提示用户
                         window.Toast.info(clearedBy + ' 清理了房间消息');
                     },
-                    
+
                     // 收到房间锁定状态变化广播
                     onRoomLockChanged: (data) => {
                         currentRoomLocked.value = data.lock === 1;
@@ -1174,7 +1174,7 @@ try {
                     onServerError: (error) => {
                         console.warn('[WebSocket] 服务器业务错误:', error.msg);
                         // 显示错误提示，但不降级
-                        if (window.Toast) {
+                        if (Toast) {
                             window.Toast.error(error.msg);
                         }
                     },
@@ -1223,18 +1223,18 @@ try {
             // 发送正在输入状态（带节流）
             let lastTypingSentTime = 0;
             const TYPING_THROTTLE = 500; // 500ms 节流
-            
+
             const sendTypingStatus = (typing) => {
                 if (!wsClient.value || !wsConnected.value) {
                     return;
                 }
-                
+
                 const now = Date.now();
                 // 发送 typing=true 时节流，typing=false 时立即发送
                 if (typing && now - lastTypingSentTime < TYPING_THROTTLE) {
                     return;
                 }
-                
+
                 try {
                     wsClient.value.send({
                         type: 'typing',
@@ -1366,17 +1366,17 @@ try {
                     };
                     messageType = typeMap[messageType] || 'text';
                 }
-                
+
                 // 重要：reply 类型的消息应该被当作 text 类型渲染（只是额外显示引用信息）
                 if (messageType === 'reply') {
                     messageType = 'text';
                 }
-                
+
                 // 重要：normal 类型的消息也应该被当作 text 类型渲染
                 if (messageType === 'normal') {
                     messageType = 'text';
                 }
-                
+
                 // 判断是否是时间分隔消息（system类型 + 内容格式为 MM-DD HH:mm）
                 let isTimeSeparator = false;
                 if (messageType === 'system') {
@@ -1400,12 +1400,12 @@ try {
                     readUsers: msg.read_users || [],
                     isTimeSeparator: isTimeSeparator
                 };
-                
+
                 // 时间分隔消息需要设置 text 字段用于显示
                 if (isTimeSeparator) {
                     processedMsg.text = msg.content || msg.text || '';
                 }
-                
+
                 // 普通 system 消息也需要设置 text 字段（模板使用 message.text 显示）
                 if (messageType === 'system' && !processedMsg.text) {
                     processedMsg.text = msg.content || msg.text || '';
@@ -1480,7 +1480,7 @@ try {
                 if (msg.text && !processedMsg.text) {
                     processedMsg.text = msg.text;
                 }
-                
+
                 // 文本消息需要设置 text 字段（从 content 或 text 获取）
                 if (messageType === 'text' && !processedMsg.text) {
                     processedMsg.text = msg.content || msg.text || '';
@@ -1564,10 +1564,10 @@ try {
 
                         // 加载历史消息
                         await loadRoomMessages(targetRoom.id);
-                        
+
                         // 加载该房间的已读状态
                         loadReadStatusFromStorage();
-                        
+
                         // 检查是否有可恢复的消息（管理员功能）
                         checkDeletedMessagesCount();
                     } else {
@@ -1587,16 +1587,16 @@ try {
             };
 
             // 加入房间对话框
-            const showJoinRoomDialog = () => {
-                const inputRoomId = prompt('请输入房间ID：');
+            const showJoinRoomDialog = async () => {
+                const inputRoomId = await window.Modal.prompt('请输入房间ID：', '加入房间', '房间ID');
                 if (inputRoomId) {
                     joinRoom(inputRoomId);
                 }
             };
 
             // 创建房间对话框
-            const showCreateRoomDialog = () => {
-                const roomNameInput = prompt('请输入房间名称：');
+            const showCreateRoomDialog = async () => {
+                const roomNameInput = await window.Modal.prompt('请输入房间名称：', '创建房间', '房间名称');
                 if (roomNameInput && roomNameInput.trim()) {
                     createRoom(roomNameInput.trim());
                 }
@@ -1681,12 +1681,12 @@ try {
                         const joinedRoomName = checkResult.data.name || `房间 ${roomIdValue}`;
                         roomName.value = joinedRoomName;
                         roomId.value = roomIdValue;
-                        
+
                         // 设置房间信息（复用checkResult，避免重复请求）
                         currentRoomOwnerId.value = checkResult.data.owner_id;
                         currentRoomPrivate.value = checkResult.data.private === 1;
                         currentRoomLocked.value = checkResult.data.lock === 1;
-                        
+
                         // 清空旧房间的已读状态
                         clearReadStatusForRoom();
 
@@ -1695,7 +1695,7 @@ try {
 
                         // 加载历史消息
                         await loadRoomMessages(roomIdValue);
-                        
+
                         // 加载该房间的已读状态
                         loadReadStatusFromStorage();
 
@@ -1738,7 +1738,7 @@ try {
                             };
                         });
                     }
-                    
+
                     // 如果是私密房间，获取好感度信息
                     if (currentRoomPrivate.value) {
                         await loadIntimacyInfo(roomIdValue);
@@ -1767,13 +1767,13 @@ try {
                     // 静默处理
                 }
             };
-            
+
             // 加载好感度信息
             const loadIntimacyInfo = async function (roomIdValue) {
                 try {
                     const response = await apiRequest(`/api/intimacy/info/${roomIdValue}`);
                     const result = await response.json();
-                    
+
                     if (result.code === 0) {
                         intimacyInfo.value = result.data;
                     }
@@ -1781,36 +1781,36 @@ try {
                     console.error('[好感度] 加载失败:', error);
                 }
             };
-            
+
             // 处理好感度更新
             const handleIntimacyUpdate = function (intimacyData) {
                 if (!intimacyData || intimacyData.code !== 0) return;
-                
+
                 const data = intimacyData.data;
                 if (!data) return;
-                
+
                 // 如果intimacyInfo还未初始化，先加载
                 if (!intimacyInfo.value) {
                     loadIntimacyInfo(roomId.value);
                     return;
                 }
-                
+
                 // 增量更新：只增加本次获得的经验
                 if (data.exp_gain) {
                     intimacyInfo.value.current_exp = (intimacyInfo.value.current_exp || 0) + data.exp_gain;
-                    
+
                     // 显示经验获得提示
                     showExpGainToast(data.exp_gain);
                 }
-                
+
                 // 消息数+1（实时统计）
                 intimacyInfo.value.total_messages = (intimacyInfo.value.total_messages || 0) + 1;
-                
+
                 // 记录当前等级
                 const oldLevel = intimacyInfo.value.current_level;
-                
+
                 // 重新加载完整信息（会自动计算新等级）
-                loadIntimacyInfo(roomId.value).then(function() {
+                loadIntimacyInfo(roomId.value).then(function () {
                     // 检查是否升级
                     if (intimacyInfo.value.current_level > oldLevel) {
                         showLevelUpToast(intimacyInfo.value.level_name, intimacyInfo.value.current_level);
@@ -1818,15 +1818,15 @@ try {
                     updateIntimacyProgress();
                 });
             };
-            
+
             // 更新好感度进度条
-            const updateIntimacyProgress = function() {
+            const updateIntimacyProgress = function () {
                 if (!intimacyInfo.value || !intimacyInfo.value.next_level_exp) return;
-                
+
                 const currentExp = intimacyInfo.value.current_exp || 0;
                 const currentLevel = intimacyInfo.value.current_level || 1;
                 const nextLevelExp = intimacyInfo.value.next_level_exp;
-                
+
                 // 获取当前等级的起始经验值
                 // 根据等级配置：Lv1=0, Lv2=500, Lv3=1500...
                 const levelExpMap = {
@@ -1839,23 +1839,23 @@ try {
                     7: 12000,
                     8: 18000
                 };
-                
+
                 const currentLevelStartExp = levelExpMap[currentLevel] || 0;
                 const expInCurrentLevel = currentExp - currentLevelStartExp;
                 const expNeededForNext = nextLevelExp - currentLevelStartExp;
-                
+
                 const progressPercent = Math.min(100, Math.max(0, (expInCurrentLevel / expNeededForNext) * 100));
                 intimacyInfo.value.progress_percent = progressPercent.toFixed(1);
             };
-            
+
             // 显示升级提示 - 高级灵动版
             const showLevelUpToast = function (levelName, level) {
                 const modal = document.createElement('div');
                 modal.className = 'level-up-modal';
-                
+
                 // 获取当前等级颜色
                 const levelColor = intimacyInfo.value?.level_color || '#ec4899';
-                
+
                 modal.innerHTML = `
                     <div class="level-up-overlay"></div>
                     <div class="level-up-card" style="--intimacy-color: ${levelColor}">
@@ -1910,54 +1910,54 @@ try {
                         </div>
                     </div>
                 `;
-                
+
                 document.body.appendChild(modal);
-                
+
                 // 点击关闭按钮
                 const closeBtn = modal.querySelector('.level-up-close-btn');
-                closeBtn.addEventListener('click', function() {
+                closeBtn.addEventListener('click', function () {
                     modal.classList.add('level-up-hiding');
-                    setTimeout(function() {
+                    setTimeout(function () {
                         if (modal.parentNode) {
                             document.body.removeChild(modal);
                         }
                     }, 400);
                 });
-                
+
                 // 点击遮罩关闭
                 const overlay = modal.querySelector('.level-up-overlay');
-                overlay.addEventListener('click', function() {
+                overlay.addEventListener('click', function () {
                     closeBtn.click();
                 });
             };
-            
+
             // 显示经验获得提示
             const showExpGainToast = function (expGain) {
                 // 检查是否开启经验提示
                 if (!showExpToast.value) return;
-                
+
                 const toast = document.createElement('div');
                 toast.className = 'exp-gain-toast';
                 toast.innerHTML = `<i class="fas fa-heart"></i> +${expGain} 经验`;
                 document.body.appendChild(toast);
-                
+
                 setTimeout(function () {
                     if (toast.parentNode) {
                         document.body.removeChild(toast);
                     }
                 }, 2000);
             };
-            
+
             // 切换好感度卡片展开/收缩
             const toggleIntimacyCard = function () {
                 showIntimacyCard.value = !showIntimacyCard.value;
             };
-            
+
             // 保存经验提示设置
             const saveExpToastSetting = function () {
                 localStorage.setItem('showExpToast', showExpToast.value);
             };
-            
+
             // 保存羁绊上线特效设置
             const saveBondOnlineEffectSetting = function () {
                 localStorage.setItem('showBondOnlineEffect', showBondOnlineEffect.value);
@@ -2260,14 +2260,14 @@ try {
 
                             // 通过 WebSocket 广播通知其他用户（携带好感度信息）
                             broadcastMessageViaWebSocket(result.data.id, 'text', messageText, null, result.data.reply_to, result.intimacy);
-                            
+
                             // 私密房间且两人都在线：触发爱心飘动动画
                             console.log('[爱心动画] private:', currentRoomPrivate.value, 'online:', onlineUsers.value, 'lit:', isPrivateRoomLit.value);
                             if (currentRoomPrivate.value && onlineUsers.value >= 2) {
                                 console.log('[爱心动画] 触发动画');
                                 triggerFloatingHearts();
                             }
-                            
+
                             // 私密房间：处理好感度信息
                             if (currentRoomPrivate.value && result.intimacy) {
                                 console.log('[好感度] 收到更新:', result.intimacy);
@@ -2350,7 +2350,7 @@ try {
                         nickname: currentUser.value.nick_name,
                         avatar: currentUser.value.avatar
                     }
-                };  
+                };
 
                 // 根据文件类型创建不同的临时消息
                 if (fileType === 'image') {
@@ -2863,13 +2863,13 @@ try {
                 showNewMessageTip.value = false;
                 newMessageCount.value = 0;
             };
-            
+
             // 点击回到底部按钮
             const handleScrollToBottom = function () {
                 scrollToBottom();
                 showScrollToBottom.value = false;
             };
-            
+
             // 触发爱心飘动动画（私密房间发送消息时）
             let heartsAnimationKey = ref(0);
             const triggerFloatingHearts = function () {
@@ -2884,20 +2884,20 @@ try {
             // 触发羁绊上线特效
             const triggerBondOnlineEffect = function (user1, user2) {
                 if (!showBondOnlineEffect.value) return;
-                
+
                 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
-                
+
                 const container = document.createElement('div');
                 container.className = 'bond-notification-container';
-                
+
                 const notification = document.createElement('div');
                 notification.className = 'bond-online-notification';
-                
+
                 // 构建头像HTML
-                const avatarHTML = (user) => user.avatar 
-                    ? `<img src="${user.avatar}" alt="${user.nick_name}" class="bond-avatar">` 
+                const avatarHTML = (user) => user.avatar
+                    ? `<img src="${user.avatar}" alt="${user.nick_name}" class="bond-avatar">`
                     : `<div class="bond-avatar bond-avatar-placeholder">${user.nick_name.charAt(0)}</div>`;
-                
+
                 notification.innerHTML = `
                     <div class="bond-card">
                         <div class="bond-particles">
@@ -2924,35 +2924,35 @@ try {
                         <div class="bond-message">双向奔赴的爱最美好</div>
                     </div>
                 `;
-                
+
                 container.appendChild(notification);
                 document.body.appendChild(container);
-                
+
                 // 创建粒子效果（移动端不创建）
                 if (!isMobile) {
-                    setTimeout(function() {
+                    setTimeout(function () {
                         const particlesContainer = notification.querySelector('.bond-particles');
                         const particles = ['<i class="fas fa-heart"></i>', '<i class="fas fa-star"></i>', '<i class="fas fa-sparkles"></i>'];
-                        
+
                         for (let i = 0; i < 20; i++) {
                             const particle = document.createElement('div');
                             particle.className = 'bond-particle';
                             particle.innerHTML = particles[Math.floor(Math.random() * particles.length)];
-                            
+
                             const angle = (Math.random() * 360) * (Math.PI / 180);
                             const distance = 150 + Math.random() * 200;
-                            
+
                             particle.style.setProperty('--tx', Math.cos(angle) * distance + 'px');
                             particle.style.setProperty('--ty', Math.sin(angle) * distance + 'px');
                             particle.style.left = '50%';
                             particle.style.top = '50%';
                             particle.style.animationDelay = (Math.random() * 0.5) + 's';
-                            
+
                             particlesContainer.appendChild(particle);
                         }
                     }, 200);
                 }
-                
+
                 // 3秒后移除
                 setTimeout(() => container.remove(), 3000);
             };
@@ -2999,13 +2999,13 @@ try {
                 currentRoomPrivate.value = room.private == 1;
                 currentRoomLocked.value = room.lock == 1;
                 currentRoomOwnerId.value = room.owner_id;
-                
+
                 // 清空好感度信息
                 intimacyInfo.value = null;
 
                 // 清空已读状态（切换房间时重置）
                 clearReadStatusForRoom();
-                
+
                 // 断开旧的 Observer
                 if (messageObserver) {
                     messageObserver.disconnect();
@@ -3021,13 +3021,13 @@ try {
 
                     // 加载房间历史消息（内部有loading，但我们已经显示了）
                     await loadRoomMessages(room.id);
-                    
+
                     // 加载该房间的已读状态
                     loadReadStatusFromStorage();
-                    
+
                     // 检查是否有可恢复的消息（管理员功能）
                     checkDeletedMessagesCount();
-                    
+
                     // 初始化消息观察器并观察未读消息
                     initMessageObserver();
                     observeAllUnreadMessages();
@@ -3249,7 +3249,7 @@ try {
             // 显示添加联系人对话框
             const showAddContactDialog = () => {
                 // TODO: 实现添加联系人对话框
-                window.Toast?.info('添加联系人功能开发中...');
+                Toast?.info('添加联系人功能开发中...');
             };
 
             const toggleTheme = () => {
@@ -3407,7 +3407,7 @@ try {
             const handleMessageTouchStart = (event, message) => {
                 // 如果是多点触控，不处理
                 if (event.touches.length > 1) return;
-                
+
                 // 检查是否点击的是引用区域，如果是则不启动长按
                 const target = event.target;
                 if (target.closest('.reply-quote')) {
@@ -3424,13 +3424,13 @@ try {
                 touchTimer = setTimeout(() => {
                     // 如果已经移动了，不触发长按
                     if (isTouchMoved) return;
-                    
+
                     // 阻止后续的点击事件
                     event.preventDefault();
-                    
+
                     // 使用触摸点位置作为菜单位置
                     const mockEvent = {
-                        preventDefault: () => {},
+                        preventDefault: () => { },
                         clientX: touchStartX,
                         clientY: touchStartY
                     };
@@ -3507,7 +3507,7 @@ try {
                                 message_id: message.id
                             });
                         }
-                        
+
                         // 延迟删除消息（等待动画完成）
                         setTimeout(() => {
                             const index = messages.value.findIndex(m => m.id === message.id);
@@ -3520,10 +3520,10 @@ try {
                         if (msgElement) {
                             msgElement.classList.remove('msg-burning');
                         }
-                        Toast.error(result.msg || '焚毁失败');
+                        window.Toast.error(result.msg || '焚毁失败');
                     }
                 } catch (error) {
-                    Toast.error('焚毁消息失败，请重试');
+                    window.Toast.error('焚毁消息失败，请重试');
                     // 移除动画
                     const msgElement = document.querySelector(`[data-msg-id="${message.id}"]`);
                     if (msgElement) {
@@ -3680,39 +3680,39 @@ try {
             // 点击引用跳转到原消息
             const scrollToReplyMessage = (messageId) => {
                 if (!messageId) return;
-                
+
                 const targetEl = document.querySelector(`[data-msg-id="${messageId}"]`);
                 if (!targetEl) {
                     window.Toast.info('原消息不在当前视图中');
                     return;
                 }
-                
+
                 const container = messagesContainer.value;
                 if (!container) {
                     console.error('[滚动] 找不到消息容器');
                     return;
                 }
-                
+
                 try {
                     // 计算目标元素相对于容器的位置
                     const containerRect = container.getBoundingClientRect();
                     const targetRect = targetEl.getBoundingClientRect();
-                    
+
                     // 计算需要滚动的距离（让目标元素居中）
                     const scrollTop = container.scrollTop;
                     const targetOffsetTop = targetRect.top - containerRect.top + scrollTop;
                     const centerOffset = (containerRect.height - targetRect.height) / 2;
                     const scrollTo = Math.max(0, targetOffsetTop - centerOffset);
-                    
+
                     // 直接设置 scrollTop，最快最流畅
                     container.scrollTop = scrollTo;
-                    
+
                     // 添加高亮效果
                     targetEl.classList.add('highlight-message');
                     setTimeout(() => {
                         targetEl.classList.remove('highlight-message');
                     }, 2000);
-                    
+
                 } catch (error) {
                     console.error('[滚动] 滚动失败:', error);
                 }
@@ -3724,12 +3724,12 @@ try {
                     window.Toast.error('文件地址不存在');
                     return;
                 }
-                
+
                 // 音频文件点击不下载（有播放器）
                 if (isAudioFile(message.fileName || message.fileUrl)) {
                     return;
                 }
-                
+
                 const link = document.createElement('a');
                 link.href = message.fileUrl;
                 link.download = message.fileName || getFileNameFromUrl(message.fileUrl) || 'download';
@@ -3787,7 +3787,7 @@ try {
                 if (replyTo) {
                     messageData.reply_to = replyTo;
                 }
-                
+
                 // 私密房间：附加好感度信息
                 if (intimacyData && intimacyData.code === 0) {
                     messageData.intimacy = intimacyData.data;
@@ -3802,7 +3802,7 @@ try {
             };
 
             // 清空消息确认对话框
-            const confirmClearMessages = () => {
+            const confirmClearMessages = async () => {
                 if (!roomId.value) {
                     window.Toast.error('请先加入房间');
                     return;
@@ -3813,8 +3813,8 @@ try {
                     return;
                 }
 
-                // 使用 confirm 对话框确认
-                const confirmed = confirm('确定要清空当前房间的所有消息吗？\n\n此操作仅清除本地显示的消息，不会影响其他用户。');
+                // 使用 window.Modal.confirm 对话框确认
+                const confirmed = await window.Modal.confirm('确定要清空当前房间的所有消息吗？\n\n此操作仅清除本地显示的消息，不会影响其他用户。', '清空消息');
                 if (confirmed) {
                     clearMessages();
                 }
@@ -3846,15 +3846,15 @@ try {
                 // 显示自定义确认对话框
                 showClearRoomDialog.value = true;
             };
-            
+
             // 清理房间对话框状态
             const showClearRoomDialog = ref(false);
             const clearRoomHardDelete = ref(false);
-            
+
             // 确认清理房间
             const confirmClearRoom = async () => {
                 showClearRoomDialog.value = false;
-                
+
                 try {
                     globalLoading.value = true;
                     loadingText.value = '正在清理...';
@@ -3877,7 +3877,7 @@ try {
                                 hard_delete: clearRoomHardDelete.value
                             });
                         }
-                        
+
                         // 清空前端消息列表
                         messages.value = [];
                         messageSendStatus.value = {};
@@ -3891,10 +3891,10 @@ try {
                         } else {
                             window.Toast.success('软删除成功！删除了' + deletedMsgs + '条消息（可恢复）');
                         }
-                        
+
                         // 重置选项
                         clearRoomHardDelete.value = false;
-                        
+
                         // 刷新删除消息数量
                         checkDeletedMessagesCount();
                     } else {
@@ -3906,16 +3906,16 @@ try {
                     globalLoading.value = false;
                 }
             };
-            
+
             // 取消清理
             const cancelClearRoom = () => {
                 showClearRoomDialog.value = false;
                 clearRoomHardDelete.value = false;
             };
-            
+
             // 软删除消息数量
             const deletedMessagesCount = ref(0);
-            
+
             // 检查是否有可恢复的消息
             const checkDeletedMessagesCount = async () => {
                 if (!roomId.value) return;
@@ -3930,38 +3930,39 @@ try {
                     console.error('检查删除消息数量失败:', e);
                 }
             };
-            
+
             // 恢复房间消息（仅管理员3306可用）
             const restoreRoomMessages = async () => {
                 if (!roomId.value) {
                     window.Toast.error('请先加入房间');
                     return;
                 }
-                
-                if (!confirm('确定要恢复该房间所有已删除的消息吗？')) {
+
+                const confirmed = await window.Modal.confirm('确定要恢复该房间所有已删除的消息吗？', '恢复消息');
+                if (!confirmed) {
                     return;
                 }
-                
+
                 try {
                     globalLoading.value = true;
                     loadingText.value = '正在恢复...';
-                    
+
                     const response = await apiRequest('/api/message/restoreRoom', {
                         method: 'POST',
                         body: JSON.stringify({
                             room_id: roomId.value
                         })
                     });
-                    
+
                     const result = await response.json();
-                    
+
                     if (result.code === 0) {
                         const restoredCount = result.data?.restored_messages || 0;
                         window.Toast.success('恢复成功！恢复了' + restoredCount + '条消息');
-                        
+
                         // 重新加载消息
                         await loadRoomMessages(roomId.value);
-                        
+
                         // 刷新删除消息数量
                         deletedMessagesCount.value = 0;
                     } else {
@@ -3973,7 +3974,7 @@ try {
                     globalLoading.value = false;
                 }
             };
-            
+
             // 是否显示恢复按钮（仅管理员3306且有可恢复消息时显示）
             const canRestoreMessages = computed(() => {
                 const ADMIN_ID = 3306;
@@ -3989,21 +3990,22 @@ try {
                 // 管理员或房主可以清理
                 return userId == ADMIN_ID || (ownerId && userId == ownerId);
             });
-            
+
             // 锁定/解锁房间
             const toggleRoomLock = async () => {
                 if (!roomId.value) {
                     window.Toast.error('请先加入房间');
                     return;
                 }
-                
+
                 const newLockStatus = currentRoomLocked.value ? 0 : 1;
                 const action = newLockStatus === 1 ? '锁定' : '解锁';
-                
-                if (!confirm('确定要' + action + '该房间吗？')) {
+
+                const confirmed = await window.Modal.confirm('确定要' + action + '该房间吗？', action + '房间');
+                if (!confirmed) {
                     return;
                 }
-                
+
                 try {
                     const response = await apiRequest('/api/room/toggleLock', {
                         method: 'POST',
@@ -4012,14 +4014,14 @@ try {
                             lock: newLockStatus
                         })
                     });
-                    
+
                     const result = await response.json();
-                    
+
                     if (result.code === 0) {
                         currentRoomLocked.value = newLockStatus === 1;
                         // 不在这里显示Toast，等待WebSocket广播后统一显示
                         hideAttachPanel();
-                        
+
                         // 通过WebSocket广播锁定状态变化
                         if (wsClient.value && wsConnected.value) {
                             wsClient.value.send({
@@ -4036,8 +4038,9 @@ try {
             };
 
             // 退出登录
-            const handleLogout = () => {
-                if (!confirm('确定要退出登录吗？')) {
+            const handleLogout = async () => {
+                const confirmed = await window.Modal.confirm('确定要退出登录吗？', '退出登录');
+                if (!confirmed) {
                     return;
                 }
 
@@ -4417,5 +4420,5 @@ try {
     app.mount('#app');
 
 } catch (error) {
-    alert('Vue 应用启动失败: ' + error.message);
+    window.Modal.alert('Vue 应用启动失败: ' + error.message, '启动错误');
 }
