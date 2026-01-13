@@ -1,5 +1,5 @@
 /**
- * Toast 轻提示组件
+ * Toast 轻提示组件 - 灵动岛风格
  * 使用方法：
  * Toast.success('操作成功')
  * Toast.error('操作失败')
@@ -31,7 +31,7 @@ class Toast {
 
     show(message, type = 'info', duration = 3000) {
         const toast = document.createElement('div');
-        toast.className = `toast toast-${type}`;
+        toast.className = `toast animate__animated animate__fadeInDown animate__faster`;
         
         // 图标映射
         const icons = {
@@ -41,7 +41,7 @@ class Toast {
             info: 'ℹ'
         };
 
-        // 图标颜色映射（使用对应的颜色）
+        // 图标颜色映射
         const iconColors = {
             success: '#10b981',
             error: '#ef4444',
@@ -50,58 +50,54 @@ class Toast {
         };
 
         toast.innerHTML = `
-            <div class="toast-icon">
-                ${icons[type]}
-            </div>
+            <div class="toast-icon" style="color: ${iconColors[type]}">${icons[type]}</div>
             <div class="toast-message">${message}</div>
         `;
 
-        // 样式
+        // 统一底色的灵动岛样式
         toast.style.cssText = `
-            display: flex;
+            display: inline-flex;
             align-items: center;
-            gap: 12px;
-            background: white;
-            padding: 12px 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            margin-bottom: 10px;
-            min-width: 200px;
-            max-width: 400px;
+            gap: 8px;
+            background: rgba(30, 30, 30, 0.95);
+            padding: 8px 16px;
+            border-radius: 50px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            margin-bottom: 8px;
             pointer-events: auto;
-            animation: toastSlideIn 0.3s ease;
-            font-size: 14px;
-            color: #1f2937;
+            font-size: 13px;
+            color: white;
+            max-width: 90vw;
+            white-space: nowrap;
         `;
 
         // 图标样式
         const iconEl = toast.querySelector('.toast-icon');
         iconEl.style.cssText = `
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
+            width: 18px;
+            height: 18px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: bold;
-            font-size: 14px;
+            font-size: 12px;
             flex-shrink: 0;
-            background: rgba(255, 255, 255, 0.2);
-            color: ${iconColors[type]} !important;
+            color: ${iconColors[type]};
         `;
 
         // 消息样式
         const messageEl = toast.querySelector('.toast-message');
         messageEl.style.cssText = `
-            flex: 1;
-            line-height: 1.5;
+            line-height: 1.4;
+            font-weight: 500;
         `;
 
         this.container.appendChild(toast);
 
         // 自动移除
         setTimeout(() => {
-            toast.style.animation = 'toastSlideOut 0.3s ease';
+            toast.classList.remove('animate__fadeInDown');
+            toast.classList.add('animate__fadeOut');
             setTimeout(() => {
                 if (toast.parentNode) {
                     this.container.removeChild(toast);
@@ -127,40 +123,45 @@ class Toast {
     }
 }
 
-// 添加动画样式
+// 添加简洁样式
 const style = document.createElement('style');
 style.textContent = `
-    @keyframes toastSlideIn {
-        from {
-            opacity: 0;
-            transform: translateY(-20px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
-    @keyframes toastSlideOut {
-        from {
-            opacity: 1;
-            transform: translateY(0);
-        }
-        to {
-            opacity: 0;
-            transform: translateY(-20px);
-        }
+    /* Toast 容器居中 */
+    .toast-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
     }
 
     /* 暗黑模式支持 */
     .dark-mode .toast {
-        background: #1f2937 !important;
-        color: #f3f4f6 !important;
+        background: rgba(40, 40, 40, 0.95) !important;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
     }
 
-    .dark-mode .toast-message {
-        color: #f3f4f6 !important;
+    /* 亮色模式 */
+    body:not(.dark-mode) .toast {
+        background: rgba(255, 255, 255, 0.95) !important;
+        color: #1f2937 !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+    }
+
+    body:not(.dark-mode) .toast-message {
+        color: #1f2937 !important;
+    }
+
+    /* 移动端适配 */
+    @media (max-width: 768px) {
+        .toast {
+            font-size: 12px !important;
+            padding: 7px 14px !important;
+            max-width: 85vw !important;
+        }
+        .toast-icon {
+            width: 16px !important;
+            height: 16px !important;
+            font-size: 11px !important;
+        }
     }
 `;
 document.head.appendChild(style);
