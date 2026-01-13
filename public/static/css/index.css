@@ -948,6 +948,7 @@ body {
     gap: 6px;
     padding: 4px 12px;
     background: rgba(59, 130, 246, 0.12);
+    border: 1px solid rgba(59, 130, 246, 0.25);
     border-radius: 12px;
     font-size: 12px;
     font-weight: 500;
@@ -980,6 +981,7 @@ body {
     align-items: center;
     gap: 4px;
     padding: 4px 10px;
+    border: 1px solid rgba(100, 116, 139, 0.25);
     border-radius: 12px;
     font-size: 11px;
     font-weight: 500;
@@ -989,11 +991,13 @@ body {
 
 .conn-badge.conn-ws {
     background: rgba(16, 185, 129, 0.15) !important;
+    border-color: rgba(16, 185, 129, 0.3) !important;
     color: #10B981 !important;
 }
 
 .conn-badge.conn-poll {
     background: rgba(251, 146, 60, 0.15) !important;
+    border-color: rgba(251, 146, 60, 0.3) !important;
     color: #fb923c !important;
 }
 
