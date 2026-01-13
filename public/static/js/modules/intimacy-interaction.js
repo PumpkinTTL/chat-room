@@ -297,8 +297,13 @@
             const self = this;
 
             this.state.timer = setInterval(function() {
-                // 检查是否还在运行
-                if (!self.state.isRunning) {
+                // 检查是否还在运行（如果已停止，清除定时器）
+                if (!self.state.isRunning || !self.state.isActive) {
+                    if (self.state.timer) {
+                        clearInterval(self.state.timer);
+                        self.state.timer = null;
+                        console.log('[亲密互动] 定时器检测到非运行状态，已自动清除');
+                    }
                     return;
                 }
 

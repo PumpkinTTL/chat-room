@@ -74,6 +74,10 @@ try {
             const autoRefresh = ref(true);
             const autoRefreshTimer = ref(null);
 
+            // 游戏相关
+            const showGameModal = ref(false);
+            const currentGame = ref(null);
+
             // WebSocket 相关
             const wsClient = ref(null);           // WebSocket 客户端实例
             const wsConnected = ref(false);       // WebSocket 连接状态
@@ -3250,6 +3254,21 @@ try {
             const switchRoom = async function (room) {
                 messagesLoading.value = true; // 立即显示loading
 
+                // 停止并重置亲密互动（切换房间时必须清理）
+                if (window.ChatApp && window.ChatApp.IntimacyInteraction) {
+                    console.log('[切换房间] 停止并重置亲密互动');
+                    window.ChatApp.IntimacyInteraction.stop();
+                    window.ChatApp.IntimacyInteraction.reset();
+                }
+
+                // 重置亲密互动相关状态
+                showInteractionBar.value = false;
+                interactionProgress.value = 0;
+                interactionCountdown.value = 60;
+                interactionCompleted.value = false;
+                interactionCollected.value = false;
+                interactionPartner.value = { name: '', avatar: '' };
+
                 roomName.value = room.name;
                 roomId.value = room.id;
                 currentRoomPrivate.value = room.private == 1;
@@ -3519,6 +3538,19 @@ try {
                 }
                 // 保存到 localStorage
                 localStorage.setItem('isDarkMode', isDarkMode.value.toString());
+            };
+
+            // 游戏相关函数
+            const openGame = () => {
+                showGameModal.value = true;
+                currentGame.value = 'guess-number';
+                console.log('[游戏] 打开游戏:', currentGame.value);
+            };
+
+            const closeGame = () => {
+                showGameModal.value = false;
+                currentGame.value = null;
+                console.log('[游戏] 关闭游戏');
             };
 
             const toggleAutoRefresh = () => {
@@ -4537,6 +4569,8 @@ try {
                 emojiCategories,
                 autoRefresh,
                 isImageModalOpen,
+                showGameModal,
+                currentGame,
                 currentImageUrl,
                 imagePreview,
                 selectedImageFile,
@@ -4611,6 +4645,10 @@ try {
                 toggleAutoRefresh,
                 startAutoRefresh,
                 stopAutoRefresh,
+                openGame,
+                closeGame,
+                showGameModal,
+                currentGame,
                 manualRefresh,
                 formatTime,
                 formatUrl,
@@ -4721,6 +4759,14 @@ try {
 
     // 注册自定义指令
     app.directive('click-outside', clickOutside);
+
+    // 注册游戏组件
+    if (window.GuessNumberGame) {
+        app.component('guess-number-game', window.GuessNumberGame);
+        console.log('[Vue] 猜数字游戏组件已注册');
+    } else {
+        console.warn('[Vue] 猜数字游戏组件未找到，请检查模板文件是否正确加载');
+    }
 
     app.mount('#app');
 
