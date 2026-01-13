@@ -190,10 +190,12 @@ class Modal {
             content: `<div class="modal-message">${message}</div><input type="text" id="${inputId}" class="modal-input" placeholder="${placeholder}" />`,
             buttons: [
                 { text: '取消', icon: 'times', class: 'secondary', onClick: () => this.close(null) },
-                { text: '确定', icon: 'check', class: 'primary', onClick: () => {
-                    const input = document.getElementById(inputId);
-                    this.close(input ? input.value : null);
-                }}
+                {
+                    text: '确定', icon: 'check', class: 'primary', onClick: () => {
+                        const input = document.getElementById(inputId);
+                        this.close(input ? input.value : null);
+                    }
+                }
             ]
         });
 

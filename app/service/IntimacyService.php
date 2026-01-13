@@ -263,4 +263,82 @@ class IntimacyService
             ->select()
             ->toArray();
     }
+
+    /**
+     * 领取亲密互动好感度（60秒在线奖励）
+     * @param int $roomId 房间ID
+     * @param int $userId 用户ID
+     * @param int $partnerId 伴侣ID
+     * @return array
+     */
+    public static function collectInteractionExp($roomId, $userId, $partnerId)
+    {
+        try {
+            Db::startTrans();
+
+            // 随机获得10-20好感度
+            $expGain = rand(10, 20);
+
+            // 查找或创建经验记录
+            $expRecord = Db::name('ch_intimacy_exp')
+                ->where('room_id', $roomId)
+                ->where('user_id', $userId)
+                ->where('partner_id', $partnerId)
+                ->find();
+
+            if (!$expRecord) {
+                // 创建新记录
+                $expRecord = [
+                    'room_id' => $roomId,
+                    'user_id' => $userId,
+                    'partner_id' => $partnerId,
+                    'current_exp' => 0,
+                    'current_level' => 1,
+                    'total_messages' => 0
+                ];
+                $expId = Db::name('ch_intimacy_exp')->insertGetId($expRecord);
+                $expRecord['id'] = $expId;
+            }
+
+            // 增加经验值
+            $newExp = $expRecord['current_exp'] + $expGain;
+
+            // 检查是否升级
+            $levelInfo = self::checkLevelUp($expRecord['current_level'], $newExp);
+
+            // 更新记录
+            Db::name('ch_intimacy_exp')
+                ->where('id', $expRecord['id'])
+                ->update([
+                    'current_exp' => $newExp,
+                    'current_level' => $levelInfo['new_level'],
+                    'last_interaction_collect' => date('Y-m-d H:i:s')
+                ]);
+
+            Db::commit();
+
+            // 获取好感度信息
+            $intimacyInfo = self::getIntimacyInfo($roomId, $userId, $partnerId);
+
+            return [
+                'code' => 0,
+                'msg' => '领取成功',
+                'data' => [
+                    'exp_gain' => $expGain,
+                    'current_exp' => $newExp,
+                    'current_level' => $levelInfo['new_level'],
+                    'level_up' => $levelInfo['level_up'],
+                    'level_name' => $levelInfo['level_name'],
+                    'intimacy' => [
+                        'code' => 0,
+                        'data' => $intimacyInfo
+                    ]
+                ]
+            ];
+
+        } catch (\Exception $e) {
+            Db::rollback();
+            return ['code' => 1, 'msg' => '领取失败：' . $e->getMessage()];
+        }
+    }
 }

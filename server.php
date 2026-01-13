@@ -63,15 +63,19 @@ function getRedis()
 // 本地连接映射
 $localConnections = [];
 
+// 亲密互动房间状态（内存维护）
+$roomIntimacyStates = [];
+
 // 创建 Worker
 $wsWorker = new Worker('websocket://0.0.0.0:2346');
 $wsWorker->count = 1;
 $wsWorker->name = 'ChatWebSocket';
 
 // 启动时清理旧数据
-$wsWorker->onWorkerStart = function ($worker) {
+$wsWorker->onWorkerStart = function ($worker) use (&$roomIntimacyStates) {
+    global $localConnections;
     echo "[" . date('H:i:s') . "] WebSocket 服务器启动\n";
-    
+
     try {
         $redis = getRedis();
         if ($redis) {
@@ -84,6 +88,27 @@ $wsWorker->onWorkerStart = function ($worker) {
     } catch (\Exception $e) {
         echo "[" . date('H:i:s') . "] 清理旧数据失败: " . $e->getMessage() . "\n";
     }
+
+    // 亲密互动定时器：只检查是否完成，不再每秒广播进度
+    \Workerman\Lib\Timer::add(1, function() use (&$roomIntimacyStates, &$localConnections) {
+        $now = time();
+
+        foreach ($roomIntimacyStates as $roomId => $state) {
+            if (!$state['active']) continue;
+
+            // 计算已过时间
+            $elapsed = $now - $state['start_time'];
+
+            // 如果达到60秒，标记完成并广播
+            if ($elapsed >= 60) {
+                $roomIntimacyStates[$roomId]['active'] = false;
+                broadcastToRoom($roomId, [
+                    'type' => 'intimacy_complete',
+                    'room_id' => $roomId
+                ], $localConnections);
+            }
+        }
+    });
 };
 
 // 连接建立
@@ -138,6 +163,9 @@ $wsWorker->onMessage = function ($connection, $data) use (&$localConnections) {
             case 'room_lock_changed':
                 handleRoomLockChanged($connection, $msg, $localConnections);
                 break;
+            case 'intimacy_restart':
+                handleIntimacyRestart($connection, $msg, $localConnections);
+                break;
             case 'ping':
                 handlePing($connection, $localConnections);
                 break;
@@ -150,6 +178,7 @@ $wsWorker->onMessage = function ($connection, $data) use (&$localConnections) {
 
 // 连接关闭
 $wsWorker->onClose = function ($connection) use (&$localConnections) {
+    global $roomIntimacyStates;
     if (!isset($localConnections[$connection->id])) {
         echo "[" . date('H:i:s') . "] 断开 #{$connection->id} (未绑定用户)\n";
         return;
@@ -217,6 +246,9 @@ $wsWorker->onClose = function ($connection) use (&$localConnections) {
                 'nickname' => $nickname,
                 'online_count' => $onlineCount
             ], $localConnections);
+
+            // 检查房间互动状态（有人离开需要重置）
+            checkRoomIntimacy($roomId, $localConnections);
         }
     }
 };
@@ -263,6 +295,7 @@ function handleAuth($connection, $msg, &$localConnections)
 // 加入房间
 function handleJoinRoom($connection, $msg, &$localConnections)
 {
+    global $roomIntimacyStates;
     $connData = &$localConnections[$connection->id];
 
     if (!$connData['authed']) {
@@ -358,11 +391,15 @@ function handleJoinRoom($connection, $msg, &$localConnections)
         echo "[" . date('H:i:s') . "] 加入房间 Redis 操作失败: " . $e->getMessage() . "\n";
     }
 
-    // 获取在线用户（按用户ID去重）
+    // 获取在线用户（按用户ID去重，包含头像信息）
     $onlineUserMap = [];
     foreach ($localConnections as $conn) {
         if ($conn['room_id'] == $roomId && $conn['user_id']) {
-            $onlineUserMap[$conn['user_id']] = ['user_id' => $conn['user_id'], 'nick_name' => $conn['nickname']];
+            $onlineUserMap[$conn['user_id']] = [
+                'user_id' => $conn['user_id'], 
+                'nick_name' => $conn['nickname'],
+                'avatar' => $conn['avatar'] ?? ''
+            ];
         }
     }
     $onlineUsers = array_values($onlineUserMap);
@@ -381,9 +418,13 @@ function handleJoinRoom($connection, $msg, &$localConnections)
             'room_id' => $roomId,
             'user_id' => $userId,
             'nickname' => $nickname,
+            'avatar' => $connData['avatar'] ?? '',
             'online_count' => count($onlineUsers)
         ], $localConnections, $connection->id);
     }
+
+    // 检查私密房间互动
+    checkRoomIntimacy($roomId, $localConnections);
 
     echo "[" . date('H:i:s') . "] {$nickname} 加入房间 {$roomId} (连接#{$connection->id})\n";
 }
@@ -645,6 +686,141 @@ function handlePing($connection, &$localConnections)
         echo "[" . date('H:i:s') . "] 心跳检测 #{$connection->id} 用户ID:{$userId} 房间:{$roomId}\n";
     } else {
         echo "[" . date('H:i:s') . "] 心跳检测 #{$connection->id} (未认证)\n";
+    }
+}
+
+// ==================== 亲密互动相关函数 ====================
+
+/**
+ * 检查房间亲密互动状态
+ * 只有私密房间恰好2人在线时才启动互动
+ */
+function checkRoomIntimacy($roomId, &$localConnections)
+{
+    global $roomIntimacyStates;
+
+    // 检查是否为私密房间
+    $room = \app\model\Room::find($roomId);
+    if (!$room || $room->private != 1) {
+        // 非私密房间，停止互动
+        if (isset($roomIntimacyStates[$roomId])) {
+            stopRoomIntimacy($roomId, $localConnections);
+        }
+        return;
+    }
+
+    // 计算房间在线用户数（按用户ID去重）
+    $onlineUserIds = [];
+    foreach ($localConnections as $conn) {
+        if ($conn['room_id'] == $roomId && $conn['user_id']) {
+            $onlineUserIds[$conn['user_id']] = true;
+        }
+    }
+    $onlineCount = count($onlineUserIds);
+
+    echo "[" . date('H:i:s') . "] 房间 {$roomId} 在线人数: {$onlineCount}\n";
+
+    if ($onlineCount == 2) {
+        // 恰好2人在线，启动互动（如果还未启动）
+        if (!isset($roomIntimacyStates[$roomId]) || !$roomIntimacyStates[$roomId]['active']) {
+            startRoomIntimacy($roomId, array_keys($onlineUserIds), $localConnections);
+        }
+    } else {
+        // 人数不是2人，停止并重置互动
+        if (isset($roomIntimacyStates[$roomId]) && $roomIntimacyStates[$roomId]['active']) {
+            stopRoomIntimacy($roomId, $localConnections);
+        }
+    }
+}
+
+/**
+ * 启动房间亲密互动
+ */
+function startRoomIntimacy($roomId, $userIds, &$localConnections)
+{
+    global $roomIntimacyStates;
+
+    $startTime = time();
+    $roomIntimacyStates[$roomId] = [
+        'active' => true,
+        'start_time' => $startTime,
+        'user_ids' => $userIds,
+        'room_id' => $roomId
+    ];
+
+    echo "[" . date('H:i:s') . "] 房间 {$roomId} 启动亲密互动\n";
+
+    // 广播互动开始，前端收到后各自本地计时60秒
+    broadcastToRoom($roomId, [
+        'type' => 'intimacy_start',
+        'room_id' => $roomId
+    ], $localConnections);
+}
+
+/**
+ * 停止房间亲密互动（重置）
+ */
+function stopRoomIntimacy($roomId, &$localConnections)
+{
+    global $roomIntimacyStates;
+
+    if (isset($roomIntimacyStates[$roomId])) {
+        $wasActive = $roomIntimacyStates[$roomId]['active'];
+        unset($roomIntimacyStates[$roomId]);
+
+        if ($wasActive) {
+            echo "[" . date('H:i:s') . "] 房间 {$roomId} 停止亲密互动\n";
+
+            // 广播互动停止/重置
+            broadcastToRoom($roomId, [
+                'type' => 'intimacy_reset',
+                'room_id' => $roomId
+            ], $localConnections);
+            echo "[" . date('H:i:s') . "] 房间 {$roomId} 已发送 intimacy_reset 消息\n";
+        }
+    }
+}
+
+/**
+ * 处理亲密互动重新开始请求
+ */
+function handleIntimacyRestart($connection, $msg, &$localConnections)
+{
+    if (!isset($msg['room_id'])) {
+        echo "[" . date('H:i:s') . "] intimacy_restart 消息缺少 room_id\n";
+        return;
+    }
+
+    $roomId = $msg['room_id'];
+
+    // 验证用户是否在该房间
+    $connData = $localConnections[$connection->id] ?? null;
+    if (!$connData || $connData['room_id'] != $roomId) {
+        echo "[" . date('H:i:s') . "] 用户不在房间 {$roomId}\n";
+        return;
+    }
+
+    echo "[" . date('H:i:s') . "] 房间 {$roomId} 请求重新开始亲密互动\n";
+
+    // 先停止当前互动
+    stopRoomIntimacy($roomId, $localConnections);
+
+    // 检查房间是否仍有2人在线
+    $roomUsers = [];
+    foreach ($localConnections as $connId => $conn) {
+        if ($conn['room_id'] == $roomId && $conn['user_id']) {
+            $roomUsers[$conn['user_id']] = true;
+        }
+    }
+
+    echo "[" . date('H:i:s') . "] 房间 {$roomId} 在线用户数: " . count($roomUsers) . "\n";
+
+    // 如果恰好2人在线，立即重新开始
+    if (count($roomUsers) === 2) {
+        echo "[" . date('H:i:s') . "] 房间 {$roomId} 重新开始亲密互动\n";
+        startRoomIntimacy($roomId, array_keys($roomUsers), $localConnections);
+    } else {
+        echo "[" . date('H:i:s') . "] 房间 {$roomId} 人数不足，无法重新开始\n";
     }
 }
 

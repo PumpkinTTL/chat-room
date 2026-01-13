@@ -92,6 +92,7 @@ Route::group('api', function () {
     Route::group('intimacy', function () {
         Route::get('info/:room_id', 'Intimacy/getIntimacyInfo');
         Route::get('levels', 'Intimacy/getLevels');
+        Route::post('collect', 'Intimacy/collect');
     });
 
 });

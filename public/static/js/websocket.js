@@ -30,6 +30,10 @@
         this.onMessageBurned = this.options.onMessageBurned || null;  // 消息焚毁
         this.onRoomCleared = this.options.onRoomCleared || null;  // 房间清理
         this.onRoomLockChanged = this.options.onRoomLockChanged || null;  // 房间锁定状态变化
+        this.onIntimacyStart = this.options.onIntimacyStart || null;  // 亲密互动开始
+        this.onIntimacyProgress = this.options.onIntimacyProgress || null;  // 亲密互动进度
+        this.onIntimacyComplete = this.options.onIntimacyComplete || null;  // 亲密互动完成
+        this.onIntimacyReset = this.options.onIntimacyReset || null;  // 亲密互动重置
         this.onError = this.options.onError || null;           // 连接错误
         this.onServerError = this.options.onServerError || null; // 服务器业务错误
         this.onClose = this.options.onClose || null;
@@ -310,6 +314,30 @@
 
             case 'pong':
                 // 心跳响应，忽略
+                break;
+
+            case 'intimacy_start':
+                if (this.onIntimacyStart) {
+                    this.onIntimacyStart(data);
+                }
+                break;
+
+            case 'intimacy_progress':
+                if (this.onIntimacyProgress) {
+                    this.onIntimacyProgress(data);
+                }
+                break;
+
+            case 'intimacy_complete':
+                if (this.onIntimacyComplete) {
+                    this.onIntimacyComplete(data);
+                }
+                break;
+
+            case 'intimacy_reset':
+                if (this.onIntimacyReset) {
+                    this.onIntimacyReset(data);
+                }
                 break;
 
             case 'error':

@@ -1,0 +1,580 @@
+/**
+ * ==================== 亲密互动条样式 - Glassmorphism 风格 ====================
+ *
+ * 功能：私密房间双人同时在线时显示，60秒内头像靠拢获得好感度
+ * 设计：玻璃态 + 粉紫渐变 + 流畅动画
+ */
+
+/* ==================== 主容器 ==================== */
+.intimacy-interaction-wrapper {
+    width: 100%;
+    margin: 16px 0 12px;
+    padding: 0;
+    animation: intimacyBarSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes intimacyBarSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ==================== 互动条卡片 ==================== */
+.intimacy-interaction-bar {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+    background: color-mix(in srgb, var(--intimacy-color, #ec4899) 8%, transparent);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 第一行：头像行 */
+.intimacy-avatars-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+/* ==================== 用户头像区域 ==================== */
+.intimacy-user-section {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
+    position: relative;
+    z-index: 2;
+}
+
+.intimacy-user-section.left {
+    justify-content: flex-start;
+}
+
+.intimacy-user-section.right {
+    justify-content: flex-end;
+}
+
+.intimacy-user-avatar-wrapper {
+    position: relative;
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+}
+
+.intimacy-user-avatar {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 2px solid var(--intimacy-color, #ec4899);
+    box-shadow:
+        0 4px 12px rgba(236, 72, 153, 0.3),
+        0 0 0 3px rgba(236, 72, 153, 0.1);
+    object-fit: cover;
+    transition: all 0.3s ease;
+}
+
+.intimacy-user-avatar-placeholder {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--intimacy-color, #ec4899), color-mix(in srgb, var(--intimacy-color, #ec4899) 80%, white));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 16px;
+    font-weight: 600;
+    border: 2px solid var(--intimacy-color, #ec4899);
+    box-shadow:
+        0 4px 12px rgba(236, 72, 153, 0.3),
+        0 0 0 3px rgba(236, 72, 153, 0.1);
+}
+
+.intimacy-user-avatar-wrapper.is-moving .intimacy-user-avatar,
+.intimacy-user-avatar-wrapper.is-moving .intimacy-user-avatar-placeholder {
+    animation: intimacyAvatarPulse 1s ease-in-out infinite;
+}
+
+@keyframes intimacyAvatarPulse {
+    0%, 100% {
+        box-shadow:
+            0 4px 12px rgba(236, 72, 153, 0.3),
+            0 0 0 3px rgba(236, 72, 153, 0.1);
+        transform: scale(1);
+    }
+    50% {
+        box-shadow:
+            0 4px 16px rgba(236, 72, 153, 0.5),
+            0 0 0 6px rgba(236, 72, 153, 0.2);
+        transform: scale(1.05);
+    }
+}
+
+.intimacy-user-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--intimacy-text, #1e293b);
+    white-space: nowrap;
+    max-width: 80px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.intimacy-user-section.is-local .intimacy-user-name {
+    color: var(--intimacy-color, #ec4899);
+}
+
+/* ==================== 中间进度区域 ==================== */
+.intimacy-progress-section {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    z-index: 1;
+}
+
+/* 第三行：倒计时 */
+.intimacy-countdown-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--intimacy-countdown-text, #64748b);
+    width: 100%;
+}
+
+/* 进度条容器 */
+.intimacy-progress-container {
+    position: relative;
+    width: 100%;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 进度条背景轨道 */
+.intimacy-progress-track {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 8px;
+    background: var(--intimacy-track-bg, rgba(236, 72, 153, 0.15));
+    border-radius: 10px;
+    overflow: hidden;
+    display: flex;
+}
+
+/* 左侧进度条填充 */
+.intimacy-progress-fill-left {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(
+        90deg,
+        var(--intimacy-color, #ec4899) 0%,
+        color-mix(in srgb, var(--intimacy-color, #ec4899) 85%, white) 100%
+    );
+    border-radius: 10px 0 0 10px;
+    /* 移除transition，让进度严格按照WebSocket更新 */
+    box-shadow: 0 0 12px var(--intimacy-color, #ec4899);
+}
+
+/* 右侧进度条填充 */
+.intimacy-progress-fill-right {
+    position: absolute;
+    right: 0;
+    top: 0;
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(
+        -90deg,
+        var(--intimacy-color, #ec4899) 0%,
+        color-mix(in srgb, var(--intimacy-color, #ec4899) 85%, white) 100%
+    );
+    border-radius: 0 10px 10px 0;
+    /* 移除transition，让进度严格按照WebSocket更新 */
+    box-shadow: 0 0 12px var(--intimacy-color, #ec4899);
+}
+
+/* ==================== 中心爱心图标 ==================== */
+
+/* 中心爱心图标 */
+.intimacy-center-heart {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 28px;
+    height: 28px;
+    background: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow:
+        0 2px 12px rgba(236, 72, 153, 0.25),
+        0 0 0 4px var(--intimacy-bar-bg, rgba(255, 255, 255, 0.9));
+    z-index: 3;
+    transition: all 0.3s ease;
+}
+
+.intimacy-center-heart i {
+    font-size: 14px;
+    color: var(--intimacy-color, #ec4899);
+    transition: all 0.3s ease;
+}
+
+.intimacy-progress-section.active .intimacy-center-heart {
+    animation: intimacyHeartBeat 1s ease-in-out infinite;
+}
+
+@keyframes intimacyHeartBeat {
+    0%, 100% {
+        transform: translate(-50%, -50%) scale(1);
+    }
+    10% {
+        transform: translate(-50%, -50%) scale(1.15);
+    }
+    20% {
+        transform: translate(-50%, -50%) scale(1.05);
+    }
+    30% {
+        transform: translate(-50%, -50%) scale(1.15);
+    }
+    40% {
+        transform: translate(-50%, -50%) scale(1.05);
+    }
+    50% {
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
+/* 倒计时显示 */
+.intimacy-countdown-row i {
+    font-size: 10px;
+    color: var(--intimacy-color, #ec4899);
+}
+
+.intimacy-countdown-value {
+    color: var(--intimacy-color, #ec4899);
+    font-variant-numeric: tabular-nums;
+}
+
+.intimacy-countdown-row.urgent .intimacy-countdown-value {
+    color: #ef4444;
+    animation: countdownPulse 0.5s ease-in-out infinite;
+}
+
+@keyframes countdownPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+/* 完成状态 */
+.intimacy-progress-section.completed .intimacy-center-heart {
+    background: linear-gradient(135deg, var(--intimacy-color, #ec4899), color-mix(in srgb, var(--intimacy-color, #ec4899) 80%, white));
+    transform: translate(-50%, -50%) scale(1.2);
+    box-shadow:
+        0 4px 20px rgba(236, 72, 153, 0.5),
+        0 0 0 6px var(--intimacy-bar-bg, rgba(255, 255, 255, 0.9));
+}
+
+.intimacy-progress-section.completed .intimacy-center-heart i {
+    color: white;
+    animation: intimacyHeartComplete 0.6s ease-out;
+}
+
+@keyframes intimacyHeartComplete {
+    0% {
+        transform: scale(0);
+        opacity: 0;
+    }
+    50% {
+        transform: scale(1.3);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* ==================== 头像移动动画 ==================== */
+/* 头像移动现在由JavaScript动态控制，通过WebSocket进度更新同步 */
+.intimacy-user-section.left,
+.intimacy-user-section.right {
+    transition: transform 0.3s ease-out;
+}
+
+/* 移动端禁用移动动画 */
+@media (max-width: 768px) {
+    .intimacy-user-section.left,
+    .intimacy-user-section.right {
+        transform: none !important;
+    }
+}
+
+/* ==================== 爱心碰撞特效容器 ==================== */
+.intimacy-collision-effect {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 10;
+}
+
+/* 碰撞爱心粒子 */
+.intimacy-heart-particle {
+    position: absolute;
+    font-size: 20px;
+    color: var(--intimacy-color, #ec4899);
+    opacity: 0;
+    animation: heartParticleFloat 1.2s ease-out forwards;
+}
+
+@keyframes heartParticleFloat {
+    0% {
+        transform: translate(0, 0) scale(0) rotate(0deg);
+        opacity: 0;
+    }
+    20% {
+        opacity: 1;
+    }
+    100% {
+        transform: translate(var(--tx), var(--ty)) scale(1.2) rotate(360deg);
+        opacity: 0;
+    }
+}
+
+/* 光环扩散 */
+.intimacy-ripple {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 60px;
+    height: 60px;
+    border: 3px solid var(--intimacy-color, #ec4899);
+    border-radius: 50%;
+    opacity: 0;
+    animation: rippleExpand 1s ease-out forwards;
+}
+
+@keyframes rippleExpand {
+    0% {
+        width: 60px;
+        height: 60px;
+        opacity: 0.8;
+    }
+    100% {
+        width: 200px;
+        height: 200px;
+        opacity: 0;
+    }
+}
+
+/* 好感度获得提示 */
+.intimacy-exp-gain-toast {
+    position: absolute;
+    top: -40px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, var(--intimacy-color, #ec4899), color-mix(in srgb, var(--intimacy-color, #ec4899) 85%, white));
+    color: white;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    box-shadow: 0 4px 16px rgba(236, 72, 153, 0.4);
+    animation: expGainFloat 2.5s ease-out forwards;
+    z-index: 20;
+}
+
+@keyframes expGainFloat {
+    0% {
+        opacity: 0;
+        transform: translateX(-50%) translateY(10px);
+    }
+    15% {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+    70% {
+        opacity: 1;
+        transform: translateX(-50%) translateY(-5px);
+    }
+    100% {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-20px);
+    }
+}
+
+/* ==================== 收藏按钮（可选） ==================== */
+.intimacy-collect-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--intimacy-btn-bg, rgba(236, 72, 153, 0.1));
+    border: none;
+    color: var(--intimacy-color, #ec4899);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.intimacy-collect-btn:hover {
+    background: var(--intimacy-btn-bg-hover, rgba(236, 72, 153, 0.2));
+    transform: scale(1.05);
+}
+
+.intimacy-collect-btn:active {
+    transform: scale(0.95);
+}
+
+.intimacy-collect-btn i {
+    font-size: 14px;
+}
+
+.intimacy-collect-btn.collected {
+    background: linear-gradient(135deg, var(--intimacy-color, #ec4899), color-mix(in srgb, var(--intimacy-color, #ec4899) 80%, white));
+    color: white;
+}
+
+/* ==================== 暗色模式 ==================== */
+.dark-mode .intimacy-interaction-bar {
+    --intimacy-bar-bg: rgba(15, 23, 42, 0.85);
+    --intimacy-bar-border: rgba(236, 72, 153, 0.25);
+    --intimacy-bar-border-hover: rgba(236, 72, 153, 0.35);
+    --intimacy-track-bg: rgba(236, 72, 153, 0.2);
+    --intimacy-text: #f1f5f9;
+    --intimacy-countdown-text: #94a3b8;
+    --intimacy-btn-bg: rgba(236, 72, 153, 0.15);
+    --intimacy-btn-bg-hover: rgba(236, 72, 153, 0.25);
+}
+
+/* ==================== 移动端适配 ==================== */
+@media (max-width: 768px) {
+    .intimacy-interaction-wrapper {
+        margin-top: 10px;
+    }
+
+    .intimacy-interaction-bar {
+        padding: 10px;
+        gap: 8px;
+        border-radius: 14px;
+    }
+
+    .intimacy-avatars-row {
+        gap: 8px;
+    }
+
+    .intimacy-user-section {
+        flex-shrink: 0;
+        gap: 6px;
+    }
+
+    .intimacy-user-avatar-wrapper {
+        width: 38px;
+        height: 38px;
+    }
+
+    .intimacy-user-name {
+        font-size: 11px;
+        max-width: 60px;
+    }
+
+    .intimacy-progress-section {
+        width: 100%;
+    }
+
+    .intimacy-progress-container {
+        height: 36px;
+    }
+
+    .intimacy-progress-track {
+        height: 6px;
+    }
+
+    .intimacy-center-heart {
+        width: 24px;
+        height: 24px;
+    }
+
+    .intimacy-center-heart i {
+        font-size: 12px;
+    }
+
+    .intimacy-countdown-row {
+        font-size: 10px;
+    }
+}
+
+@media (max-width: 480px) {
+    .intimacy-interaction-bar {
+        padding: 8px 10px;
+    }
+
+    .intimacy-user-avatar-wrapper {
+        width: 34px;
+        height: 34px;
+    }
+
+    .intimacy-user-name {
+        font-size: 10px;
+        max-width: 50px;
+    }
+}
+
+/* ==================== 减少动画（可访问性） ==================== */
+@media (prefers-reduced-motion: reduce) {
+    .intimacy-interaction-bar,
+    .intimacy-user-avatar,
+    .intimacy-center-heart,
+    .intimacy-progress-fill,
+    .intimacy-collect-btn {
+        animation: none !important;
+        transition: none !important;
+    }
+}
+
+/* ==================== 过渡动画 ==================== */
+.intimacy-slide-enter-active {
+    animation: intimacySlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.intimacy-slide-leave-active {
+    animation: intimacySlideOut 0.25s cubic-bezier(0.4, 0, 1, 1);
+}
+
+@keyframes intimacySlideOut {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+}

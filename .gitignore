@@ -26,4 +26,5 @@ Thumbs.db
 /.claude
 /.zencoder
 /.zenflow
-/.kirotmpclaude-*-cwd
+/.kiro
+tmpclaude-*-cwd

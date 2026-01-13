@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="/static/css/message-types.css?v=22">
     <link rel="stylesheet" href="/static/css/intimacy.css?v=10">
     <link rel="stylesheet" href="/static/css/bond-effects.css?v=3">
+    <link rel="stylesheet" href="/static/css/intimacy-bar.css?v=15">
     <!-- 关键：在Vue加载前隐藏整个应用，防止模板闪现 -->
     <style>
         [v-cloak] {
@@ -266,7 +267,56 @@
                                 </div>
                             </div>
                         </div>
-                        
+
+                        <!-- 亲密互动条（私密房间两人在线时显示） -->
+                        <transition name="intimacy-slide">
+                            <div v-if="showInteractionBar && onlineUsers >= 2" class="intimacy-interaction-wrapper" :style="{ '--intimacy-color': intimacyInfo?.level_color || '#ec4899' }">
+                                <div class="intimacy-interaction-bar">
+                                    <!-- 第一行：两个头像 -->
+                                    <div class="intimacy-avatars-row">
+                                        <!-- 左侧用户（自己） -->
+                                        <div class="intimacy-user-section left is-local">
+                                            <div class="intimacy-user-avatar-wrapper">
+                                                <img v-if="isValidAvatar(currentUser.avatar)" :src="currentUser.avatar" class="intimacy-user-avatar" :alt="currentUser.nick_name">
+                                                <div v-else class="intimacy-user-avatar-placeholder">{{ currentUser.nick_name.charAt(0) }}</div>
+                                            </div>
+                                            <span class="intimacy-user-name">{{ currentUser.nick_name }}</span>
+                                        </div>
+
+                                        <!-- 右侧用户（伴侣） -->
+                                        <div class="intimacy-user-section right">
+                                            <span class="intimacy-user-name">{{ interactionPartner.name || '伴侣' }}</span>
+                                            <div class="intimacy-user-avatar-wrapper">
+                                                <img v-if="interactionPartner.avatar" :src="interactionPartner.avatar" class="intimacy-user-avatar" :alt="interactionPartner.name">
+                                                <div v-else class="intimacy-user-avatar-placeholder">{{ interactionPartner.name?.charAt(0) || '?' }}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- 第二行：进度条 -->
+                                    <div class="intimacy-progress-section" :class="{ 'active': interactionProgress > 0 && interactionProgress < 100, 'completed': interactionCompleted }">
+                                        <div class="intimacy-progress-container">
+                                            <div class="intimacy-progress-track">
+                                                <!-- 双向进度条：两边各占一半宽度，100%时相遇 -->
+                                                <div class="intimacy-progress-fill-left" :style="{ width: (interactionProgress / 2) + '%', '--intimacy-color': intimacyInfo?.level_color || '#ec4899' }"></div>
+                                                <div class="intimacy-progress-fill-right" :style="{ width: (interactionProgress / 2) + '%', '--intimacy-color': intimacyInfo?.level_color || '#ec4899' }"></div>
+                                            </div>
+                                            <div class="intimacy-center-heart">
+                                                <i class="fas fa-heart"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- 第三行：倒计时 -->
+                                    <div class="intimacy-countdown-row" :class="{ 'urgent': interactionCountdown <= 10 }">
+                                        <i class="fas fa-clock"></i>
+                                        <span class="intimacy-countdown-value">{{ interactionCountdown }}</span>
+                                        <span class="intimacy-countdown-text">{{ intimacyCountdownText }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </transition>
+
                         <!-- 底部：统计和开关 -->
                         <div class="intimacy-bottom-section">
                             <div class="intimacy-message-count">
@@ -278,9 +328,9 @@
                                     <span class="message-value">{{ intimacyInfo.total_messages }} 条消息</span>
                                 </div>
                             </div>
-                            
+
                             <div class="intimacy-divider"></div>
-                            
+
                             <div class="intimacy-settings">
                                 <div class="settings-label">
                                     <i class="fas fa-bell"></i>
@@ -291,7 +341,7 @@
                                     <span class="intimacy-slider"></span>
                                 </label>
                             </div>
-                            
+
                             <div class="intimacy-settings">
                                 <div class="settings-label">
                                     <i class="fas fa-heart"></i>
@@ -892,7 +942,7 @@
             }
         })();
     </script>
-    <script src="/static/js/websocket.js?v=5"></script>
+    <script src="/static/js/websocket.js?v=7"></script>
     <!-- 用户资料组件（独立组件） -->
     <script src="/static/js/components/user-profile.js?v=3"></script>
 
@@ -909,10 +959,11 @@
     <!-- 聊天应用业务模块（重构后） -->
     <script src="/static/js/modules/message-handler.js?v=1"></script>
     <script src="/static/js/modules/intimacy-system.js?v=1"></script>
+    <script src="/static/js/modules/intimacy-interaction.js?v=10"></script>
     <script src="/static/js/modules/read-status.js?v=1"></script>
     <script src="/static/js/modules/image-modal.js?v=1"></script>
 
-    <script type="module" src="/static/js/index.js?v=150"></script>
+    <script type="module" src="/static/js/index.js?v=171"></script>
 </body>
 
 </html>

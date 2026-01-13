@@ -13,6 +13,7 @@ if (typeof Vue === 'undefined') {
 const createApp = Vue.createApp;
 const ref = Vue.ref;
 const computed = Vue.computed;
+const watch = Vue.watch;
 const onMounted = Vue.onMounted;
 const nextTick = Vue.nextTick;
 
@@ -1005,19 +1006,25 @@ try {
                         // 只更新在线人数，总人数不变
                         onlineUsers.value = data.online_count;
 
-                        // 刷新在线用户列表
-                        if (roomId.value) {
-                            getRoomInfo(roomId.value);
+                        // 更新在线用户列表（添加新加入的用户）
+                        if (data.user_id && data.nickname) {
+                            const existingUser = onlineUsersList.value.find(u => u.id === data.user_id);
+                            if (!existingUser) {
+                                onlineUsersList.value.push({
+                                    id: data.user_id,
+                                    name: data.nickname,
+                                    avatar: data.avatar || '',
+                                    online: true
+                                });
+                                console.log('[WebSocket] 用户加入，更新在线列表:', onlineUsersList.value);
+                            }
                         }
 
                         // 私密房间：当第二个人加入时，第一个人看到羁绊上线提醒
                         if (currentRoomPrivate.value && data.online_count === 2) {
-                            // 从消息列表获取头像
-                            const getAvatar = (userId) => messages.value.find(m => m.sender?.id == userId)?.sender?.avatar;
-
                             triggerBondOnlineEffect(
-                                { nick_name: currentUser.value.nick_name, avatar: getAvatar(currentUser.value.id) || currentUser.value.avatar },
-                                { nick_name: data.nickname, avatar: getAvatar(data.user_id) }
+                                { nick_name: currentUser.value.nick_name, avatar: currentUser.value.avatar },
+                                { nick_name: data.nickname, avatar: data.avatar || '' }
                             );
                         }
                     },
@@ -1026,9 +1033,13 @@ try {
                         // 只更新在线人数，总人数不变
                         onlineUsers.value = data.online_count;
 
-                        // 刷新在线用户列表
-                        if (roomId.value) {
-                            getRoomInfo(roomId.value);
+                        // 更新在线用户列表（移除离开的用户）
+                        if (data.user_id) {
+                            const index = onlineUsersList.value.findIndex(u => u.id === data.user_id);
+                            if (index !== -1) {
+                                onlineUsersList.value.splice(index, 1);
+                                console.log('[WebSocket] 用户离开，更新在线列表:', onlineUsersList.value);
+                            }
                         }
                     },
 
@@ -1194,6 +1205,126 @@ try {
                             if (autoRefresh.value && roomId.value) {
                                 startAutoRefresh();
                             }
+                        }
+                    },
+
+                    // 亲密互动开始
+                    onIntimacyStart: (data) => {
+                        console.log('[WebSocket] 亲密互动开始:', data);
+                        if (data.room_id == roomId.value) {
+                            console.log('[WebSocket] 开始前状态:', {
+                                interactionProgress: interactionProgress.value,
+                                interactionCountdown: interactionCountdown.value,
+                                interactionCompleted: interactionCompleted.value,
+                                showInteractionBar: showInteractionBar.value
+                            });
+
+                            // 先停止之前的互动（如果有）
+                            if (window.ChatApp && window.ChatApp.IntimacyInteraction) {
+                                window.ChatApp.IntimacyInteraction.stop();
+                            }
+
+                            // 重置Vue状态
+                            showInteractionBar.value = true;
+                            interactionProgress.value = 0;
+                            interactionCountdown.value = 60;
+                            interactionCompleted.value = false;
+                            interactionCollected.value = false;
+                            
+                            // 重置文案索引和时间，确保从第一条文案开始
+                            currentTextIndex.value = 0;
+                            lastTextChangeTime.value = Date.now();
+
+                            console.log('[WebSocket] 设置初始值:', {
+                                interactionProgress: interactionProgress.value,
+                                interactionCountdown: interactionCountdown.value
+                            });
+
+                            // 使用 nextTick 确保 DOM 更新后再启动
+                            nextTick(() => {
+                                // 启动本地互动模块（开始本地倒计时）
+                                if (window.ChatApp && window.ChatApp.IntimacyInteraction) {
+                                    console.log('[WebSocket] 调用 IntimacyInteraction.start()');
+                                    window.ChatApp.IntimacyInteraction.start();
+                                }
+                            });
+                        }
+                    },
+
+                    // 亲密互动进度更新
+                    onIntimacyProgress: (data) => {
+                        console.log('[WebSocket] 亲密互动进度更新:', data, '当前房间:', roomId.value);
+                        if (data.room_id == roomId.value) {
+                            interactionProgress.value = data.progress || 0;
+                            interactionCountdown.value = Math.ceil(data.remaining || 0);
+                            console.log('[WebSocket] 更新UI - 进度:', interactionProgress.value, '倒计时:', interactionCountdown.value);
+
+                            // 同步更新头像位置（通过CSS变量）
+                            const leftUser = document.querySelector('.intimacy-user-section.left');
+                            const rightUser = document.querySelector('.intimacy-user-section.right');
+                            if (leftUser && rightUser) {
+                                // 计算移动距离：进度0%时距离0，100%时距离为容器宽度的50%-头像宽度
+                                const maxMove = 50; // 最大移动百分比
+                                const currentMove = (data.progress / 100) * maxMove;
+                                leftUser.style.transform = `translateX(${currentMove}%)`;
+                                rightUser.style.transform = `translateX(-${currentMove}%)`;
+                            }
+                        }
+                    },
+
+                    // 亲密互动完成
+                    onIntimacyComplete: (data) => {
+                        console.log('[WebSocket] 亲密互动完成:', data);
+                        if (data.room_id == roomId.value) {
+                            interactionProgress.value = 100;
+                            interactionCountdown.value = 0;
+                            interactionCompleted.value = true;
+
+                            // 触发本地模块完成状态
+                            if (window.ChatApp && window.ChatApp.IntimacyInteraction) {
+                                window.ChatApp.IntimacyInteraction.complete();
+                            }
+
+                            // 延迟2秒后自动领取
+                            setTimeout(function () {
+                                collectIntimacyExp();
+                            }, 2000);
+                        }
+                    },
+
+                    // 亲密互动重置
+                    onIntimacyReset: (data) => {
+                        console.log('[WebSocket] 亲密互动重置:', data);
+                        if (data.room_id == roomId.value) {
+                            console.log('[WebSocket] 重置前状态:', {
+                                interactionProgress: interactionProgress.value,
+                                interactionCountdown: interactionCountdown.value,
+                                interactionCompleted: interactionCompleted.value,
+                                interactionCollected: interactionCollected.value
+                            });
+
+                            // 停止并重置本地互动模块（重要：必须先停止！）
+                            if (window.ChatApp && window.ChatApp.IntimacyInteraction) {
+                                console.log('[WebSocket] 调用 IntimacyInteraction.stop()');
+                                window.ChatApp.IntimacyInteraction.stop();
+                                console.log('[WebSocket] 调用 IntimacyInteraction.reset()');
+                                window.ChatApp.IntimacyInteraction.reset();
+                            }
+
+                            // 重置所有Vue状态（reset()已经处理了，这里只是确保）
+                            interactionProgress.value = 0;
+                            interactionCountdown.value = 60;
+                            interactionCompleted.value = false;
+                            interactionCollected.value = false;
+                            // 保持 showInteractionBar 为 true，等待新的 intimacy_start
+
+                            console.log('[WebSocket] 已停止并重置亲密互动');
+                            console.log('[WebSocket] 重置后状态:', {
+                                interactionProgress: interactionProgress.value,
+                                interactionCountdown: interactionCountdown.value,
+                                interactionCompleted: interactionCompleted.value,
+                                interactionCollected: interactionCollected.value
+                            });
                         }
                     },
 
@@ -1975,10 +2106,135 @@ try {
             const showExpToast = ref(localStorage.getItem('showExpToast') === 'true'); // 是否显示经验提示（默认关闭，有缓存才按缓存）
             const showBondOnlineEffect = ref(localStorage.getItem('showBondOnlineEffect') !== 'false'); // 是否显示羁绊上线提醒（默认开启）
             const onlineUsersList = ref([]);
+
+            // 亲密互动条相关
+            const showInteractionBar = ref(false); // 是否显示亲密互动条
+            const interactionProgress = ref(0); // 互动进度（0-100）
+            const interactionCountdown = ref(60); // 倒计时（秒）
+            const interactionCompleted = ref(false); // 是否完成
+            const interactionCollected = ref(false); // 是否已领取
+            const interactionPartner = ref({ name: '', avatar: '' }); // 伴侣信息
             const roomList = ref([]);
             const contactList = ref([]);     // 联系人列表
             const activeTab = ref('rooms');  // 当前激活的标签: 'contacts' 或 'rooms'，默认选中群聊
             // messages 已在前面定义
+
+            // 亲密互动倒计时文案库（根据剩余时间显示不同文案）
+            const intimacyCountdownTexts = {
+                // 60-51秒：开始阶段
+                start: [
+                    '秒后相遇 💕',
+                    '秒，宝宝我们越来越近啦~',
+                    '秒，期待与你相遇的瞬间',
+                    '秒，心跳开始加速了呢',
+                    '秒，想要快点见到你',
+                    '秒，感受到你的呼吸了',
+                    '秒，我们的故事继续中'
+                ],
+                // 50-31秒：中间阶段
+                middle: [
+                    '秒，我们的距离在缩短',
+                    '秒，感受到你的温度了',
+                    '秒，越来越近啦宝贝',
+                    '秒，马上就能拥抱你了',
+                    '秒，心跳和你同步中',
+                    '秒，已经闻到你的味道',
+                    '秒，想要牵你的手'
+                ],
+                // 30-11秒：接近阶段
+                close: [
+                    '秒，快要抱到你啦',
+                    '秒，已经看到你的笑容',
+                    '秒，迫不及待想见你',
+                    '秒，我们就要相遇了',
+                    '秒，准备好拥抱了吗',
+                    '秒，要把你抱得紧紧的',
+                    '秒，感觉到你的心跳了'
+                ],
+                // 10-0秒：紧急阶段
+                urgent: [
+                    '秒！马上就要碰到啦',
+                    '秒！心跳加速中',
+                    '秒！就是现在',
+                    '秒！要抱紧你了',
+                    '秒！准备好了吗',
+                    '秒！要亲亲啦',
+                    '秒！冲鸭！'
+                ]
+            };
+
+            // 当前使用的文案索引
+            const currentTextIndex = ref(0);
+            const lastTextChangeTime = ref(0);
+
+            // 计算倒计时文案（根据剩余时间动态变化）
+            const intimacyCountdownText = computed(() => {
+                const remaining = interactionCountdown.value;
+                
+                // 根据剩余时间选择文案组
+                let textGroup;
+                if (remaining > 50) {
+                    textGroup = intimacyCountdownTexts.start;
+                } else if (remaining > 30) {
+                    textGroup = intimacyCountdownTexts.middle;
+                } else if (remaining > 10) {
+                    textGroup = intimacyCountdownTexts.close;
+                } else {
+                    textGroup = intimacyCountdownTexts.urgent;
+                }
+
+                // 每5秒切换一次文案（避免切换太频繁）
+                const now = Date.now();
+                if (now - lastTextChangeTime.value > 5000) {
+                    currentTextIndex.value = Math.floor(Math.random() * textGroup.length);
+                    lastTextChangeTime.value = now;
+                }
+
+                return textGroup[currentTextIndex.value];
+            });
+
+            // ==================== 亲密互动条相关函数 ====================
+            // 更新伴侣信息
+            const updateInteractionPartner = function() {
+                if (!currentRoomPrivate.value || onlineUsersList.value.length < 2) {
+                    console.log('[亲密互动] 不满足更新条件 - 私密房间:', currentRoomPrivate.value, '在线用户数:', onlineUsersList.value.length);
+                    return;
+                }
+
+                console.log('[亲密互动] 当前在线用户列表:', onlineUsersList.value);
+                console.log('[亲密互动] 当前用户ID:', currentUser.value.id);
+
+                // 找到伴侣用户（注意：onlineUsersList中的字段是id和name）
+                const partner = onlineUsersList.value.find(function(u) {
+                    return u.id !== currentUser.value.id;
+                });
+
+                if (partner) {
+                    interactionPartner.value = {
+                        name: partner.name || '伴侣',
+                        avatar: partner.avatar || '',
+                    };
+                    console.log('[亲密互动] 更新伴侣信息:', interactionPartner.value);
+                } else {
+                    console.warn('[亲密互动] 未找到伴侣，在线用户列表:', onlineUsersList.value);
+                }
+            };
+
+            // 领取亲密互动好感度
+            const collectIntimacyExp = function() {
+                if (!interactionCompleted.value) {
+                    toast.warning('请等待相遇完成');
+                    return;
+                }
+
+                if (interactionCollected.value) {
+                    toast.info('已经领取过了');
+                    return;
+                }
+
+                interactionCollected.value = true;
+                ChatApp.IntimacyInteraction.collectExp();
+            };
 
             const newMessage = ref('');
 
@@ -4226,6 +4482,46 @@ try {
                     }
                 });
 
+                // ==================== 初始化亲密互动模块 ====================
+                ChatApp.IntimacyInteraction.init({
+                    refs: {
+                        showInteractionBar: showInteractionBar,
+                        interactionProgress: interactionProgress,
+                        interactionCountdown: interactionCountdown,
+                        interactionCompleted: interactionCompleted,
+                        currentUser: currentUser,
+                        onlineUsers: onlineUsers,
+                        roomId: roomId,  // 传入ref对象以获取动态更新的房间ID
+                        wsClient: wsClient,  // 传入WebSocket客户端用于发送消息
+                    },
+                    apiRequest: apiRequest,
+                });
+
+                // 设置好感度更新回调
+                ChatApp.IntimacyInteraction.setIntimacyUpdateCallback(function(intimacyData) {
+                    ChatApp.IntimacySystem.handleIntimacyUpdate(
+                        intimacyData,
+                        intimacyInfo,
+                        roomId,
+                        apiRequest,
+                        { showExpToast: showExpToast }
+                    );
+                });
+
+                // 监听在线用户变化，自动开始/停止亲密互动
+                watch(onlineUsers, function(newCount) {
+                    // 只在私密房间处理
+                    if (!currentRoomPrivate.value) return;
+
+                    // 使用亲密互动模块处理在线用户变化
+                    ChatApp.IntimacyInteraction.handleOnlineUsersChange(newCount);
+                }, { immediate: true });
+
+                // 监听在线用户列表变化，更新伴侣信息
+                watch(onlineUsersList, function() {
+                    updateInteractionPartner();
+                }, { deep: true });
+
             });
 
             // 返回响应式数据和方法
@@ -4259,6 +4555,15 @@ try {
                 saveBondOnlineEffectSetting,
                 showFloatingHearts,
                 heartsAnimationKey,
+                // 亲密互动条
+                showInteractionBar,
+                interactionProgress,
+                interactionCountdown,
+                intimacyCountdownText,
+                interactionCompleted,
+                interactionCollected,
+                interactionPartner,
+                collectIntimacyExp,
                 onlineUsersList,
                 roomList,
                 contactList,
