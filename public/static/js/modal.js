@@ -34,7 +34,6 @@ class Modal {
             transition: opacity 0.15s ease;
         `;
         document.body.appendChild(this.overlay);
-
         this.overlay.addEventListener('click', () => {
             if (this.currentModal?.closeOnOverlay) {
                 this.close();
