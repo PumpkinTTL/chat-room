@@ -3105,7 +3105,7 @@ button:disabled {
 /* ==================== 回到底部按钮 ==================== */
 .scroll-to-bottom-btn {
     position: absolute;
-    bottom: 80px;
+    bottom: 130px;
     right: 20px;
     background: rgba(255, 255, 255, 0.95);
     color: var(--text-secondary);
