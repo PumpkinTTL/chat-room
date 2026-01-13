@@ -276,8 +276,8 @@ class IntimacyService
         try {
             Db::startTrans();
 
-            // 随机获得10-20好感度
-            $expGain = rand(10, 20);
+            // 随机获得5-10好感度
+            $expGain = rand(5, 10);
 
             // 查找或创建经验记录
             $expRecord = Db::name('ch_intimacy_exp')
