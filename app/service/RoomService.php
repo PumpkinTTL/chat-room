@@ -63,19 +63,28 @@ class RoomService
         $roomId = self::generateUniqueRoomId();
         
         try {
-            // 使用Db直接插入
-            Db::name('ch_rooms')->insert([
+            // 准备插入数据
+            $insertData = [
                 'id' => $roomId,
                 'name' => $data['name'],
                 'description' => $data['description'] ?? '',
                 'owner_id' => $userId,
                 'status' => Room::STATUS_NORMAL,
                 'create_time' => date('Y-m-d H:i:s'),
-            ]);
+            ];
             
-            // 创建者自动加入房间
+            // 如果设置了密码，则为私密房间
+            if (!empty($data['password'])) {
+                $insertData['password'] = $data['password'];
+                $insertData['private'] = 1; // 标记为私密房间
+            }
+            
+            // 使用Db直接插入
+            Db::name('ch_rooms')->insert($insertData);
+            
+            // 创建者自动加入房间（跳过密码验证）
             if ($userId) {
-                RoomUserService::joinRoom($roomId, $userId);
+                RoomUserService::joinRoom($roomId, $userId, null, true);
             }
             
             return [
@@ -84,6 +93,7 @@ class RoomService
                 'data' => [
                     'id' => $roomId,
                     'name' => $data['name'],
+                    'private' => !empty($data['password']) ? 1 : 0,
                 ],
             ];
         } catch (\Exception $e) {

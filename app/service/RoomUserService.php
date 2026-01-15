@@ -15,9 +15,11 @@ class RoomUserService
      * 用户加入房间
      * @param int $roomId 房间ID
      * @param int $userId 用户ID
+     * @param string $password 房间密码（可选）
+     * @param bool $skipPasswordCheck 跳过密码验证（创建者自动加入时使用）
      * @return array
      */
-    public static function joinRoom($roomId, $userId)
+    public static function joinRoom($roomId, $userId, $password = null, $skipPasswordCheck = false)
     {
         // 验证参数
         if (empty($roomId) || empty($userId)) {
@@ -25,6 +27,19 @@ class RoomUserService
         }
 
         try {
+            // 检查房间是否存在
+            $room = \app\model\Room::find($roomId);
+            if (!$room) {
+                return ['code' => 1, 'msg' => '房间不存在'];
+            }
+            
+            // 检查房间密码（创建者跳过验证）
+            if (!$skipPasswordCheck && !empty($room['password'])) {
+                if ($password === null || $password !== $room['password']) {
+                    return ['code' => 1, 'msg' => '房间密码错误'];
+                }
+            }
+            
             // 检查是否已经在房间内
             $existing = RoomUser::where('room_id', $roomId)
                 ->where('user_id', $userId)
@@ -71,8 +86,7 @@ class RoomUserService
         try {
             $result = RoomUser::where('room_id', $roomId)
                 ->where('user_id', $userId)
-                ->where('status', RoomUser::STATUS_IN_ROOM)
-                ->update(['status' => RoomUser::STATUS_LEFT]);
+                ->delete();
 
             if ($result) {
                 return ['code' => 0, 'msg' => '离开成功'];

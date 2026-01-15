@@ -19,13 +19,14 @@ class RoomUser
     public function join(Request $request)
     {
         $roomId = $request->param('room_id');
+        $password = $request->param('password'); // 获取密码参数
         $userId = $request->userId; // 从中间件获取
 
         if (!$roomId) {
             return json(['code' => 1, 'msg' => '房间ID不能为空'], 400);
         }
 
-        $result = RoomUserService::joinRoom($roomId, $userId);
+        $result = RoomUserService::joinRoom($roomId, $userId, $password);
         $code = $result['code'] === 0 ? 200 : 400;
 
         return json($result, $code);
