@@ -1,0 +1,1099 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>亲密度系统 UI 预览</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;500;600;700&family=Varela+Round&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Nunito Sans', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Aurora 流动背景 */
+    .aurora-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(
+        135deg,
+        #0080FF 0%,
+        #FF1493 25%,
+        #00FFFF 50%,
+        #FF1493 75%,
+        #0080FF 100%
+      );
+      background-size: 400% 400%;
+      animation: aurora-flow 15s ease infinite;
+      z-index: -1;
+    }
+
+    @keyframes aurora-flow {
+      0%, 100% {
+        background-position: 0% 50%;
+      }
+      50% {
+        background-position: 100% 50%;
+      }
+    }
+
+    /* 主容器 */
+    .preview-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+
+    .preview-header {
+      text-align: center;
+      color: white;
+      margin-bottom: 40px;
+    }
+
+    .preview-header h1 {
+      font-family: 'Varela Round', sans-serif;
+      font-size: 42px;
+      font-weight: 400;
+      margin-bottom: 10px;
+      text-shadow: 0 2px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .preview-header p {
+      font-size: 18px;
+      opacity: 0.9;
+    }
+
+    /* 组件展示区 */
+    .component-section {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 24px;
+      margin-bottom: 32px;
+    }
+
+    /* Glassmorphism 卡片 */
+    .glass-card {
+      background: rgba(255, 255, 255, 0.75);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.1),
+        inset 0 1px 1px rgba(255, 255, 255, 0.4);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .glass-card:hover {
+      transform: translateY(-4px);
+      box-shadow:
+        0 12px 40px rgba(0, 0, 0, 0.15),
+        inset 0 1px 1px rgba(255, 255, 255, 0.4);
+    }
+
+    .card-title {
+      font-family: 'Varela Round', sans-serif;
+      font-size: 20px;
+      color: #1E293B;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid rgba(236, 72, 153, 0.2);
+    }
+
+    /* ==================== 等级徽章 ==================== */
+    .level-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      justify-content: center;
+    }
+
+    .level-badge {
+      position: relative;
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Varela Round', sans-serif;
+      font-size: 24px;
+      font-weight: 600;
+      color: white;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      animation: level-glow 2s ease-in-out infinite;
+    }
+
+    .level-badge::before {
+      content: '';
+      position: absolute;
+      inset: -3px;
+      border-radius: 50%;
+      padding: 3px;
+      background: linear-gradient(135deg, currentColor, transparent);
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+    }
+
+    /* 8个等级的渐变色 */
+    .level-1 {
+      background: linear-gradient(135deg, #EC4899, #F472B6);
+      animation-delay: 0s;
+    }
+
+    .level-2 {
+      background: linear-gradient(135deg, #F9A916, #FBBF24);
+      animation-delay: 0.2s;
+    }
+
+    .level-3 {
+      background: linear-gradient(135deg, #F85712, #FB923C);
+      animation-delay: 0.4s;
+    }
+
+    .level-4 {
+      background: linear-gradient(135deg, #EF4444, #F87171);
+      animation-delay: 0.6s;
+    }
+
+    .level-5 {
+      background: linear-gradient(135deg, #DC2626, #EF4444);
+      animation-delay: 0.8s;
+    }
+
+    .level-6 {
+      background: linear-gradient(135deg, #C026D3, #D946EF);
+      animation-delay: 1s;
+    }
+
+    .level-7 {
+      background: linear-gradient(135deg, #9333EA, #A855F7);
+      animation-delay: 1.2s;
+    }
+
+    .level-8 {
+      background: linear-gradient(135deg, #7C3AED, #8B5CF6);
+      animation-delay: 1.4s;
+    }
+
+    .level-badge:hover {
+      transform: scale(1.15);
+      box-shadow: 0 8px 30px rgba(236, 72, 153, 0.5);
+    }
+
+    .level-badge .level-tooltip {
+      position: absolute;
+      bottom: -30px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+    }
+
+    .level-badge:hover .level-tooltip {
+      opacity: 1;
+    }
+
+    @keyframes level-glow {
+      0%, 100% {
+        box-shadow: 0 0 15px rgba(236, 72, 153, 0.4);
+      }
+      50% {
+        box-shadow: 0 0 30px rgba(236, 72, 153, 0.7);
+      }
+    }
+
+    /* ==================== 进度条 ==================== */
+    .progress-demo {
+      padding: 20px 0;
+    }
+
+    .progress-item {
+      margin-bottom: 24px;
+    }
+
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .progress-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: #475569;
+    }
+
+    .progress-value {
+      font-size: 14px;
+      font-weight: 700;
+      color: #EC4899;
+    }
+
+    .progress-track {
+      width: 100%;
+      height: 12px;
+      background: rgba(226, 232, 240, 0.8);
+      border-radius: 10px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .progress-fill {
+      height: 100%;
+      border-radius: 10px;
+      background: linear-gradient(90deg, #EC4899, #F97316);
+      transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+    }
+
+    .progress-fill::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+      animation: progress-shine 2s ease-in-out infinite;
+    }
+
+    @keyframes progress-shine {
+      0% {
+        transform: translateX(-100%);
+      }
+      100% {
+        transform: translateX(100%);
+      }
+    }
+
+    /* ==================== Chat Header 中的亲密度显示 ==================== */
+    .chat-header-demo {
+      background: rgba(255, 255, 255, 0.6);
+      backdrop-filter: blur(12px);
+      border-radius: 16px;
+      padding: 16px 20px;
+      margin-bottom: 20px;
+    }
+
+    .room-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .room-name {
+      font-family: 'Varela Round', sans-serif;
+      font-size: 18px;
+      font-weight: 500;
+      color: #1E293B;
+    }
+
+    .private-badge {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      background: linear-gradient(135deg, rgba(236, 72, 153, 0.1), rgba(236, 72, 153, 0.15));
+      border: 1px solid rgba(236, 72, 153, 0.2);
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 500;
+      color: #EC4899;
+    }
+
+    .private-badge svg {
+      width: 14px;
+      height: 14px;
+      animation: heartbeat 1.5s ease-in-out infinite;
+    }
+
+    @keyframes heartbeat {
+      0%, 100% { transform: scale(1); }
+      10%, 30% { transform: scale(1.1); }
+      20%, 40% { transform: scale(1); }
+    }
+
+    /* 亲密度信息区 */
+    .intimacy-display {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 12px;
+      padding: 10px 14px;
+      background: rgba(255, 255, 255, 0.5);
+      border-radius: 12px;
+      border: 1px solid rgba(236, 72, 153, 0.15);
+    }
+
+    .intimacy-level-small {
+      width: 40px;
+      height: 40px;
+      min-width: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #EC4899, #F472B6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Varela Round', sans-serif;
+      font-size: 18px;
+      font-weight: 600;
+      color: white;
+      box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
+    }
+
+    .intimacy-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .intimacy-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #EC4899;
+      margin-bottom: 4px;
+    }
+
+    .intimacy-progress-mini {
+      width: 100%;
+      height: 6px;
+      background: rgba(226, 232, 240, 0.8);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .intimacy-progress-mini .progress-fill {
+      height: 100%;
+      border-radius: 6px;
+      background: linear-gradient(90deg, #EC4899, #F97316);
+    }
+
+    /* ==================== 60秒互动条 ==================== */
+    .interaction-bar {
+      position: relative;
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(16px);
+      border-radius: 20px;
+      padding: 16px 24px;
+      margin: 20px 0;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    }
+
+    .interaction-bar-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .avatar-side {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex: 1;
+    }
+
+    .avatar-side.left {
+      justify-content: flex-end;
+    }
+
+    .avatar-side.right {
+      justify-content: flex-start;
+    }
+
+    .interaction-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      color: white;
+      border: 3px solid white;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      transition: transform 0.3s ease;
+    }
+
+    .interaction-avatar.left {
+      animation: avatar-move-left 3s ease-in-out infinite;
+    }
+
+    .interaction-avatar.right {
+      animation: avatar-move-right 3s ease-in-out infinite;
+    }
+
+    @keyframes avatar-move-left {
+      0%, 100% { transform: translateX(0); }
+      50% { transform: translateX(20px); }
+    }
+
+    @keyframes avatar-move-right {
+      0%, 100% { transform: translateX(0); }
+      50% { transform: translateX(-20px); }
+    }
+
+    .interaction-center {
+      position: relative;
+      width: 60px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .interaction-heart {
+      font-size: 32px;
+      animation: heart-beat 1s ease-in-out infinite;
+      filter: drop-shadow(0 0 10px rgba(236, 72, 153, 0.5));
+    }
+
+    @keyframes heart-beat {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.15); }
+    }
+
+    .connection-line {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 200%;
+      height: 3px;
+      background: linear-gradient(90deg,
+        transparent 0%,
+        #EC4899 20%,
+        #F97316 50%,
+        #EC4899 80%,
+        transparent 100%
+      );
+      z-index: -1;
+      animation: connection-flow 2s ease-in-out infinite;
+    }
+
+    @keyframes connection-flow {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 0.8; }
+    }
+
+    .interaction-timer {
+      position: absolute;
+      bottom: -20px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 11px;
+      font-weight: 600;
+      color: #EC4899;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 2px 8px;
+      border-radius: 10px;
+    }
+
+    /* ==================== 经验提示 ==================== */
+    .exp-tips {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .exp-tip {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      background: linear-gradient(135deg, rgba(236, 72, 153, 0.1), rgba(249, 115, 22, 0.1));
+      border: 1px solid rgba(236, 72, 153, 0.2);
+      border-radius: 10px;
+      animation: tip-slide-in 0.5s ease-out forwards;
+      opacity: 0;
+    }
+
+    @keyframes tip-slide-in {
+      from {
+        opacity: 0;
+        transform: translateX(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    .exp-tip:nth-child(1) { animation-delay: 0.1s; }
+    .exp-tip:nth-child(2) { animation-delay: 0.3s; }
+    .exp-tip:nth-child(3) { animation-delay: 0.5s; }
+
+    .exp-icon {
+      width: 32px;
+      height: 32px;
+      min-width: 32px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #EC4899, #F97316);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      color: white;
+    }
+
+    .exp-content {
+      flex: 1;
+    }
+
+    .exp-text {
+      font-size: 14px;
+      font-weight: 500;
+      color: #1E293B;
+    }
+
+    .exp-amount {
+      font-size: 12px;
+      color: #EC4899;
+      font-weight: 600;
+    }
+
+    /* ==================== 升级弹窗 ==================== */
+    .level-up-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .level-up-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .level-up-modal {
+      position: relative;
+      width: 90%;
+      max-width: 420px;
+      padding: 40px 30px;
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(20px);
+      border-radius: 24px;
+      text-align: center;
+      transform: scale(0.8);
+      transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      overflow: hidden;
+    }
+
+    .level-up-overlay.active .level-up-modal {
+      transform: scale(1);
+    }
+
+    /* 装饰圆圈 */
+    .deco-circle {
+      position: absolute;
+      border-radius: 50%;
+      border: 2px solid rgba(236, 72, 153, 0.2);
+      animation: rotate 20s linear infinite;
+    }
+
+    .deco-circle-1 {
+      width: 200px;
+      height: 200px;
+      top: -80px;
+      right: -80px;
+    }
+
+    .deco-circle-2 {
+      width: 150px;
+      height: 150px;
+      bottom: -60px;
+      left: -60px;
+      animation-direction: reverse;
+    }
+
+    @keyframes rotate {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    /* 星星装饰 */
+    .deco-star {
+      position: absolute;
+      font-size: 20px;
+      animation: star-twinkle 1.5s ease-in-out infinite;
+    }
+
+    .deco-star-1 { top: 20px; left: 30px; animation-delay: 0s; }
+    .deco-star-2 { top: 40px; right: 40px; animation-delay: 0.3s; }
+    .deco-star-3 { bottom: 30px; left: 50px; animation-delay: 0.6s; }
+    .deco-star-4 { bottom: 50px; right: 30px; animation-delay: 0.9s; }
+
+    @keyframes star-twinkle {
+      0%, 100% { opacity: 0.3; transform: scale(0.8); }
+      50% { opacity: 1; transform: scale(1.2); }
+    }
+
+    /* 爱心粒子 */
+    .heart-particle {
+      position: absolute;
+      font-size: 24px;
+      animation: heart-float 3s ease-in-out infinite;
+    }
+
+    .heart-particle-1 { top: 60%; left: 10%; animation-delay: 0s; }
+    .heart-particle-2 { top: 30%; right: 15%; animation-delay: 0.5s; }
+    .heart-particle-3 { bottom: 20%; right: 20%; animation-delay: 1s; }
+    .heart-particle-4 { top: 20%; left: 20%; animation-delay: 1.5s; }
+
+    @keyframes heart-float {
+      0%, 100% {
+        transform: translateY(0) rotate(0deg);
+        opacity: 0.6;
+      }
+      50% {
+        transform: translateY(-20px) rotate(10deg);
+        opacity: 1;
+      }
+    }
+
+    .level-up-content {
+      position: relative;
+      z-index: 1;
+    }
+
+    .level-up-icon {
+      width: 100px;
+      height: 100px;
+      margin: 0 auto 20px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #EC4899, #9333EA);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 48px;
+      color: white;
+      box-shadow: 0 10px 40px rgba(236, 72, 153, 0.4);
+      animation: level-up-bounce 0.6s ease-out;
+    }
+
+    @keyframes level-up-bounce {
+      0% { transform: scale(0); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+
+    .level-up-title {
+      font-family: 'Varela Round', sans-serif;
+      font-size: 32px;
+      font-weight: 600;
+      background: linear-gradient(135deg, #EC4899, #9333EA);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 8px;
+    }
+
+    .level-up-subtitle {
+      font-size: 16px;
+      color: #64748B;
+      margin-bottom: 20px;
+    }
+
+    .level-up-btn {
+      padding: 12px 32px;
+      background: linear-gradient(135deg, #EC4899, #9333EA);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-family: 'Nunito Sans', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(236, 72, 153, 0.3);
+    }
+
+    .level-up-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(236, 72, 153, 0.4);
+    }
+
+    /* ==================== 按钮控制区 ==================== */
+    .control-panel {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 1000;
+    }
+
+    .control-btn {
+      padding: 12px 20px;
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(236, 72, 153, 0.3);
+      border-radius: 12px;
+      font-family: 'Nunito Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      color: #EC4899;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .control-btn:hover {
+      background: rgba(236, 72, 153, 0.1);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(236, 72, 153, 0.2);
+    }
+
+    /* 响应式 */
+    @media (max-width: 768px) {
+      .preview-header h1 {
+        font-size: 32px;
+      }
+
+      .component-section {
+        grid-template-columns: 1fr;
+      }
+
+      .level-badge {
+        width: 56px;
+        height: 56px;
+        font-size: 20px;
+      }
+
+      .interaction-bar {
+        padding: 12px 16px;
+      }
+
+      .interaction-avatar {
+        width: 40px;
+        height: 40px;
+      }
+
+      .interaction-heart {
+        font-size: 28px;
+      }
+
+      .control-panel {
+        bottom: 10px;
+        right: 10px;
+      }
+    }
+
+    /* 减少动画 */
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Aurora 背景层 -->
+  <div class="aurora-bg"></div>
+
+  <!-- 升级弹窗 (默认隐藏) -->
+  <div class="level-up-overlay" id="levelUpOverlay">
+    <div class="level-up-modal">
+      <!-- 装饰元素 -->
+      <div class="deco-circle deco-circle-1"></div>
+      <div class="deco-circle deco-circle-2"></div>
+      <div class="deco-star deco-star-1">⭐</div>
+      <div class="deco-star deco-star-2">✨</div>
+      <div class="deco-star deco-star-3">⭐</div>
+      <div class="deco-star deco-star-4">✨</div>
+      <div class="heart-particle heart-particle-1">💕</div>
+      <div class="heart-particle heart-particle-2">💗</div>
+      <div class="heart-particle heart-particle-3">💖</div>
+      <div class="heart-particle heart-particle-4">💕</div>
+
+      <div class="level-up-content">
+        <div class="level-up-icon">🎉</div>
+        <h2 class="level-up-title">升级啦！</h2>
+        <p class="level-up-subtitle">恭喜亲密度升至 <span style="color: #EC4899; font-weight: 700;">Lv.3 甜蜜</span></p>
+        <button class="level-up-btn" onclick="closeLevelUp()">太棒了！</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 主容器 -->
+  <div class="preview-container">
+    <div class="preview-header">
+      <h1>💕 亲密度系统 UI 预览</h1>
+      <p>Aurora UI + Glassmorphism 设计风格</p>
+    </div>
+
+    <!-- 组件展示区 -->
+    <div class="component-section">
+      <!-- 等级徽章 -->
+      <div class="glass-card">
+        <h3 class="card-title">🏆 等级徽章 (8个等级)</h3>
+        <div class="level-badges">
+          <div class="level-badge level-1">
+            1
+            <span class="level-tooltip">恋人</span>
+          </div>
+          <div class="level-badge level-2">
+            2
+            <span class="level-tooltip">热恋</span>
+          </div>
+          <div class="level-badge level-3">
+            3
+            <span class="level-tooltip">甜蜜</span>
+          </div>
+          <div class="level-badge level-4">
+            4
+            <span class="level-tooltip">深爱</span>
+          </div>
+          <div class="level-badge level-5">
+            5
+            <span class="level-tooltip">挚爱</span>
+          </div>
+          <div class="level-badge level-6">
+            6
+            <span class="level-tooltip">相守</span>
+          </div>
+          <div class="level-badge level-7">
+            7
+            <span class="level-tooltip">伴侣</span>
+          </div>
+          <div class="level-badge level-8">
+            8
+            <span class="level-tooltip">灵魂伴侣</span>
+          </div>
+        </div>
+        <p style="margin-top: 16px; font-size: 13px; color: #64748B; text-align: center;">
+          悬停查看等级名称
+        </p>
+      </div>
+
+      <!-- 进度条 -->
+      <div class="glass-card">
+        <h3 class="card-title">📊 经验进度条</h3>
+        <div class="progress-demo">
+          <div class="progress-item">
+            <div class="progress-header">
+              <span class="progress-label">Lv.2 热恋</span>
+              <span class="progress-value">320 / 500</span>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill" style="width: 64%;"></div>
+            </div>
+          </div>
+          <div class="progress-item">
+            <div class="progress-header">
+              <span class="progress-label">Lv.5 挚爱</span>
+              <span class="progress-value">4250 / 5000</span>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill" style="width: 85%;"></div>
+            </div>
+          </div>
+          <div class="progress-item">
+            <div class="progress-header">
+              <span class="progress-label">Lv.8 灵魂伴侣</span>
+              <span class="progress-value">16500 / 18000</span>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill" style="width: 92%;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chat Header 中的亲密度显示 -->
+      <div class="glass-card">
+        <h3 class="card-title">💬 聊天头部集成</h3>
+        <div class="chat-header-demo">
+          <div class="room-info">
+            <span class="room-name">私密房间</span>
+            <div class="private-badge">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+              </svg>
+              <span>私密</span>
+            </div>
+            <span style="font-size: 12px; color: #64748B;">• 2人</span>
+          </div>
+          <div class="intimacy-display">
+            <div class="intimacy-level-small">3</div>
+            <div class="intimacy-info">
+              <div class="intimacy-title">💕 Lv.3 甜蜜</div>
+              <div class="intimacy-progress-mini">
+                <div class="progress-fill" style="width: 64%;"></div>
+              </div>
+            </div>
+            <div style="text-align: right;">
+              <div style="font-size: 12px; font-weight: 600; color: #EC4899;">+8 经验</div>
+              <div style="font-size: 11px; color: #64748B;">180/500</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 60秒互动条 -->
+      <div class="glass-card">
+        <h3 class="card-title">💗 60秒亲密互动</h3>
+        <div class="interaction-bar">
+          <div class="interaction-bar-inner">
+            <div class="avatar-side left">
+              <div class="interaction-avatar left">👤</div>
+            </div>
+            <div class="interaction-center">
+              <div class="connection-line"></div>
+              <div class="interaction-heart">💕</div>
+              <div class="interaction-timer">42s</div>
+            </div>
+            <div class="avatar-side right">
+              <div class="interaction-avatar right">👤</div>
+            </div>
+          </div>
+        </div>
+        <p style="margin-top: 12px; font-size: 13px; color: #64748B; text-align: center;">
+          双方同时在线60秒即可领取奖励
+        </p>
+      </div>
+
+      <!-- 经验获得提示 -->
+      <div class="glass-card">
+        <h3 class="card-title">✨ 经验获得提示</h3>
+        <div class="exp-tips">
+          <div class="exp-tip">
+            <div class="exp-icon">+5</div>
+            <div class="exp-content">
+              <div class="exp-text">发送消息</div>
+              <div class="exp-amount">获得 5 点好感度</div>
+            </div>
+          </div>
+          <div class="exp-tip">
+            <div class="exp-icon">+8</div>
+            <div class="exp-content">
+              <div class="exp-text">发送图片</div>
+              <div class="exp-amount">获得 8 点好感度</div>
+            </div>
+          </div>
+          <div class="exp-tip">
+            <div class="exp-icon">🎁</div>
+            <div class="exp-content">
+              <div class="exp-text">互动奖励</div>
+              <div class="exp-amount">60秒在线奖励 +7 点好感度</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 颜色方案 -->
+      <div class="glass-card">
+        <h3 class="card-title">🎨 配色方案</h3>
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;">
+          <div style="text-align: center;">
+            <div style="width: 100%; aspect-ratio: 1; background: linear-gradient(135deg, #EC4899, #F472B6); border-radius: 12px; margin-bottom: 8px;"></div>
+            <div style="font-size: 11px; font-weight: 600; color: #1E293B;">主色</div>
+            <div style="font-size: 10px; color: #64748B;">#EC4899</div>
+          </div>
+          <div style="text-align: center;">
+            <div style="width: 100%; aspect-ratio: 1; background: linear-gradient(135deg, #F97316, #FBBF24); border-radius: 12px; margin-bottom: 8px;"></div>
+            <div style="font-size: 11px; font-weight: 600; color: #1E293B;">强调色</div>
+            <div style="font-size: 10px; color: #64748B;">#F97316</div>
+          </div>
+          <div style="text-align: center;">
+            <div style="width: 100%; aspect-ratio: 1; background: linear-gradient(135deg, #0080FF, #00FFFF); border-radius: 12px; margin-bottom: 8px;"></div>
+            <div style="font-size: 11px; font-weight: 600; color: #1E293B;">极光蓝</div>
+            <div style="font-size: 10px; color: #64748B;">#0080FF</div>
+          </div>
+          <div style="text-align: center;">
+            <div style="width: 100%; aspect-ratio: 1; background: linear-gradient(135deg, #9333EA, #A855F7); border-radius: 12px; margin-bottom: 8px;"></div>
+            <div style="font-size: 11px; font-weight: 600; color: #1E293B;">紫色</div>
+            <div style="font-size: 10px; color: #64748B;">#9333EA</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 控制按钮 -->
+  <div class="control-panel">
+    <button class="control-btn" onclick="showLevelUp()">🎉 显示升级弹窗</button>
+  </div>
+
+  <script>
+    // 显示升级弹窗
+    function showLevelUp() {
+      document.getElementById('levelUpOverlay').classList.add('active');
+    }
+
+    // 关闭升级弹窗
+    function closeLevelUp() {
+      document.getElementById('levelUpOverlay').classList.remove('active');
+    }
+
+    // 点击背景关闭
+    document.getElementById('levelUpOverlay').addEventListener('click', function(e) {
+      if (e.target === this) {
+        closeLevelUp();
+      }
+    });
+
+    // 动态更新进度条（演示效果）
+    let progress = 64;
+    let direction = 1;
+
+    setInterval(() => {
+      progress += direction * 0.5;
+      if (progress >= 100) direction = -1;
+      if (progress <= 0) direction = 1;
+
+      document.querySelector('.intimacy-progress-mini .progress-fill').style.width = progress + '%';
+    }, 50);
+
+    // 模拟互动倒计时
+    let timer = 42;
+    setInterval(() => {
+      timer--;
+      if (timer < 0) timer = 60;
+      document.querySelector('.interaction-timer').textContent = timer + 's';
+    }, 1000);
+  </script>
+</body>
+</html>
