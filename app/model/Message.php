@@ -81,6 +81,14 @@ class Message extends Model
     }
 
     /**
+     * 查询指定时间之前的消息（用于加载更多历史）
+     */
+    public function scopeBeforeTime($query, $time)
+    {
+        return $query->where('create_time', '<', $time);
+    }
+
+    /**
      * 检查消息是否属于指定用户
      */
     public function isOwnMessage($userId)

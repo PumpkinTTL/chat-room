@@ -749,6 +749,12 @@ class MessageService
                     $result['type'] = 'reply';
                 }
             }
+
+            // 处理编辑信息
+            if (!empty($extraData['edited'])) {
+                $result['edited'] = true;
+                $result['edited_at'] = $extraData['edited_at'] ?? null;
+            }
         }
 
         return $result;
