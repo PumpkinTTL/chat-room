@@ -206,6 +206,11 @@
                 this.refs.interactionProgress.value = 100;
             }
 
+            // 确保 DOM 元素已缓存（关键修复：防止波纹效果不触发）
+            if (!this.elements.bar) {
+                this.cacheElements();
+            }
+
             // 触发完成特效
             this.triggerCompleteEffect();
 
@@ -412,8 +417,16 @@
          * 触发完成特效
          */
         triggerCompleteEffect: function() {
+            // 确保 DOM 元素已缓存，如果没有则重新缓存
+            if (!this.elements.bar) {
+                this.cacheElements();
+            }
+            
             const bar = this.elements.bar;
-            if (!bar) return;
+            if (!bar) {
+                console.warn('[亲密互动] triggerCompleteEffect: 无法找到互动条元素');
+                return;
+            }
 
             // 标记完成状态
             const progressSection = bar.querySelector('.intimacy-progress-section');
@@ -429,8 +442,16 @@
          * 创建碰撞特效
          */
         createCollisionEffect: function() {
+            // 确保 DOM 元素已缓存，如果没有则重新缓存
+            if (!this.elements.bar) {
+                this.cacheElements();
+            }
+            
             const bar = this.elements.bar;
-            if (!bar) return;
+            if (!bar) {
+                console.warn('[亲密互动] createCollisionEffect: 无法找到互动条元素');
+                return;
+            }
 
             const effectContainer = document.createElement('div');
             effectContainer.className = 'intimacy-collision-effect';

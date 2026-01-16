@@ -59,10 +59,11 @@ class RoomUser
      */
     public function count($roomId)
     {
+      
         if (!$roomId) {
             return json(['code' => 1, 'msg' => '房间ID不能为空'], 400);
         }
-
+        
         // 从数据库获取群成员总数
         $totalCount = RoomUserService::getOnlineUserCount($roomId);
         // 从 Redis 获取实时在线人数
