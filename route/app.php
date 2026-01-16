@@ -78,6 +78,7 @@ Route::group('api', function () {
         Route::post('sendVideo', 'Message/sendVideo');
         Route::post('sendFile', 'Message/sendFile');
         Route::post('sendSystem', 'Message/sendSystem');
+        Route::put('edit', 'Message/edit');
         Route::post('recall', 'Message/recall');
         Route::post('burn', 'Message/burn');
         Route::get('latestTime', 'Message/latestTime');

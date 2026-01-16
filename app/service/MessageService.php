@@ -536,6 +536,76 @@ class MessageService
     }
 
     /**
+     * 编辑文本消息
+     * @param int $messageId 消息ID
+     * @param int $userId 用户ID
+     * @param string $content 新内容
+     * @return array
+     */
+    public static function editMessage($messageId, $userId, $content)
+    {
+        if (empty($messageId) || empty($userId) || empty($content)) {
+            return ['code' => 1, 'msg' => '参数错误'];
+        }
+
+        try {
+            $message = Message::with(['user'])->find($messageId);
+            if (!$message) {
+                return ['code' => 1, 'msg' => '消息不存在'];
+            }
+
+            // 检查是否为消息发送者
+            if ($message->user_id != $userId) {
+                return ['code' => 1, 'msg' => '只能编辑自己的消息'];
+            }
+
+            // 只能编辑文本消息
+            if ($message->message_type != Message::TYPE_TEXT) {
+                return ['code' => 1, 'msg' => '只能编辑文本消息'];
+            }
+
+            // 内容长度检查
+            if (mb_strlen($content) > 10000) {
+                return ['code' => 1, 'msg' => '消息内容过长，最多10000字符'];
+            }
+
+            // 获取现有的extra_data
+            $extraData = [];
+            if ($message->extra_data) {
+                $extraData = is_string($message->extra_data) 
+                    ? json_decode($message->extra_data, true) 
+                    : $message->extra_data;
+            }
+
+            // 添加编辑信息
+            $extraData['edited'] = true;
+            $extraData['edited_at'] = date('Y-m-d H:i:s');
+            $extraData['original_content'] = $message->content; // 保存原始内容
+
+            // 更新消息
+            $message->content = trim($content);
+            $message->extra_data = json_encode($extraData);
+            $message->update_time = date('Y-m-d H:i:s');
+            $message->save();
+
+            return [
+                'code' => 0,
+                'msg' => '编辑成功',
+                'data' => [
+                    'id' => $message->id,
+                    'content' => $message->content,
+                    'edited' => true,
+                    'edited_at' => $extraData['edited_at'],
+                    'room_id' => $message->room_id
+                ]
+            ];
+
+        } catch (\Exception $e) {
+            return ['code' => 1, 'msg' => '编辑失败：' . $e->getMessage()];
+        }
+    }
+
+    /**
      * 焚毁消息（软删除）
      * @param int $messageId 消息ID
      * @param int $userId 用户ID

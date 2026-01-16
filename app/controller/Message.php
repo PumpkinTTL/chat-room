@@ -204,6 +204,34 @@ class Message
     }
 
     /**
+     * 编辑文本消息
+     * @param Request $request
+     * @return Response
+     */
+    public function edit(Request $request)
+    {
+        $messageId = $request->param('message_id');
+        $content = $request->param('content');
+
+        $userId = $request->userId; // 从中间件获取
+
+        // 验证参数
+        $validate = Validate::rule([
+            'message_id' => 'require|integer|min:1',
+            'content' => 'require|max:10000',
+        ]);
+
+        if (!$validate->check(['message_id' => $messageId, 'content' => $content])) {
+            return json(['code' => 1, 'msg' => $validate->getError()], 400);
+        }
+
+        $result = MessageService::editMessage($messageId, $userId, $content);
+        $code = $result['code'] === 0 ? 200 : 400;
+
+        return json($result, $code);
+    }
+
+    /**
      * 撤回消息
      * @param Request $request
      * @return Response

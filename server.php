@@ -148,6 +148,9 @@ $wsWorker->onMessage = function ($connection, $data) use (&$localConnections) {
             case 'message':
                 handleMessage($connection, $msg, $localConnections);
                 break;
+            case 'message_edited':
+                handleMessageEdited($connection, $msg, $localConnections);
+                break;
             case 'typing':
                 handleTyping($connection, $msg, $localConnections);
                 break;
@@ -619,6 +622,38 @@ function handleMessageBurned($connection, $msg, &$localConnections)
         'burned_by' => $userId,
         'burned_by_nickname' => $nickname
     ], $localConnections, $userId);
+}
+
+// 处理消息编辑广播
+function handleMessageEdited($connection, $msg, &$localConnections)
+{
+    $connData = $localConnections[$connection->id];
+    if (!$connData['authed'] || !$connData['room_id']) {
+        return;
+    }
+
+    $messageId = $msg['message_id'] ?? null;
+    $content = $msg['content'] ?? '';
+    $editedAt = $msg['edited_at'] ?? date('Y-m-d H:i:s');
+    $userId = $connData['user_id'];
+    $nickname = $connData['nickname'];
+    $roomId = $connData['room_id'];
+
+    if (empty($messageId)) {
+        return;
+    }
+
+    echo "[" . date('H:i:s') . "] 用户{$userId} {$nickname} 编辑消息 {$messageId}\n";
+
+    // 广播给房间内所有用户（包括自己的其他设备）
+    broadcastToRoom($roomId, [
+        'type' => 'message_edited',
+        'message_id' => $messageId,
+        'content' => $content,
+        'edited_at' => $editedAt,
+        'edited_by' => $userId,
+        'edited_by_nickname' => $nickname
+    ], $localConnections, $connection->id);
 }
 
 // 处理房间清理广播
