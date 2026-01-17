@@ -668,16 +668,31 @@ function handleRoomCleared($connection, $msg, &$localConnections)
     $nickname = $connData['nickname'];
     $roomId = $connData['room_id'];
     $hardDelete = $msg['hard_delete'] ?? false;
+    $isRestore = $msg['is_restore'] ?? false; // 是否是恢复操作
 
-    echo "[" . date('H:i:s') . "] 用户{$userId} {$nickname} 清理房间 {$roomId} (物理删除: " . ($hardDelete ? '是' : '否') . ")\n";
-
-    // 广播给房间内其他用户
-    broadcastToRoomExcludeUser($roomId, [
-        'type' => 'room_cleared',
-        'cleared_by' => $userId,
-        'cleared_by_nickname' => $nickname,
-        'hard_delete' => $hardDelete
-    ], $localConnections, $userId);
+    if ($isRestore) {
+        echo "[" . date('H:i:s') . "] 用户{$userId} {$nickname} 恢复房间 {$roomId} 的消息\n";
+        
+        // 广播给房间内其他用户（恢复操作）
+        broadcastToRoomExcludeUser($roomId, [
+            'type' => 'room_cleared',
+            'cleared_by' => $userId,
+            'cleared_by_nickname' => $nickname,
+            'hard_delete' => false,
+            'is_restore' => true
+        ], $localConnections, $userId);
+    } else {
+        echo "[" . date('H:i:s') . "] 用户{$userId} {$nickname} 清理房间 {$roomId} (物理删除: " . ($hardDelete ? '是' : '否') . ")\n";
+        
+        // 广播给房间内其他用户（清理操作）
+        broadcastToRoomExcludeUser($roomId, [
+            'type' => 'room_cleared',
+            'cleared_by' => $userId,
+            'cleared_by_nickname' => $nickname,
+            'hard_delete' => $hardDelete,
+            'is_restore' => false
+        ], $localConnections, $userId);
+    }
 }
 
 // 处理房间锁定状态变化广播

@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SweetChat - Pink Purple</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            /* Aurora UI Colors - 严格按照搜索结果 */
+            --magenta: #FF1493;
+            --electric-purple: #BF00FF;
+            --vivid-pink: #FF1493;
+            --electric-blue: #0080FF;
+            --cyan: #00FFFF;
+
+            /* AI/Chatbot Platform Colors - 严格按照搜索结果 */
+            --ai-purple: #7C3AED;
+            --ai-purple-light: #A78BFA;
+            --ai-bg: #FAF5FF;
+            --ai-text: #1E1B4B;
+            --ai-border: #DDD6FE;
+
+            /* Glassmorphism - 严格按照搜索结果 */
+            --glass-bg: rgba(255, 255, 255, 0.2);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --glass-blur: 16px;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            /* Aurora UI - Large flowing gradients */
+            background:
+                radial-gradient(circle at 20% 30%, rgba(255, 20, 147, 0.4) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(191, 0, 255, 0.35) 0%, transparent 50%),
+                radial-gradient(circle at 40% 70%, rgba(124, 58, 237, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 70% 80%, rgba(0, 128, 255, 0.25) 0%, transparent 50%),
+                radial-gradient(circle at 30% 50%, rgba(167, 139, 250, 0.3) 0%, transparent 50%),
+                linear-gradient(135deg, #FAF5FF 0%, #F5F3FF 100%);
+            background-attachment: fixed;
+            min-height: 100vh;
+            color: var(--ai-text);
+            overflow-x: hidden;
+        }
+
+        /* Aurora Animation - 8-12s subtle animation per search result */
+        @keyframes aurora {
+            0%, 100% { opacity: 0.8; transform: scale(1) rotate(0deg); }
+            50% { opacity: 1; transform: scale(1.05) rotate(2deg); }
+        }
+
+        .aurora-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            animation: aurora 10s ease-in-out infinite;
+        }
+
+        /* Main Container */
+        .app {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            height: 100vh;
+            max-width: 1800px;
+            margin: 0 auto;
+            padding: 20px;
+            gap: 20px;
+        }
+
+        /* Glassmorphism Card - 严格按照搜索结果 */
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(var(--glass-blur));
+            -webkit-backdrop-filter: blur(var(--glass-blur));
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Sidebar - Vibrant & Block-based: 48px+ gaps */
+        .sidebar {
+            width: 340px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-header {
+            padding: 24px;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .logo-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--magenta), var(--electric-purple));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .logo-text {
+            font-size: 20px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--magenta), var(--electric-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .search-box {
+            position: relative;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 12px 16px 12px 44px;
+            background: rgba(255, 255, 255, 0.5);
+            border: 1px solid var(--ai-border);
+            border-radius: 12px;
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            color: var(--ai-text);
+            transition: all 0.3s ease;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--electric-purple);
+            box-shadow: 0 0 0 3px rgba(191, 0, 255, 0.2);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 16px;
+            opacity: 0.6;
+        }
+
+        .room-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+        }
+
+        .room-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .room-list::-webkit-scrollbar-thumb {
+            background: var(--ai-purple-light);
+            border-radius: 3px;
+        }
+
+        /* Room Item - Vibrant & Block-based: bold hover color shift, 200-300ms */
+        .room-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.5);
+            border: 1px solid transparent;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            margin-bottom: 8px;
+        }
+
+        .room-item:hover {
+            background: rgba(255, 255, 255, 0.8);
+            border-color: var(--electric-purple);
+            transform: translateY(-2px);
+        }
+
+        .room-item.active {
+            background: linear-gradient(135deg, var(--magenta), var(--electric-purple));
+            border-color: var(--electric-purple);
+        }
+
+        .room-item.active .room-name,
+        .room-item.active .room-preview {
+            color: white;
+        }
+
+        .room-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            flex-shrink: 0;
+        }
+
+        /* Different gradient for each - Vibrant colors */
+        .room-item:nth-child(1) .room-avatar {
+            background: linear-gradient(135deg, var(--magenta), var(--electric-purple));
+        }
+
+        .room-item:nth-child(2) .room-avatar {
+            background: linear-gradient(135deg, var(--electric-blue), var(--cyan));
+        }
+
+        .room-item:nth-child(3) .room-avatar {
+            background: linear-gradient(135deg, var(--electric-purple), var(--ai-purple-light));
+        }
+
+        .room-item:nth-child(4) .room-avatar {
+            background: linear-gradient(135deg, var(--magenta), var(--electric-blue));
+        }
+
+        .room-item:nth-child(5) .room-avatar {
+            background: linear-gradient(135deg, var(--cyan), var(--electric-purple));
+        }
+
+        .room-avatar .online-dot {
+            position: absolute;
+            bottom: -2px;
+            right: -2px;
+            width: 12px;
+            height: 12px;
+            background: #10B981;
+            border: 2px solid white;
+            border-radius: 50%;
+        }
+
+        .room-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .room-name {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--ai-text);
+            margin-bottom: 4px;
+        }
+
+        .room-preview {
+            font-size: 13px;
+            color: #6B7280;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .room-meta {
+            text-align: right;
+            flex-shrink: 0;
+        }
+
+        .room-time {
+            font-size: 11px;
+            color: #9CA3AF;
+            margin-bottom: 4px;
+        }
+
+        .room-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 20px;
+            height: 20px;
+            padding: 0 6px;
+            background: linear-gradient(135deg, var(--magenta), var(--electric-purple));
+            color: white;
+            font-size: 11px;
+            font-weight: 600;
+            border-radius: 10px;
+        }
+
+        /* Chat Area */
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 24px;
+            background: rgba(255, 255, 255, 0.5);
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .chat-header-info {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .chat-header-avatar {
+            width: 52px;
+            height: 52px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, var(--magenta), var(--electric-purple));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+        }
+
+        .chat-header-avatar .online-dot {
+            position: absolute;
+            bottom: -2px;
+            right: -2px;
+            width: 14px;
+            height: 14px;
+            background: #10B981;
+            border: 3px solid white;
+            border-radius: 50%;
+        }
+
+        .chat-header-text h3 {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--ai-text);
+            margin-bottom: 2px;
+        }
+
+        .chat-header-text p {
+            font-size: 13px;
+            color: var(--electric-purple);
+            font-weight: 500;
+        }
+
+        .chat-header-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .action-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.6);
+            border: 1px solid var(--ai-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+
+        .action-btn:hover {
+            background: rgba(255, 255, 255, 0.9);
+            border-color: var(--electric-purple);
+            transform: translateY(-2px);
+        }
+
+        /* Messages */
+        .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .messages-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .messages-container::-webkit-scrollbar-thumb {
+            background: var(--ai-purple-light);
+            border-radius: 3px;
+        }
+
+        .message-date {
+            text-align: center;
+            margin: 8px 0;
+        }
+
+        .message-date span {
+            padding: 6px 14px;
+            background: rgba(255, 255, 255, 0.6);
+            border: 1px solid var(--ai-border);
+            border-radius: 16px;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--ai-text);
+        }
+
+        .message {
+            display: flex;
+            gap: 12px;
+            max-width: 70%;
+        }
+
+        .message.received {
+            align-self: flex-start;
+        }
+
+        .message.sent {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .message.received .message-avatar {
+            background: linear-gradient(135deg, var(--magenta), var(--electric-purple));
+        }
+
+        .message.sent .message-avatar {
+            background: linear-gradient(135deg, var(--electric-purple), var(--cyan));
+        }
+
+        .message-content {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .message-sender {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--electric-purple);
+            margin-left: 4px;
+        }
+
+        .message.sent .message-sender {
+            text-align: right;
+            margin-right: 4px;
+        }
+
+        .message-bubble {
+            padding: 12px 16px;
+            border-radius: 16px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .message.received .message-bubble {
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid var(--ai-border);
+            color: var(--ai-text);
+            border-bottom-left-radius: 4px;
+        }
+
+        .message.sent .message-bubble {
+            background: linear-gradient(135deg, var(--magenta), var(--electric-purple));
+            border: none;
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message-time {
+            font-size: 11px;
+            color: #9CA3AF;
+            padding: 0 4px;
+        }
+
+        /* Typing Indicator */
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.6);
+            border: 1px solid var(--ai-border);
+            border-radius: 12px;
+            align-self: flex-start;
+            margin-left: 50px;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .typing-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--electric-purple);
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out;
+        }
+
+        .typing-dot:nth-child(1) { animation-delay: 0s; }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes bounce {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-6px); }
+        }
+
+        .typing-text {
+            font-size: 12px;
+            color: var(--electric-purple);
+            font-weight: 500;
+        }
+
+        /* Input Area */
+        .input-area {
+            padding: 16px 20px;
+            background: rgba(255, 255, 255, 0.5);
+            border-top: 1px solid var(--glass-border);
+        }
+
+        .input-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid var(--ai-border);
+            border-radius: 12px;
+            padding: 8px 14px;
+            transition: all 0.3s ease;
+        }
+
+        .input-container:focus-within {
+            border-color: var(--electric-purple);
+            box-shadow: 0 0 0 3px rgba(191, 0, 255, 0.15);
+        }
+
+        .input-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .input-action-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.6);
+            border: 1px solid var(--ai-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+
+        .input-action-btn:hover {
+            background: rgba(255, 255, 255, 0.9);
+            border-color: var(--electric-purple);
+        }
+
+        .input-field {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            color: var(--ai-text);
+            padding: 6px 0;
+        }
+
+        .input-field::placeholder {
+            color: #9CA3AF;
+        }
+
+        .send-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, var(--magenta), var(--electric-purple));
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+
+        .send-btn:hover {
+            transform: scale(1.05);
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .sidebar {
+                display: none;
+            }
+        }
+
+        /* Reduced Motion - Per UX guidelines */
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Aurora Background -->
+    <div class="aurora-bg"></div>
+
+    <!-- Main App -->
+    <div class="app">
+        <!-- Sidebar -->
+        <aside class="sidebar glass-card">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <div class="logo-icon">💜</div>
+                    <span class="logo-text">SweetChat</span>
+                </div>
+                <div class="search-box">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" placeholder="搜索聊天...">
+                </div>
+            </div>
+            <div class="room-list">
+                <div class="room-item active">
+                    <div class="room-avatar">
+                        👩
+                        <div class="online-dot"></div>
+                    </div>
+                    <div class="room-info">
+                        <div class="room-name">小美</div>
+                        <div class="room-preview">粉紫色渐变真的太好看了！</div>
+                    </div>
+                    <div class="room-meta">
+                        <div class="room-time">刚刚</div>
+                        <div class="room-badge">2</div>
+                    </div>
+                </div>
+                <div class="room-item">
+                    <div class="room-avatar">
+                        👨
+                        <div class="online-dot"></div>
+                    </div>
+                    <div class="room-info">
+                        <div class="room-name">阿强</div>
+                        <div class="room-preview">周末一起打球？</div>
+                    </div>
+                    <div class="room-meta">
+                        <div class="room-time">5分钟前</div>
+                    </div>
+                </div>
+                <div class="room-item">
+                    <div class="room-avatar">👩‍🦰</div>
+                    <div class="room-info">
+                        <div class="room-name">工作群</div>
+                        <div class="room-preview">收到</div>
+                    </div>
+                    <div class="room-meta">
+                        <div class="room-time">1小时前</div>
+                        <div class="room-badge">8</div>
+                    </div>
+                </div>
+                <div class="room-item">
+                    <div class="room-avatar">👨‍💼</div>
+                    <div class="room-info">
+                        <div class="room-name">张总</div>
+                        <div class="room-preview">方案看了</div>
+                    </div>
+                    <div class="room-meta">
+                        <div class="room-time">昨天</div>
+                    </div>
+                </div>
+                <div class="room-item">
+                    <div class="room-avatar">👵</div>
+                    <div class="room-info">
+                        <div class="room-name">妈妈</div>
+                        <div class="room-preview">多穿点衣服</div>
+                    </div>
+                    <div class="room-meta">
+                        <div class="room-time">昨天</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Chat Area -->
+        <main class="chat-area glass-card">
+            <div class="chat-header">
+                <div class="chat-header-info">
+                    <div class="chat-header-avatar" style="position: relative;">
+                        👩
+                        <div class="online-dot"></div>
+                    </div>
+                    <div class="chat-header-text">
+                        <h3>小美</h3>
+                        <p>在线 · 💜 亲密度 2,680</p>
+                    </div>
+                </div>
+                <div class="chat-header-actions">
+                    <div class="action-btn">📞</div>
+                    <div class="action-btn">📹</div>
+                    <div class="action-btn">⋮</div>
+                </div>
+            </div>
+
+            <div class="messages-container">
+                <div class="message-date">
+                    <span>2024年1月17日</span>
+                </div>
+
+                <div class="message received">
+                    <div class="message-avatar">👩</div>
+                    <div class="message-content">
+                        <span class="message-sender">小美</span>
+                        <div class="message-bubble">
+                            你看到了吗？这个粉紫色渐变太好看了！😍
+                        </div>
+                        <span class="message-time">14:20</span>
+                    </div>
+                </div>
+
+                <div class="message sent">
+                    <div class="message-avatar">👤</div>
+                    <div class="message-content">
+                        <span class="message-sender">我</span>
+                        <div class="message-bubble">
+                            是啊！严格按照UI/UX Pro MAX搜索结果做的，使用了Aurora UI风格 🎨
+                        </div>
+                        <span class="message-time">14:21</span>
+                    </div>
+                </div>
+
+                <div class="message received">
+                    <div class="message-avatar">👩</div>
+                    <div class="message-content">
+                        <span class="message-sender">小美</span>
+                        <div class="message-bubble">
+                            洋红色#FF1493和电光紫#BF00FF的渐变，加上玻璃态效果，真的好漂亮 ✨
+                        </div>
+                        <span class="message-time">14:22</span>
+                    </div>
+                </div>
+
+                <div class="message sent">
+                    <div class="message-avatar">👤</div>
+                    <div class="message-content">
+                        <span class="message-sender">我</span>
+                        <div class="message-bubble">
+                            对！还有10秒的Aurora动画，200-300ms的hover过渡，完全遵循搜索结果 💜
+                        </div>
+                        <span class="message-time">14:23</span>
+                    </div>
+                </div>
+
+                <div class="typing-indicator">
+                    <div class="typing-dots">
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                    </div>
+                    <span class="typing-text">小美 正在输入...</span>
+                </div>
+            </div>
+
+            <div class="input-area">
+                <div class="input-container">
+                    <div class="input-actions">
+                        <div class="input-action-btn">😊</div>
+                        <div class="input-action-btn">📎</div>
+                        <div class="input-action-btn">📷</div>
+                    </div>
+                    <input type="text" class="input-field" placeholder="输入消息...">
+                    <button class="send-btn">➤</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Scroll to bottom
+        document.querySelector('.messages-container').scrollTop = 9999;
+
+        // Room click
+        document.querySelectorAll('.room-item').forEach(item => {
+            item.addEventListener('click', function() {
+                document.querySelectorAll('.room-item').forEach(i => i.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+
+        // Send message
+        document.querySelector('.input-field').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && this.value.trim()) {
+                this.value = '';
+            }
+        });
+    </script>
+</body>
+</html>
