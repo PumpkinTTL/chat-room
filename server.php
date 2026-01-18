@@ -89,7 +89,7 @@ $wsWorker->onWorkerStart = function ($worker) use (&$roomIntimacyStates) {
         echo "[" . date('H:i:s') . "] 清理旧数据失败: " . $e->getMessage() . "\n";
     }
 
-    // 亲密互动定时器：只检查是否完成，不再每秒广播进度
+    // 亲密互动定时器：检查是否完成，完成后直接增加经验并广播
     \Workerman\Lib\Timer::add(1, function() use (&$roomIntimacyStates, &$localConnections) {
         $now = time();
 
@@ -99,13 +99,54 @@ $wsWorker->onWorkerStart = function ($worker) use (&$roomIntimacyStates) {
             // 计算已过时间
             $elapsed = $now - $state['start_time'];
 
-            // 如果达到60秒，标记完成并广播
+            // 如果达到60秒，标记完成、增加经验并广播
             if ($elapsed >= 60) {
                 $roomIntimacyStates[$roomId]['active'] = false;
-                broadcastToRoom($roomId, [
-                    'type' => 'intimacy_complete',
-                    'room_id' => $roomId
-                ], $localConnections);
+                
+                // 获取房间内的两个用户ID
+                $userIds = $state['user_ids'] ?? [];
+                if (count($userIds) === 2) {
+                    // 调用IntimacyService增加经验
+                    try {
+                        $userId = $userIds[0];
+                        $partnerId = $userIds[1];
+                        
+                        // 使用ThinkPHP的服务类增加经验
+                        $result = \app\service\IntimacyService::collectInteractionExp($roomId, $userId, $partnerId);
+                        
+                        if ($result['code'] === 0) {
+                            // 广播完成事件，携带经验信息
+                            broadcastToRoom($roomId, [
+                                'type' => 'intimacy_complete',
+                                'room_id' => $roomId,
+                                'exp_gain' => $result['data']['exp_gain'],
+                                'intimacy' => $result['data']['intimacy']['data']
+                            ], $localConnections);
+                            
+                            echo "[" . date('H:i:s') . "] 房间 {$roomId} 互动完成，增加经验 {$result['data']['exp_gain']}\n";
+                        } else {
+                            echo "[" . date('H:i:s') . "] 房间 {$roomId} 增加经验失败: {$result['msg']}\n";
+                            // 即使失败也广播完成事件
+                            broadcastToRoom($roomId, [
+                                'type' => 'intimacy_complete',
+                                'room_id' => $roomId
+                            ], $localConnections);
+                        }
+                    } catch (\Exception $e) {
+                        echo "[" . date('H:i:s') . "] 房间 {$roomId} 增加经验异常: " . $e->getMessage() . "\n";
+                        // 异常时也广播完成事件
+                        broadcastToRoom($roomId, [
+                            'type' => 'intimacy_complete',
+                            'room_id' => $roomId
+                        ], $localConnections);
+                    }
+                } else {
+                    // 人数不对，只广播完成事件
+                    broadcastToRoom($roomId, [
+                        'type' => 'intimacy_complete',
+                        'room_id' => $roomId
+                    ], $localConnections);
+                }
             }
         }
     });
