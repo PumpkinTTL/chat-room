@@ -66,6 +66,16 @@ class Intimacy extends BaseController
             // 获取好感度信息
             $intimacyInfo = IntimacyService::getIntimacyInfo($roomId, $userId, $partnerId);
             
+            // 获取伴侣用户信息
+            $partnerUser = \app\model\User::field('id,nick_name,avatar')->find($partnerId);
+            if ($partnerUser) {
+                $intimacyInfo['partner'] = [
+                    'id' => $partnerUser->id,
+                    'nick_name' => $partnerUser->nick_name,
+                    'avatar' => $partnerUser->avatar
+                ];
+            }
+            
             return json([
                 'code' => 0,
                 'msg' => '获取成功',

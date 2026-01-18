@@ -98,3 +98,21 @@ Route::group('api', function () {
 
 });
 
+// +----------------------------------------------------------------------
+// | V2 认证路由组（JWT版本）
+// +----------------------------------------------------------------------
+// 说明：v1系统完全不受影响，所有v1路由保持不变
+// +----------------------------------------------------------------------
+Route::group('api/v2/auth', function () {
+    // 公开路由（无需认证）
+    Route::post('login', 'Auth/login');
+
+    // 需要认证的路由（使用JwtAuth中间件）
+    Route::group(function () {
+        Route::post('refresh', 'Auth/refresh');
+        Route::post('logout', 'Auth/logout');
+        Route::post('logout-all', 'Auth/logoutAll');
+        Route::get('me', 'Auth/me');
+    })->middleware(\app\middleware\JwtAuth::class);
+});
+
