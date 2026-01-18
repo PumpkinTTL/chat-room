@@ -197,6 +197,9 @@ class MessageService
 
             Db::commit();
 
+            // 私密房间：处理好感度系统
+            $intimacyResult = self::handleIntimacySystem($roomId, $userId, 'image');
+
             // 返回消息信息
             return [
                 'code' => 0,
@@ -206,7 +209,8 @@ class MessageService
                     'type' => 'image',
                     'imageUrl' => $fileInfo['url'] ?? '',
                     'time' => date('Y-m-d H:i:s'),
-                ]
+                ],
+                'intimacy' => $intimacyResult // 好感度信息
             ];
 
         } catch (\Exception $e) {
@@ -254,6 +258,9 @@ class MessageService
 
             Db::commit();
 
+            // 私密房间：处理好感度系统
+            $intimacyResult = self::handleIntimacySystem($roomId, $userId, 'video');
+
             // 返回消息信息
             return [
                 'code' => 0,
@@ -265,7 +272,8 @@ class MessageService
                     'videoThumbnail' => $fileInfo['thumbnail'] ?? null,
                     'videoDuration' => $fileInfo['duration'] ?? null,
                     'time' => date('Y-m-d H:i:s'),
-                ]
+                ],
+                'intimacy' => $intimacyResult // 好感度信息
             ];
 
         } catch (\Exception $e) {
@@ -313,6 +321,9 @@ class MessageService
 
             Db::commit();
 
+            // 私密房间：处理好感度系统
+            $intimacyResult = self::handleIntimacySystem($roomId, $userId, 'file');
+
             // 返回消息信息
             return [
                 'code' => 0,
@@ -325,7 +336,8 @@ class MessageService
                     'fileExtension' => $fileInfo['extension'] ?? '',
                     'fileUrl' => $fileInfo['url'] ?? '',
                     'time' => date('Y-m-d H:i:s'),
-                ]
+                ],
+                'intimacy' => $intimacyResult // 好感度信息
             ];
 
         } catch (\Exception $e) {

@@ -77,16 +77,19 @@ class IntimacyService
             
             Db::commit();
             
+            // 获取完整的亲密度信息（包含两人总经验值）
+            $intimacyInfo = self::getIntimacyInfo($roomId, $userId, $partnerId);
+            
             return [
                 'code' => 0,
                 'msg' => '经验增加成功',
                 'data' => [
                     'exp_gain' => $expGain,
-                    'current_exp' => $newExp,
-                    'current_level' => $levelInfo['new_level'],
+                    'current_exp' => $intimacyInfo['current_exp'], // 使用两人总经验值
+                    'current_level' => $intimacyInfo['current_level'], // 使用基于总经验值的等级
                     'level_up' => $levelInfo['level_up'],
-                    'level_name' => $levelInfo['level_name'],
-                    'total_messages' => $newMessageCount
+                    'level_name' => $intimacyInfo['level_name'], // 使用基于总经验值的等级名
+                    'total_messages' => $intimacyInfo['total_messages'] // 使用实际消息数
                 ]
             ];
             
