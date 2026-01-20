@@ -20,25 +20,27 @@
 .dark-mode .xxx { ... }               → html.dark-mode .xxx { ... } (已经正确)
 ```
 
-### 3. 需要修改的文件列表
+### 3. 已完成的文件列表
 
-根据搜索结果，以下文件需要更新样式选择器：
+#### 核心文件 ✅
+- ✅ `vue-webchat/src/composables/useDarkMode.ts` - 新建
+- ✅ `vue-webchat/src/App.vue` - 使用 composable
+- ✅ `vue-webchat/src/views/Index.vue` - 移除本地状态，更新样式
 
-#### 视图文件
-- [ ] `vue-webchat/src/views/Index.vue` - 主聊天页面样式
-- [ ] `vue-webchat/src/views/Test.vue` - 测试页面样式
-- [ ] `vue-webchat/src/views/DarkModeTest.vue` - 深色模式测试页面
+#### 亲密度组件 ✅
+- ✅ `vue-webchat/src/components/intimacy/IntimacyPanel.vue`
+- ✅ `vue-webchat/src/components/intimacy/IntimacyInteraction.vue`
+- ✅ `vue-webchat/src/components/intimacy/IntimacyExpTip.vue` (已经使用 html.dark-mode)
+- ✅ `vue-webchat/src/components/intimacy/IntimacyLevelUpModal.vue`
+- ✅ `vue-webchat/src/components/intimacy/IntimacyBondNotification.vue`
 
-#### 组件文件
-- [ ] `vue-webchat/src/components/intimacy/IntimacyLevelUpModal.vue`
-- [ ] `vue-webchat/src/components/intimacy/IntimacyInteraction.vue`
-- [ ] `vue-webchat/src/components/intimacy/IntimacyExpTip.vue` (已经使用 html.dark-mode ✅)
-- [ ] `vue-webchat/src/components/intimacy/IntimacyPanel.vue`
-- [ ] `vue-webchat/src/components/intimacy/IntimacyBondNotification.vue`
-- [ ] `vue-webchat/src/components/index/RoomList.vue`
-- [ ] `vue-webchat/src/components/index/UserCard.vue`
-- [ ] `vue-webchat/src/components/index/Sidebar.vue`
-- [ ] `vue-webchat/src/components/index/MessageList.vue`
+#### 聊天组件 ✅
+- ✅ `vue-webchat/src/components/index/MessageList.vue`
+- ✅ `vue-webchat/src/components/index/MessageItem.vue`
+- ✅ `vue-webchat/src/components/index/RoomList.vue` (使用简单 .dark-mode，自动生效)
+- ✅ `vue-webchat/src/components/index/UserCard.vue` (使用简单 .dark-mode，自动生效)
+- ✅ `vue-webchat/src/components/index/Sidebar.vue` (使用简单 .dark-mode，自动生效)
+- ✅ `vue-webchat/src/components/index/InputBar.vue` (使用简单 .dark-mode，自动生效)
 
 ### 4. 替换示例
 
@@ -98,26 +100,26 @@ html.dark-mode .glass-orb {
    - 所有组件的深色模式样式应该正常生效
    - 跨标签页同步应该正常工作
 
-### 6. 下一步操作
+### 6. 迁移完成总结 ✅
 
-执行以下命令开始批量替换（需要手动确认每个文件）：
+**已完成的工作：**
 
-```bash
-# 1. 备份当前代码
-git add .
-git commit -m "backup: before dark mode migration"
+1. ✅ 创建了 `useDarkMode` composable 统一管理深色模式状态
+2. ✅ 深色模式类从 `.chat-app` 元素迁移到 `<html>` 元素
+3. ✅ 所有使用 `.chat-app.dark-mode` 的组件已更新为 `html.dark-mode`
+4. ✅ 使用简单 `.dark-mode` 选择器的组件自动生效，无需修改
+5. ✅ 代码已分 3 个阶段提交到 git
 
-# 2. 使用编辑器的查找替换功能
-# 查找: \.chat-app\.dark-mode
-# 替换为: html.dark-mode .chat-app (或 html.dark-mode 根据上下文)
+**验证结果：**
+- ✅ 搜索确认：项目中已无 `.chat-app.dark-mode` 选择器
+- ✅ 功能测试：深色模式切换正常工作
+- ✅ 跨标签页同步：localStorage 同步正常
 
-# 3. 测试所有页面的深色模式
-npm run dev
-
-# 4. 提交更改
-git add .
-git commit -m "refactor: migrate dark-mode class to html element"
-```
+**技术优势：**
+1. 更符合 Web 标准：深色模式类挂载在 html 元素
+2. 更好的性能：减少了不必要的类绑定
+3. 更易维护：统一的状态管理，避免重复代码
+4. 更好的扩展性：其他页面可直接使用 composable
 
 ## 优势
 
