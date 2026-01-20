@@ -22,6 +22,22 @@ class UploadService
         }
 
         try {
+            // 检查文件是否有效（是否上传成功）
+            if (!$file->isValid()) {
+                $error = $file->getError();
+                $errorMessages = [
+                    UPLOAD_ERR_INI_SIZE => '上传文件大小超过了 PHP 配置的最大值',
+                    UPLOAD_ERR_FORM_SIZE => '上传文件大小超过了表单指定的最大值',
+                    UPLOAD_ERR_PARTIAL => '文件只有部分被上传',
+                    UPLOAD_ERR_NO_FILE => '没有文件被上传',
+                    UPLOAD_ERR_NO_TMP_DIR => '找不到临时文件夹',
+                    UPLOAD_ERR_CANT_WRITE => '文件写入失败',
+                    UPLOAD_ERR_EXTENSION => 'PHP 扩展阻止了文件上传',
+                ];
+                $errorMsg = $errorMessages[$error] ?? '文件上传失败';
+                return ['code' => 1, 'msg' => $errorMsg];
+            }
+            
             // 验证文件类型
             $allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
             $mimeType = $file->getMime();
@@ -100,6 +116,22 @@ class UploadService
         }
 
         try {
+            // 检查文件是否有效（是否上传成功）
+            if (!$file->isValid()) {
+                $error = $file->getError();
+                $errorMessages = [
+                    UPLOAD_ERR_INI_SIZE => '上传文件大小超过了 PHP 配置的最大值',
+                    UPLOAD_ERR_FORM_SIZE => '上传文件大小超过了表单指定的最大值',
+                    UPLOAD_ERR_PARTIAL => '文件只有部分被上传',
+                    UPLOAD_ERR_NO_FILE => '没有文件被上传',
+                    UPLOAD_ERR_NO_TMP_DIR => '找不到临时文件夹',
+                    UPLOAD_ERR_CANT_WRITE => '文件写入失败',
+                    UPLOAD_ERR_EXTENSION => 'PHP 扩展阻止了文件上传',
+                ];
+                $errorMsg = $errorMessages[$error] ?? '文件上传失败';
+                return ['code' => 1, 'msg' => $errorMsg];
+            }
+            
             // 验证文件大小
             if ($file->getSize() > $maxSize) {
                 return ['code' => 1, 'msg' => '文件大小不能超过' . ($maxSize / 1024 / 1024) . 'MB'];
@@ -161,6 +193,22 @@ class UploadService
         }
 
         try {
+            // 检查文件是否有效（是否上传成功）
+            if (!$file->isValid()) {
+                $error = $file->getError();
+                $errorMessages = [
+                    UPLOAD_ERR_INI_SIZE => '上传文件大小超过了 PHP 配置的最大值',
+                    UPLOAD_ERR_FORM_SIZE => '上传文件大小超过了表单指定的最大值',
+                    UPLOAD_ERR_PARTIAL => '文件只有部分被上传',
+                    UPLOAD_ERR_NO_FILE => '没有文件被上传',
+                    UPLOAD_ERR_NO_TMP_DIR => '找不到临时文件夹',
+                    UPLOAD_ERR_CANT_WRITE => '文件写入失败',
+                    UPLOAD_ERR_EXTENSION => 'PHP 扩展阻止了文件上传',
+                ];
+                $errorMsg = $errorMessages[$error] ?? '文件上传失败';
+                return ['code' => 1, 'msg' => $errorMsg];
+            }
+            
             // 验证文件类型
             $allowedTypes = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime'];
             $mimeType = $file->getMime();
