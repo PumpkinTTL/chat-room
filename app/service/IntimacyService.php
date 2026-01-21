@@ -139,7 +139,10 @@ class IntimacyService
         
         if ($currentExp >= $nextLevel['required_exp']) {
             // 升级了，递归检查是否能继续升级
-            return self::checkLevelUp($nextLevel['level'], $currentExp);
+            $result = self::checkLevelUp($nextLevel['level'], $currentExp);
+            // 标记为升级
+            $result['level_up'] = true;
+            return $result;
         }
         
         // 没有升级
