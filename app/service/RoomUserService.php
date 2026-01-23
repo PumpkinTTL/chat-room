@@ -4,7 +4,7 @@ namespace app\service;
 
 use app\model\RoomUser;
 use app\model\User;
-use think\Db;
+use think\facade\Db;
 
 /**
  * 房间成员服务层 - 静态方法
@@ -147,14 +147,48 @@ class RoomUserService
      */
     public static function getUserRooms($userId)
     {
-        return RoomUser::alias('ru')
-            ->join('ch_rooms r', 'ru.room_id = r.id')
+        // 获取用户加入的房间列表
+        $rooms = RoomUser::alias('ru')
+            ->join('ch_rooms r', 'ru.room_id=r.id')
             ->where('ru.user_id', $userId)
             ->where('ru.status', RoomUser::STATUS_IN_ROOM)
-            ->where('r.status', 1) // 只返回正常状态的房间
+            ->where('r.status', 1)
             ->field('r.id, r.name, r.description, r.private, r.lock, r.owner_id, ru.join_time')
             ->select()
             ->toArray();
+
+        // 为每个房间附加最后消息和未读数
+        foreach ($rooms as &$room) {
+            // 获取最后一条消息
+            $lastMsg = \app\model\Message::where('room_id', $room['id'])
+                ->whereNull('delete_time')
+                ->order('id desc')
+                ->find();
+            
+            if ($lastMsg) {
+                $room['lastMessage'] = $lastMsg['content'];
+                $room['lastMessageTime'] = $lastMsg['create_time'];
+                $room['lastMessageType'] = $lastMsg['message_type'];
+            } else {
+                $room['lastMessage'] = null;
+                $room['lastMessageTime'] = null;
+                $room['lastMessageType'] = null;
+            }
+
+            // 获取未读消息数（需要通过 Message 表关联获取）
+            $unreadCount = \app\model\Message::where('room_id', $room['id'])
+                ->where('user_id', '<>', $userId)
+                ->whereNotExists(function ($query) use ($userId) {
+                    $query->table('ch_message_reads')
+                        ->where('ch_message_reads.message_id', '=', Db::raw('ch_messages.id'))
+                        ->where('ch_message_reads.user_id', '=', $userId);
+                })
+                ->count();
+            
+            $room['unreadCount'] = $unreadCount;
+        }
+
+        return $rooms;
     }
 
     /**
