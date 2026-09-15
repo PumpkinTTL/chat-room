@@ -392,6 +392,27 @@ class UserService
                 }
             }
 
+            // 图床 OSS 通道（ImgbedService）：启用后头像存图床外链，失败自动降级走下方本地存储
+            if (ImgbedService::isEnabled()) {
+                $content = file_get_contents($file->getPathname());
+                if ($content !== false) {
+                    $imgbed = ImgbedService::upload($content, $extension, $mimeType);
+                    if ($imgbed['ok']) {
+                        $user->avatar = $imgbed['url'];
+                        $user->save();
+
+                        return [
+                            'code' => 0,
+                            'msg'  => '上传成功',
+                            'data' => [
+                                'url'    => $imgbed['url'],
+                                'avatar' => $imgbed['url'],
+                            ],
+                        ];
+                    }
+                }
+            }
+
             // 生成随机文件名：avatars/随机字符串.扩展名
             $randomName = 'avatars/' . uniqid() . '_' . time() . '.' . $extension;
 

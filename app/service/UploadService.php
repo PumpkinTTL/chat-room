@@ -70,6 +70,27 @@ class UploadService
                 $extension = $mimeToExt[$mimeType] ?? 'jpg';
             }
 
+            // 图床 OSS 通道（ImgbedService）：启用后图片存图床外链，失败自动降级走下方本地存储
+            if (ImgbedService::isEnabled()) {
+                $content = file_get_contents($file->getPathname());
+                if ($content !== false) {
+                    $imgbed = ImgbedService::upload($content, $extension, $mimeType);
+                    if ($imgbed['ok']) {
+                        return ['code' => 0, 'msg' => '上传成功', 'data' => [
+                            'original_name' => $file->getOriginalName(),
+                            'file_size'     => $file->getSize(),
+                            'mime_type'     => $mimeType,
+                            'extension'     => $extension,
+                            'width'         => $imageInfo[0],
+                            'height'        => $imageInfo[1],
+                            'url'           => $imgbed['url'],
+                            'path'          => '',
+                            'storage'       => 'imgbed',
+                        ]];
+                    }
+                }
+            }
+
             $fileName = date('Y/m/d') . '/' . md5(uniqid(mt_rand(), true)) . '.' . $extension;
 
             // 保存文件
@@ -381,6 +402,11 @@ class UploadService
         }
 
         try {
+            // 图床外链文件不在本地磁盘，直接跳过
+            if (preg_match('#^https?://#i', $path)) {
+                return ['code' => 0, 'msg' => '外链文件，无需本地删除'];
+            }
+
             // 安全检查，防止目录遍历攻击
             if (strpos($path, '..') !== false || strpos($path, '/') === 0) {
                 return ['code' => 1, 'msg' => '非法的文件路径'];
