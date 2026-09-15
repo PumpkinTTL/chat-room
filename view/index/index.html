@@ -43,7 +43,8 @@
                     <div class="user-info" v-if="currentUser.id" @click="openUserProfile" style="cursor: pointer;"
                         title="点击查看个人资料">
                         <div class="user-avatar">
-                            <img v-if="isValidAvatar(currentUser.avatar)" :src="currentUser.avatar" :alt="currentUser.nick_name">
+                            <img v-if="isValidAvatar(currentUser.avatar)" :src="currentUser.avatar"
+                                :alt="currentUser.nick_name">
                             <span v-else v-text="currentUser.nick_name.charAt(0)"></span>
                             <i class="user-status-dot"></i>
                         </div>
@@ -104,7 +105,8 @@
                         <div v-else class="contact-list">
                             <div v-for="contact in contactList" :key="contact.id" class="contact-item">
                                 <div class="contact-avatar">
-                                    <img v-if="contact.avatar && isValidAvatar(contact.avatar)" :src="contact.avatar" :alt="contact.nickname">
+                                    <img v-if="contact.avatar && isValidAvatar(contact.avatar)" :src="contact.avatar"
+                                        :alt="contact.nickname">
                                     <span v-else v-text="contact.nickname.charAt(0)"></span>
                                 </div>
                                 <div class="contact-info">
@@ -161,406 +163,304 @@
                 </div>
             </aside>
 
-        <!-- 移动端遮罩 -->
-        <div class="mobile-overlay" v-if="sidebarOpen" @click="toggleSidebar"></div>
+            <!-- 移动端遮罩 -->
+            <div class="mobile-overlay" v-if="sidebarOpen" @click="toggleSidebar"></div>
 
-        <!-- 主聊天区域 -->
-        <main class="main-content">
-            <!-- 顶部导航 -->
-            <header class="chat-navbar">
-                <div class="nav-left">
-                    <button class="menu-btn mobile-only" @click="toggleSidebar">
-                        <i class="fas fa-bars"></i>
-                    </button>
-                    <h2 class="chat-title" v-text="roomName || '聊天中'"></h2>
-                    <div class="header-status">
-                        <!-- 移动端：二选一显示 -->
-                        <span v-if="typingText" class="typing-indicator mobile-typing">
-                            <span v-text="typingText"></span>
-                        </span>
-                        <div v-else class="header-badges">
-                            <span class="online-badge">
-                                <span class="online-dot"></span>
-                                <span v-text="totalUsers + '人 / ' + onlineUsers + '在线'"></span>
+            <!-- 主聊天区域 -->
+            <main class="main-content">
+                <!-- 顶部导航 -->
+                <header class="chat-navbar">
+                    <div class="nav-left">
+                        <button class="menu-btn mobile-only" @click="toggleSidebar">
+                            <i class="fas fa-bars"></i>
+                        </button>
+                        <h2 class="chat-title" v-text="roomName || '聊天中'"></h2>
+                        <div class="header-status">
+                            <!-- 移动端：二选一显示 -->
+                            <span v-if="typingText" class="typing-indicator mobile-typing">
+                                <span v-text="typingText"></span>
                             </span>
-                            <span class="conn-badge" :class="{ 'conn-ws': wsConnected, 'conn-poll': !wsConnected }">
-                                <i :class="wsConnected ? 'fas fa-bolt' : 'fas fa-globe'"></i>
-                                <span v-text="wsConnected ? 'Socket' : 'HTTP'"></span>
-                            </span>
-                            <span v-if="currentRoomPrivate" class="private-badge" :class="{ 'lit': isPrivateRoomLit, 'dim': !isPrivateRoomLit }" @click.stop="toggleIntimacyCard" :style="isPrivateRoomLit && intimacyInfo ? { '--badge-color': intimacyInfo.level_color } : {}">
-                                <i class="fas fa-heart" :style="isPrivateRoomLit && intimacyInfo ? { color: intimacyInfo.level_color } : {}"></i>
-                                <span>私密</span>
-                                <span v-if="intimacyInfo" class="intimacy-level-mini">Lv.{{ intimacyInfo.current_level }}</span>
-                                <!-- 爱心飘动动画 -->
-                                <div v-if="showFloatingHearts" class="floating-hearts" :key="heartsAnimationKey">
-                                    <i class="fas fa-heart fh fh-1" :style="intimacyInfo ? { color: intimacyInfo.level_color } : {}"></i>
-                                    <i class="fas fa-heart fh fh-2" :style="intimacyInfo ? { color: intimacyInfo.level_color } : {}"></i>
-                                    <i class="fas fa-heart fh fh-3" :style="intimacyInfo ? { color: intimacyInfo.level_color } : {}"></i>
-                                </div>
+                            <div v-else class="header-badges">
+                                <span class="online-badge">
+                                    <span class="online-dot"></span>
+                                    <span v-text="totalUsers + '人 / ' + onlineUsers + '在线'"></span>
+                                </span>
+                                <span class="conn-badge" :class="{ 'conn-ws': wsConnected, 'conn-poll': !wsConnected }">
+                                    <i :class="wsConnected ? 'fas fa-bolt' : 'fas fa-globe'"></i>
+                                    <span v-text="wsConnected ? 'Socket' : 'HTTP'"></span>
+                                </span>
+                                <span v-if="currentRoomPrivate" class="private-badge"
+                                    :class="{ 'lit': isPrivateRoomLit, 'dim': !isPrivateRoomLit }"
+                                    @click.stop="toggleIntimacyCard"
+                                    :style="isPrivateRoomLit && intimacyInfo ? { '--badge-color': intimacyInfo.level_color } : {}">
+                                    <i class="fas fa-heart"
+                                        :style="isPrivateRoomLit && intimacyInfo ? { color: intimacyInfo.level_color } : {}"></i>
+                                    <span>私密</span>
+                                    <span v-if="intimacyInfo" class="intimacy-level-mini">Lv.{{
+                                        intimacyInfo.current_level }}</span>
+                                    <!-- 爱心飘动动画 -->
+                                    <div v-if="showFloatingHearts" class="floating-hearts" :key="heartsAnimationKey">
+                                        <i class="fas fa-heart fh fh-1"
+                                            :style="intimacyInfo ? { color: intimacyInfo.level_color } : {}"></i>
+                                        <i class="fas fa-heart fh fh-2"
+                                            :style="intimacyInfo ? { color: intimacyInfo.level_color } : {}"></i>
+                                        <i class="fas fa-heart fh fh-3"
+                                            :style="intimacyInfo ? { color: intimacyInfo.level_color } : {}"></i>
+                                    </div>
+                                </span>
+                            </div>
+                            <!-- PC端：同时显示 -->
+                            <span v-if="typingText" class="typing-indicator pc-typing">
+                                <span v-text="typingText"></span>
                             </span>
                         </div>
-                        <!-- PC端：同时显示 -->
-                        <span v-if="typingText" class="typing-indicator pc-typing">
-                            <span v-text="typingText"></span>
-                        </span>
                     </div>
-                </div>
-                
-                <!-- 好感度卡片（展开式，仅私密房间显示） -->
-                <transition name="intimacy-slide">
-                    <div v-if="currentRoomPrivate && intimacyInfo && showIntimacyCard" class="intimacy-card-expanded" :style="{ '--intimacy-color': intimacyInfo.level_color }">
-                        <button class="intimacy-close" @click="toggleIntimacyCard">
-                            <i class="fas fa-times"></i>
-                        </button>
-                        
-                        <!-- 顶部：等级和经验 -->
-                        <div class="intimacy-top-section">
-                            <div class="intimacy-level-display">
-                                <div class="intimacy-heart-wrapper">
-                                    <i class="fas fa-heart intimacy-heart-icon" :style="{ color: intimacyInfo.level_color }"></i>
-                                    <div class="heart-glow" :style="{ background: intimacyInfo.level_color }"></div>
-                                </div>
-                                <div class="intimacy-level-text">
-                                    <div class="level-name-row">
-                                        <span class="intimacy-level-name" :style="{ color: intimacyInfo.level_color }">
-                                            {{ intimacyInfo.level_name }}
-                                        </span>
-                                        <span class="intimacy-level-badge" :style="{ 
+
+                    <!-- 好感度卡片（展开式，仅私密房间显示） -->
+                    <transition name="intimacy-slide">
+                        <div v-if="currentRoomPrivate && intimacyInfo && showIntimacyCard"
+                            class="intimacy-card-expanded" :style="{ '--intimacy-color': intimacyInfo.level_color }">
+                            <button class="intimacy-close" @click="toggleIntimacyCard">
+                                <i class="fas fa-times"></i>
+                            </button>
+
+                            <!-- 顶部：等级和经验 -->
+                            <div class="intimacy-top-section">
+                                <div class="intimacy-level-display">
+                                    <div class="intimacy-heart-wrapper">
+                                        <i class="fas fa-heart intimacy-heart-icon"
+                                            :style="{ color: intimacyInfo.level_color }"></i>
+                                        <div class="heart-glow" :style="{ background: intimacyInfo.level_color }"></div>
+                                    </div>
+                                    <div class="intimacy-level-text">
+                                        <div class="level-name-row">
+                                            <span class="intimacy-level-name"
+                                                :style="{ color: intimacyInfo.level_color }">
+                                                {{ intimacyInfo.level_name }}
+                                            </span>
+                                            <span class="intimacy-level-badge" :style="{ 
                                             background: intimacyInfo.level_color + '15',
                                             borderColor: intimacyInfo.level_color + '30',
                                             color: intimacyInfo.level_color
                                         }">Lv.{{ intimacyInfo.current_level }}</span>
+                                        </div>
+                                        <div class="level-subtitle">亲密关系</div>
                                     </div>
-                                    <div class="level-subtitle">亲密关系</div>
+                                </div>
+
+                                <div class="intimacy-exp-display">
+                                    <div class="exp-label">经验值</div>
+                                    <div class="exp-numbers">
+                                        <span class="exp-current">{{ intimacyInfo.current_exp }}</span>
+                                        <span class="exp-separator">/</span>
+                                        <span class="exp-max">{{ intimacyInfo.next_level_exp }}</span>
+                                    </div>
                                 </div>
                             </div>
-                            
-                            <div class="intimacy-exp-display">
-                                <div class="exp-label">经验值</div>
-                                <div class="exp-numbers">
-                                    <span class="exp-current">{{ intimacyInfo.current_exp }}</span>
-                                    <span class="exp-separator">/</span>
-                                    <span class="exp-max">{{ intimacyInfo.next_level_exp }}</span>
+
+                            <!-- 进度条 -->
+                            <div class="intimacy-progress-section">
+                                <div class="progress-header">
+                                    <span class="progress-label">
+                                        <i class="fas fa-chart-line"></i>
+                                        升级进度
+                                    </span>
+                                    <span class="progress-percent" :style="{ color: intimacyInfo.level_color }">
+                                        {{ intimacyInfo.progress_percent }}%
+                                    </span>
                                 </div>
-                            </div>
-                        </div>
-                        
-                        <!-- 进度条 -->
-                        <div class="intimacy-progress-section">
-                            <div class="progress-header">
-                                <span class="progress-label">
-                                    <i class="fas fa-chart-line"></i>
-                                    升级进度
-                                </span>
-                                <span class="progress-percent" :style="{ color: intimacyInfo.level_color }">
-                                    {{ intimacyInfo.progress_percent }}%
-                                </span>
-                            </div>
-                            <div class="intimacy-progress-bar">
-                                <div class="intimacy-progress-fill" 
-                                     :style="{ 
+                                <div class="intimacy-progress-bar">
+                                    <div class="intimacy-progress-fill" :style="{ 
                                          width: intimacyInfo.progress_percent + '%',
                                          '--level-color': intimacyInfo.level_color,
                                          '--level-color-light': intimacyInfo.level_color + '99'
                                      }">
-                                    <div class="progress-shine"></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 亲密互动条（私密房间两人在线时显示） -->
-                        <transition name="intimacy-slide">
-                            <div v-if="showInteractionBar && onlineUsers >= 2" class="intimacy-interaction-wrapper" :style="{ '--intimacy-color': intimacyInfo?.level_color || '#ec4899' }">
-                                <div class="intimacy-interaction-bar">
-                                    <!-- 第一行：两个头像 -->
-                                    <div class="intimacy-avatars-row">
-                                        <!-- 左侧用户（自己） -->
-                                        <div class="intimacy-user-section left is-local">
-                                            <div class="intimacy-user-avatar-wrapper">
-                                                <img v-if="isValidAvatar(currentUser.avatar)" :src="currentUser.avatar" class="intimacy-user-avatar" :alt="currentUser.nick_name">
-                                                <div v-else class="intimacy-user-avatar-placeholder">{{ currentUser.nick_name.charAt(0) }}</div>
-                                            </div>
-                                            <span class="intimacy-user-name">{{ currentUser.nick_name }}</span>
-                                        </div>
-
-                                        <!-- 右侧用户（伴侣） -->
-                                        <div class="intimacy-user-section right">
-                                            <span class="intimacy-user-name">{{ interactionPartner.name || '伴侣' }}</span>
-                                            <div class="intimacy-user-avatar-wrapper">
-                                                <img v-if="interactionPartner.avatar" :src="interactionPartner.avatar" class="intimacy-user-avatar" :alt="interactionPartner.name">
-                                                <div v-else class="intimacy-user-avatar-placeholder">{{ interactionPartner.name?.charAt(0) || '?' }}</div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- 第二行：进度条 -->
-                                    <div class="intimacy-progress-section" :class="{ 'active': interactionProgress > 0 && interactionProgress < 100, 'completed': interactionCompleted }">
-                                        <div class="intimacy-progress-container">
-                                            <div class="intimacy-progress-track">
-                                                <!-- 双向进度条：两边各占一半宽度，100%时相遇 -->
-                                                <div class="intimacy-progress-fill-left" :style="{ width: (interactionProgress / 2) + '%', '--intimacy-color': intimacyInfo?.level_color || '#ec4899' }"></div>
-                                                <div class="intimacy-progress-fill-right" :style="{ width: (interactionProgress / 2) + '%', '--intimacy-color': intimacyInfo?.level_color || '#ec4899' }"></div>
-                                            </div>
-                                            <div class="intimacy-center-heart">
-                                                <i class="fas fa-heart"></i>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- 第三行：倒计时 -->
-                                    <div class="intimacy-countdown-row" :class="{ 'urgent': interactionCountdown <= 10 }">
-                                        <i class="fas fa-clock"></i>
-                                        <span class="intimacy-countdown-value">{{ interactionCountdown }}</span>
-                                        <span class="intimacy-countdown-text">{{ intimacyCountdownText }}</span>
+                                        <div class="progress-shine"></div>
                                     </div>
                                 </div>
                             </div>
-                        </transition>
 
-                        <!-- 底部：统计和开关 -->
-                        <div class="intimacy-bottom-section">
-                            <div class="intimacy-message-count">
-                                <div class="message-icon-wrapper">
-                                    <i class="fas fa-comments"></i>
-                                </div>
-                                <div class="message-text">
-                                    <span class="message-label">我们已经聊了</span>
-                                    <span class="message-value">{{ intimacyInfo.total_messages }} 条消息</span>
-                                </div>
-                            </div>
-
-                            <div class="intimacy-divider"></div>
-
-                            <div class="intimacy-settings">
-                                <div class="settings-label">
-                                    <i class="fas fa-bell"></i>
-                                    <span>经验提示</span>
-                                </div>
-                                <label class="intimacy-switch">
-                                    <input type="checkbox" v-model="showExpToast" @change="saveExpToastSetting">
-                                    <span class="intimacy-slider"></span>
-                                </label>
-                            </div>
-
-                            <div class="intimacy-settings">
-                                <div class="settings-label">
-                                    <i class="fas fa-heart"></i>
-                                    <span>羁绊上线提醒</span>
-                                </div>
-                                <label class="intimacy-switch">
-                                    <input type="checkbox" v-model="showBondOnlineEffect" @change="saveBondOnlineEffectSetting">
-                                    <span class="intimacy-slider"></span>
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                </transition>
-            </header>
-
-            <!-- 消息区域 -->
-            <div class="messages-container" ref="messagesContainer">
-                <!-- 消息加载中 -->
-                <div v-if="messagesLoading" class="messages-loading">
-                    <div class="loading-spinner-small">
-                        <div class="spinner-small"></div>
-                        <p>加载中...</p>
-                    </div>
-                </div>
-
-                <div class="messages-list" v-else>
-                    <!-- 加载更多 -->
-                    <div v-if="roomId && messages.length > 0" class="load-more-area">
-                        <button v-if="hasMoreMessages" class="load-more-btn" @click="loadMoreMessages"
-                            :disabled="loadingMore">
-                            <i v-if="loadingMore" class="fas fa-spinner fa-spin"></i>
-                            <i v-else class="fas fa-history"></i>
-                            <span v-if="!loadingMore">加载更多历史消息</span>
-                            <span v-else>加载中...</span>
-                        </button>
-                        <span v-else class="no-more-text">
-                            <i class="fas fa-check-circle"></i>
-                            <span>没有更多消息了</span>
-                        </span>
-                    </div>
-
-                    <div v-if="roomId === ''" class="empty-messages">
-                        <div class="empty-icon">
-                            <i class="fas fa-door-open"></i>
-                        </div>
-                        <div class="empty-text">还没有加入房间</div>
-                        <div class="empty-subtitle">点击加入房间开始聊天</div>
-                    </div>
-                    <div v-else-if="messages.length === 0" class="empty-messages">
-                        <div class="empty-icon">
-                            <i class="fas fa-comments"></i>
-                        </div>
-                        <div class="empty-text">没有更多消息了</div>
-                        <div class="empty-subtitle">开始新的对话吧</div>
-                    </div>
-                    <div v-for="(message, index) in messages" :key="message.id" class="msg-row"
-                        :class="{ 'msg-own': message.isOwn, 'time-separator': message.isTimeSeparator }"
-                        :data-msg-id="message.id">
-
-                        <div v-if="message.type === 'system' || message.type === 4" class="msg-system">
-                            <span class="system-badge" :class="{ 'time-separator-badge': message.isTimeSeparator }" v-text="message.text"></span>
-                        </div>
-
-                        <div v-else class="msg-content-group"
-                            @contextmenu.prevent="showContextMenu($event, message)"
-                            @touchstart="handleMessageTouchStart($event, message)"
-                            @touchend="handleMessageTouchEnd"
-                            @touchmove="handleMessageTouchMove">
-                            <div v-if="!message.isOwn" class="msg-avatar">
-                                <img v-if="message.sender && isValidAvatar(message.sender.avatar)" :src="message.sender.avatar" :alt="message.username">
-                                <span v-else v-text="message.username.charAt(0)"></span>
-                            </div>
-                            <div v-else class="msg-avatar msg-avatar-own">
-                                <img v-if="isValidAvatar(currentUser.avatar)" :src="currentUser.avatar" :alt="currentUser.nick_name">
-                                <span v-else v-text="currentUser.nick_name.charAt(0)"></span>
-                            </div>
-
-                            <!-- 他人的消息 -->
-                            <div v-if="!message.isOwn" class="msg-content-left">
-                                <!-- 第一行：头像和气泡 -->
-                                <div class="msg-bubble-wrapper">
-                                    <div class="msg-bubble" :class="{ 'msg-image': message.type === 'image', 'msg-video': message.type === 'video' }">
-                                        <!-- 图片消息 -->
-                                        <div v-if="message.type === 'image'" class="image-wrapper"
-                                            @click="handleImageClick(message.imageUrl)">
-                                            <img :src="message.imageUrl" loading="lazy" alt="Image">
-                                        </div>
-                                        <!-- 视频消息 -->
-                                        <div v-else-if="message.type === 'video'" class="video-wrapper">
-                                            <div v-if="message.videoThumbnail" class="video-thumbnail"
-                                                @click="handleVideoClick(message.videoUrl)">
-                                                <img :src="message.videoThumbnail" alt="Video thumbnail">
-                                                <div class="video-play-btn">
-                                                    <i class="fas fa-play"></i>
+                            <!-- 亲密互动条（私密房间两人在线时显示） -->
+                            <transition name="intimacy-slide">
+                                <div v-if="showInteractionBar && onlineUsers >= 2" class="intimacy-interaction-wrapper"
+                                    :style="{ '--intimacy-color': intimacyInfo?.level_color || '#ec4899' }">
+                                    <div class="intimacy-interaction-bar">
+                                        <!-- 第一行：两个头像 -->
+                                        <div class="intimacy-avatars-row">
+                                            <!-- 左侧用户（自己） -->
+                                            <div class="intimacy-user-section left is-local">
+                                                <div class="intimacy-user-avatar-wrapper">
+                                                    <img v-if="isValidAvatar(currentUser.avatar)"
+                                                        :src="currentUser.avatar" class="intimacy-user-avatar"
+                                                        :alt="currentUser.nick_name">
+                                                    <div v-else class="intimacy-user-avatar-placeholder">{{
+                                                        currentUser.nick_name.charAt(0) }}</div>
                                                 </div>
-                                                <div class="video-duration" v-if="message.videoDuration"
-                                                    v-text="formatDuration(message.videoDuration)"></div>
+                                                <span class="intimacy-user-name">{{ currentUser.nick_name }}</span>
                                             </div>
-                                            <video v-else :src="message.videoUrl" controls preload="metadata"
-                                                style="max-width: 280px; max-height: 400px; border-radius: 12px;"></video>
+
+                                            <!-- 右侧用户（伴侣） -->
+                                            <div class="intimacy-user-section right">
+                                                <span class="intimacy-user-name">{{ interactionPartner.name || '伴侣'
+                                                    }}</span>
+                                                <div class="intimacy-user-avatar-wrapper">
+                                                    <img v-if="interactionPartner.avatar"
+                                                        :src="interactionPartner.avatar" class="intimacy-user-avatar"
+                                                        :alt="interactionPartner.name">
+                                                    <div v-else class="intimacy-user-avatar-placeholder">{{
+                                                        interactionPartner.name?.charAt(0) || '?' }}</div>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <!-- 文件消息 -->
-                                        <div v-else-if="message.type === 'file'" class="file-message" @click="downloadFile(message)">
-                                            <!-- 音频文件：显示播放器 -->
-                                            <template v-if="isAudioFile(message.fileName || message.fileUrl)">
-                                                <div class="audio-message">
-                                                    <audio :src="message.fileUrl" controls preload="metadata" @click.stop></audio>
-                                                    <div class="audio-info">
-                                                        <span class="file-name" v-text="message.fileName || getFileNameFromUrl(message.fileUrl)"></span>
-                                                        <div class="audio-meta">
-                                                            <span class="file-size" v-if="message.fileSize" v-text="formatFileSize(message.fileSize)"></span>
-                                                            <span class="file-extension" v-text="getFileExtension(message.fileName || message.fileUrl)"></span>
-                                                        </div>
+
+                                        <!-- 第二行：进度条 -->
+                                        <div class="intimacy-progress-section"
+                                            :class="{ 'active': interactionProgress > 0 && interactionProgress < 100, 'completed': interactionCompleted }">
+                                            <div class="intimacy-progress-container">
+                                                <div class="intimacy-progress-track">
+                                                    <!-- 双向进度条：两边各占一半宽度，100%时相遇 -->
+                                                    <div class="intimacy-progress-fill-left"
+                                                        :style="{ width: (interactionProgress / 2) + '%', '--intimacy-color': intimacyInfo?.level_color || '#ec4899' }">
+                                                    </div>
+                                                    <div class="intimacy-progress-fill-right"
+                                                        :style="{ width: (interactionProgress / 2) + '%', '--intimacy-color': intimacyInfo?.level_color || '#ec4899' }">
                                                     </div>
                                                 </div>
-                                            </template>
-                                            <!-- 普通文件 -->
-                                            <template v-else>
-                                                <div class="file-icon"
-                                                    :class="getFileIconClass(message.fileExtension || message.fileName || message.fileUrl)">
-                                                    <i :class="getFileIcon(message.fileExtension || message.fileName || message.fileUrl)"></i>
+                                                <div class="intimacy-center-heart">
+                                                    <i class="fas fa-heart"></i>
                                                 </div>
-                                                <div class="file-info">
-                                                    <div class="file-name" v-text="message.fileName || '未知文件'"></div>
-                                                    <div class="file-meta">
-                                                        <span class="file-size" v-if="message.fileSize"
-                                                            v-text="formatFileSize(message.fileSize)"></span>
-                                                        <span class="file-extension"
-                                                            v-text="getFileExtension(message.fileName || message.fileUrl)"></span>
-                                                    </div>
-                                                </div>
-                                                <div class="file-download">
-                                                    <i class="fas fa-download"></i>
-                                                </div>
-                                            </template>
+                                            </div>
                                         </div>
-                                        <!-- 文本消息 -->
-                                        <div v-else class="text-wrapper">
-                                            <!-- 普通文本内容 -->
-                                            <div v-if="message.displayText" class="text-content"
-                                                v-text="message.displayText"></div>
-                                            <!-- 链接 -->
-                                            <div v-if="message.urlCards && message.urlCards.length > 0"
-                                                class="url-cards-container">
-                                                <a v-for="(urlCard, urlIndex) in message.urlCards" :key="urlIndex"
-                                                    class="url-card" :href="urlCard.url" target="_blank"
-                                                    rel="noopener noreferrer" @click.stop>
-                                                    <i class="fas fa-link url-card-icon"></i>
-                                                    <span class="url-card-url" v-text="formatUrl(urlCard.url)"></span>
-                                                </a>
-                                            </div>
-                                            <!-- 没有链接也没有displayText的纯文本 -->
-                                            <div v-if="!message.displayText && !message.urlCards && message.text"
-                                                class="text-content" v-text="message.text"></div>
-                                            <!-- 引用显示（放在文本内容下方） -->
-                                            <div v-if="message.reply_to" class="reply-quote reply-quote-other" 
-                                                @click.stop="scrollToReplyMessage(message.reply_to.message_id)">
-                                                <div class="reply-quote-line"></div>
-                                                <div class="reply-quote-content">
-                                                    <span class="reply-quote-nickname">{{ message.reply_to.nickname || '用户' }}:</span>
-                                                    <span class="reply-quote-text">{{ getReplyQuoteText(message.reply_to) }}</span>
-                                                </div>
-                                            </div>
+
+                                        <!-- 第三行：倒计时 -->
+                                        <div class="intimacy-countdown-row"
+                                            :class="{ 'urgent': interactionCountdown <= 10 }">
+                                            <i class="fas fa-clock"></i>
+                                            <span class="intimacy-countdown-value">{{ interactionCountdown }}</span>
+                                            <span class="intimacy-countdown-text">{{ intimacyCountdownText }}</span>
                                         </div>
                                     </div>
                                 </div>
-                                <!-- 第二行：昵称和时间 -->
-                                <div class="msg-sender">
-                                    <span v-text="message.username"></span>
-                                    <span class="msg-time" v-text="formatTime(message.time)"></span>
+                            </transition>
+
+                            <!-- 底部：统计和开关 -->
+                            <div class="intimacy-bottom-section">
+                                <div class="intimacy-message-count">
+                                    <div class="message-icon-wrapper">
+                                        <i class="fas fa-comments"></i>
+                                    </div>
+                                    <div class="message-text">
+                                        <span class="message-label">我们已经聊了</span>
+                                        <span class="message-value">{{ intimacyInfo.total_messages }} 条消息</span>
+                                    </div>
+                                </div>
+
+                                <div class="intimacy-divider"></div>
+
+                                <div class="intimacy-settings">
+                                    <div class="settings-label">
+                                        <i class="fas fa-bell"></i>
+                                        <span>经验提示</span>
+                                    </div>
+                                    <label class="intimacy-switch">
+                                        <input type="checkbox" v-model="showExpToast" @change="saveExpToastSetting">
+                                        <span class="intimacy-slider"></span>
+                                    </label>
+                                </div>
+
+                                <div class="intimacy-settings">
+                                    <div class="settings-label">
+                                        <i class="fas fa-heart"></i>
+                                        <span>羁绊上线提醒</span>
+                                    </div>
+                                    <label class="intimacy-switch">
+                                        <input type="checkbox" v-model="showBondOnlineEffect"
+                                            @change="saveBondOnlineEffectSetting">
+                                        <span class="intimacy-slider"></span>
+                                    </label>
                                 </div>
                             </div>
+                        </div>
+                    </transition>
+                </header>
 
-                            <!-- 自己的消息：使用包装器包含气泡和元数据 -->
-                            <div v-else class="msg-content-right">
-                                <div class="msg-bubble-wrapper">
-                                    <div class="msg-bubble" :class="{ 'msg-image': message.type === 'image', 'msg-video': message.type === 'video' }">
-                                        <!-- 图片消息 -->
-                                        <div v-if="message.type === 'image'" class="image-wrapper"
-                                            @click="handleImageClick(message.imageUrl)">
-                                            <img :src="message.imageUrl" loading="lazy" alt="Image">
-                                            <!-- 上传进度遮罩 -->
-                                            <div v-if="messageSendStatus && messageSendStatus[message.id] === 'sending'"
-                                                class="upload-progress-overlay">
-                                                <div class="progress-content">
-                                                    <div class="progress-ring">
-                                                        <svg viewBox="0 0 36 36">
-                                                            <path class="progress-ring-bg"
-                                                                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                                                            <path class="progress-ring-fill"
-                                                                :stroke-dasharray="(uploadProgress[message.id] || 0) + ', 100'"
-                                                                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                                                        </svg>
-                                                        <span class="progress-text"
-                                                            v-text="(uploadProgress[message.id] || 0) + '%'"></span>
-                                                    </div>
-                                                </div>
+                <!-- 消息区域 -->
+                <div class="messages-container" ref="messagesContainer">
+                    <!-- 消息加载中 -->
+                    <div v-if="messagesLoading" class="messages-loading">
+                        <div class="loading-spinner-small">
+                            <div class="spinner-small"></div>
+                            <p>加载中...</p>
+                        </div>
+                    </div>
+
+                    <div class="messages-list" v-else>
+                        <!-- 加载更多 -->
+                        <div v-if="roomId && messages.length > 0" class="load-more-area">
+                            <button v-if="hasMoreMessages" class="load-more-btn" @click="loadMoreMessages"
+                                :disabled="loadingMore">
+                                <i v-if="loadingMore" class="fas fa-spinner fa-spin"></i>
+                                <i v-else class="fas fa-history"></i>
+                                <span v-if="!loadingMore">加载更多历史消息</span>
+                                <span v-else>加载中...</span>
+                            </button>
+                            <span v-else class="no-more-text">
+                                <i class="fas fa-check-circle"></i>
+                                <span>没有更多消息了</span>
+                            </span>
+                        </div>
+
+                        <div v-if="roomId === ''" class="empty-messages">
+                            <div class="empty-icon">
+                                <i class="fas fa-door-open"></i>
+                            </div>
+                            <div class="empty-text">还没有加入房间</div>
+                            <div class="empty-subtitle">点击加入房间开始聊天</div>
+                        </div>
+                        <div v-else-if="messages.length === 0" class="empty-messages">
+                            <div class="empty-icon">
+                                <i class="fas fa-comments"></i>
+                            </div>
+                            <div class="empty-text">没有更多消息了</div>
+                            <div class="empty-subtitle">开始新的对话吧</div>
+                        </div>
+                        <div v-for="(message, index) in messages" :key="message.id" class="msg-row"
+                            :class="{ 'msg-own': message.isOwn, 'time-separator': message.isTimeSeparator }"
+                            :data-msg-id="message.id">
+
+                            <div v-if="message.type === 'system' || message.type === 4" class="msg-system">
+                                <span class="system-badge" :class="{ 'time-separator-badge': message.isTimeSeparator }"
+                                    v-text="message.text"></span>
+                            </div>
+
+                            <div v-else class="msg-content-group"
+                                @contextmenu.prevent="showContextMenu($event, message)"
+                                @touchstart="handleMessageTouchStart($event, message)" @touchend="handleMessageTouchEnd"
+                                @touchmove="handleMessageTouchMove">
+                                <div v-if="!message.isOwn" class="msg-avatar">
+                                    <img v-if="message.sender && isValidAvatar(message.sender.avatar)"
+                                        :src="message.sender.avatar" :alt="message.username">
+                                    <span v-else v-text="message.username.charAt(0)"></span>
+                                </div>
+                                <div v-else class="msg-avatar msg-avatar-own">
+                                    <img v-if="isValidAvatar(currentUser.avatar)" :src="currentUser.avatar"
+                                        :alt="currentUser.nick_name">
+                                    <span v-else v-text="currentUser.nick_name.charAt(0)"></span>
+                                </div>
+
+                                <!-- 他人的消息 -->
+                                <div v-if="!message.isOwn" class="msg-content-left">
+                                    <!-- 第一行：头像和气泡 -->
+                                    <div class="msg-bubble-wrapper">
+                                        <div class="msg-bubble"
+                                            :class="{ 'msg-image': message.type === 'image', 'msg-video': message.type === 'video' }">
+                                            <!-- 图片消息 -->
+                                            <div v-if="message.type === 'image'" class="image-wrapper"
+                                                @click="handleImageClick(message.imageUrl)">
+                                                <img :src="message.imageUrl" loading="lazy" alt="Image">
                                             </div>
-                                        </div>
-                                        <!-- 视频消息 -->
-                                        <div v-else-if="message.type === 'video'" class="video-wrapper">
-                                            <!-- 上传中：显示占位容器 -->
-                                            <div v-if="messageSendStatus && messageSendStatus[message.id] === 'sending'"
-                                                class="video-upload-placeholder">
-                                                <div class="video-upload-icon">
-                                                    <i class="fas fa-video"></i>
-                                                </div>
-                                                <div class="video-upload-info">
-                                                    <span class="video-upload-text">视频上传中...</span>
-                                                    <div class="video-upload-progress-bar">
-                                                        <div class="video-upload-progress-fill"
-                                                            :style="{ width: (uploadProgress[message.id] || 0) + '%' }"></div>
-                                                    </div>
-                                                    <span class="video-upload-percent"
-                                                        v-text="(uploadProgress[message.id] || 0) + '%'"></span>
-                                                </div>
-                                            </div>
-                                            <!-- 上传完成：显示视频 -->
-                                            <template v-else>
+                                            <!-- 视频消息 -->
+                                            <div v-else-if="message.type === 'video'" class="video-wrapper">
                                                 <div v-if="message.videoThumbnail" class="video-thumbnail"
                                                     @click="handleVideoClick(message.videoUrl)">
                                                     <img :src="message.videoThumbnail" alt="Video thumbnail">
@@ -572,361 +472,528 @@
                                                 </div>
                                                 <video v-else :src="message.videoUrl" controls preload="metadata"
                                                     style="max-width: 280px; max-height: 400px; border-radius: 12px;"></video>
-                                            </template>
-                                        </div>
-                                        <!-- 文件消息 -->
-                                        <div v-else-if="message.type === 'file'" class="file-message"
-                                            style="position: relative;" @click="downloadFile(message)">
-                                            <!-- 音频文件：显示播放器 -->
-                                            <template v-if="isAudioFile(message.fileName || message.fileUrl)">
-                                                <div class="audio-message">
-                                                    <audio :src="message.fileUrl" controls preload="metadata" @click.stop></audio>
-                                                    <div class="audio-info">
-                                                        <span class="file-name" v-text="message.fileName || getFileNameFromUrl(message.fileUrl)"></span>
-                                                        <div class="audio-meta">
-                                                            <span class="file-size" v-if="message.fileSize" v-text="formatFileSize(message.fileSize)"></span>
-                                                            <span class="file-extension" v-text="getFileExtension(message.fileName || message.fileUrl)"></span>
+                                            </div>
+                                            <!-- 文件消息 -->
+                                            <div v-else-if="message.type === 'file'" class="file-message"
+                                                @click="downloadFile(message)">
+                                                <!-- 音频文件：显示播放器 -->
+                                                <template v-if="isAudioFile(message.fileName || message.fileUrl)">
+                                                    <div class="audio-message">
+                                                        <audio :src="message.fileUrl" controls preload="metadata"
+                                                            @click.stop></audio>
+                                                        <div class="audio-info">
+                                                            <span class="file-name"
+                                                                v-text="message.fileName || getFileNameFromUrl(message.fileUrl)"></span>
+                                                            <div class="audio-meta">
+                                                                <span class="file-size" v-if="message.fileSize"
+                                                                    v-text="formatFileSize(message.fileSize)"></span>
+                                                                <span class="file-extension"
+                                                                    v-text="getFileExtension(message.fileName || message.fileUrl)"></span>
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            </template>
-                                            <!-- 普通文件 -->
-                                            <template v-else>
-                                                <div class="file-icon"
-                                                    :class="getFileIconClass(message.fileExtension || message.fileName || message.fileUrl)">
-                                                    <i :class="getFileIcon(message.fileExtension || message.fileName || message.fileUrl)"></i>
-                                                </div>
-                                                <div class="file-info">
-                                                    <div class="file-name" v-text="message.fileName || '未知文件'"></div>
-                                                    <div class="file-meta">
-                                                        <span class="file-size" v-if="message.fileSize"
-                                                            v-text="formatFileSize(message.fileSize)"></span>
-                                                        <span class="file-extension"
-                                                            v-text="getFileExtension(message.fileName || message.fileUrl)"></span>
+                                                </template>
+                                                <!-- 普通文件 -->
+                                                <template v-else>
+                                                    <div class="file-icon"
+                                                        :class="getFileIconClass(message.fileExtension || message.fileName || message.fileUrl)">
+                                                        <i
+                                                            :class="getFileIcon(message.fileExtension || message.fileName || message.fileUrl)"></i>
                                                     </div>
-                                                </div>
-                                                <div class="file-download">
-                                                    <i class="fas fa-download"></i>
-                                                </div>
-                                            </template>
-                                            <!-- 上传进度遮罩 -->
-                                            <div v-if="messageSendStatus && messageSendStatus[message.id] === 'sending'"
-                                                class="file-upload-overlay">
-                                                <div class="progress-content">
-                                                    <div class="progress-ring">
-                                                        <svg viewBox="0 0 36 36">
-                                                            <path class="progress-ring-bg"
-                                                                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                                                            <path class="progress-ring-fill"
-                                                                :stroke-dasharray="(uploadProgress[message.id] || 0) + ', 100'"
-                                                                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                                                        </svg>
-                                                        <span class="progress-text"
-                                                            v-text="(uploadProgress[message.id] || 0) + '%'"></span>
+                                                    <div class="file-info">
+                                                        <div class="file-name" v-text="message.fileName || '未知文件'">
+                                                        </div>
+                                                        <div class="file-meta">
+                                                            <span class="file-size" v-if="message.fileSize"
+                                                                v-text="formatFileSize(message.fileSize)"></span>
+                                                            <span class="file-extension"
+                                                                v-text="getFileExtension(message.fileName || message.fileUrl)"></span>
+                                                        </div>
                                                     </div>
+                                                    <div class="file-download">
+                                                        <i class="fas fa-download"></i>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                            <!-- 文本消息 -->
+                                            <div v-else class="text-wrapper">
+                                                <!-- 普通文本内容 -->
+                                                <div v-if="message.displayText" class="text-content"
+                                                    v-text="message.displayText"></div>
+                                                <!-- 链接 -->
+                                                <div v-if="message.urlCards && message.urlCards.length > 0"
+                                                    class="url-cards-container">
+                                                    <a v-for="(urlCard, urlIndex) in message.urlCards" :key="urlIndex"
+                                                        class="url-card" :href="urlCard.url" target="_blank"
+                                                        rel="noopener noreferrer" @click.stop>
+                                                        <i class="fas fa-link url-card-icon"></i>
+                                                        <span class="url-card-url"
+                                                            v-text="formatUrl(urlCard.url)"></span>
+                                                    </a>
                                                 </div>
-                                            </div>
-                                        </div>
-                                        <!-- 文本消息 -->
-                                        <div v-else class="text-wrapper">
-                                            <!-- 普通文本内容 -->
-                                            <div v-if="message.displayText" class="text-content"
-                                                v-text="message.displayText"></div>
-                                            <!-- 链接 -->
-                                            <div v-if="message.urlCards && message.urlCards.length > 0"
-                                                class="url-cards-container">
-                                                <a v-for="(urlCard, urlIndex) in message.urlCards" :key="urlIndex"
-                                                    class="url-card" :href="urlCard.url" target="_blank"
-                                                    rel="noopener noreferrer" @click.stop>
-                                                    <i class="fas fa-link url-card-icon"></i>
-                                                    <span class="url-card-url" v-text="formatUrl(urlCard.url)"></span>
-                                                </a>
-                                            </div>
-                                            <!-- 没有链接也没有displayText的纯文本 -->
-                                            <div v-if="!message.displayText && !message.urlCards && message.text"
-                                                class="text-content" v-text="message.text"></div>
-                                            <!-- 引用显示（放在文本内容下方） -->
-                                            <div v-if="message.reply_to" class="reply-quote reply-quote-own" 
-                                                @click.stop="scrollToReplyMessage(message.reply_to.message_id)">
-                                                <div class="reply-quote-line"></div>
-                                                <div class="reply-quote-content">
-                                                    <span class="reply-quote-nickname">{{ message.reply_to.nickname || '用户' }}:</span>
-                                                    <span class="reply-quote-text">{{ getReplyQuoteText(message.reply_to) }}</span>
+                                                <!-- 没有链接也没有displayText的纯文本 -->
+                                                <div v-if="!message.displayText && !message.urlCards && message.text"
+                                                    class="text-content" v-text="message.text"></div>
+                                                <!-- 引用显示（放在文本内容下方） -->
+                                                <div v-if="message.reply_to" class="reply-quote reply-quote-other"
+                                                    @click.stop="scrollToReplyMessage(message.reply_to.message_id)">
+                                                    <div class="reply-quote-line"></div>
+                                                    <div class="reply-quote-content">
+                                                        <span class="reply-quote-nickname">{{ message.reply_to.nickname
+                                                            || '用户' }}:</span>
+                                                        <span class="reply-quote-text">{{
+                                                            getReplyQuoteText(message.reply_to) }}</span>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
+                                    <!-- 第二行：昵称和时间 -->
+                                    <div class="msg-sender">
+                                        <span v-text="message.username"></span>
+                                        <span class="msg-time" v-text="formatTime(message.time)"></span>
+                                    </div>
                                 </div>
 
-                                <!-- 已读回执和时间单独一行 -->
-                                <div class="msg-meta-own">
-                                    <span class="msg-read-status" :class="{ 'read': message.isRead }"
-                                        :title="message.readUsers && message.readUsers.length > 0 ? message.readUsers.map(u => u.nickname).join(', ') + ' 已读' : ''">
-                                        <span v-if="message.readCount > 0" v-text="message.readCount + '人已读'"></span>
-                                        <span v-else>未读</span>
-                                    </span>
-                                    <span v-text="formatTime(message.time)"></span>
-                                    <!-- 发送状态图标 -->
-                                    <span v-if="messageSendStatus && messageSendStatus[message.id]"
-                                        class="msg-status-icon">
-                                        <i v-if="messageSendStatus[message.id] === 'sending'"
-                                            class="fas fa-spinner fa-spin" title="发送中"></i>
-                                        <i v-else-if="messageSendStatus[message.id] === 'success'"
-                                            class="fas fa-check-circle" title="发送成功"></i>
-                                        <i v-else-if="messageSendStatus[message.id] === 'failed'"
-                                            class="fas fa-exclamation-circle" title="发送失败，点击重试"></i>
-                                    </span>
+                                <!-- 自己的消息：使用包装器包含气泡和元数据 -->
+                                <div v-else class="msg-content-right">
+                                    <div class="msg-bubble-wrapper">
+                                        <div class="msg-bubble"
+                                            :class="{ 'msg-image': message.type === 'image', 'msg-video': message.type === 'video' }">
+                                            <!-- 图片消息 -->
+                                            <div v-if="message.type === 'image'" class="image-wrapper"
+                                                @click="handleImageClick(message.imageUrl)">
+                                                <img :src="message.imageUrl" loading="lazy" alt="Image">
+                                                <!-- 上传进度遮罩 -->
+                                                <div v-if="messageSendStatus && messageSendStatus[message.id] === 'sending'"
+                                                    class="upload-progress-overlay">
+                                                    <div class="progress-content">
+                                                        <div class="progress-ring">
+                                                            <svg viewBox="0 0 36 36">
+                                                                <path class="progress-ring-bg"
+                                                                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                                                <path class="progress-ring-fill"
+                                                                    :stroke-dasharray="(uploadProgress[message.id] || 0) + ', 100'"
+                                                                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                                            </svg>
+                                                            <span class="progress-text"
+                                                                v-text="(uploadProgress[message.id] || 0) + '%'"></span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <!-- 视频消息 -->
+                                            <div v-else-if="message.type === 'video'" class="video-wrapper">
+                                                <!-- 上传中：显示占位容器 -->
+                                                <div v-if="messageSendStatus && messageSendStatus[message.id] === 'sending'"
+                                                    class="video-upload-placeholder">
+                                                    <div class="video-upload-icon">
+                                                        <i class="fas fa-video"></i>
+                                                    </div>
+                                                    <div class="video-upload-info">
+                                                        <span class="video-upload-text">视频上传中...</span>
+                                                        <div class="video-upload-progress-bar">
+                                                            <div class="video-upload-progress-fill"
+                                                                :style="{ width: (uploadProgress[message.id] || 0) + '%' }">
+                                                            </div>
+                                                        </div>
+                                                        <span class="video-upload-percent"
+                                                            v-text="(uploadProgress[message.id] || 0) + '%'"></span>
+                                                    </div>
+                                                </div>
+                                                <!-- 上传完成：显示视频 -->
+                                                <template v-else>
+                                                    <div v-if="message.videoThumbnail" class="video-thumbnail"
+                                                        @click="handleVideoClick(message.videoUrl)">
+                                                        <img :src="message.videoThumbnail" alt="Video thumbnail">
+                                                        <div class="video-play-btn">
+                                                            <i class="fas fa-play"></i>
+                                                        </div>
+                                                        <div class="video-duration" v-if="message.videoDuration"
+                                                            v-text="formatDuration(message.videoDuration)"></div>
+                                                    </div>
+                                                    <video v-else :src="message.videoUrl" controls preload="metadata"
+                                                        style="max-width: 280px; max-height: 400px; border-radius: 12px;"></video>
+                                                </template>
+                                            </div>
+                                            <!-- 文件消息 -->
+                                            <div v-else-if="message.type === 'file'" class="file-message"
+                                                style="position: relative;" @click="downloadFile(message)">
+                                                <!-- 音频文件：显示播放器 -->
+                                                <template v-if="isAudioFile(message.fileName || message.fileUrl)">
+                                                    <div class="audio-message">
+                                                        <audio :src="message.fileUrl" controls preload="metadata"
+                                                            @click.stop></audio>
+                                                        <div class="audio-info">
+                                                            <span class="file-name"
+                                                                v-text="message.fileName || getFileNameFromUrl(message.fileUrl)"></span>
+                                                            <div class="audio-meta">
+                                                                <span class="file-size" v-if="message.fileSize"
+                                                                    v-text="formatFileSize(message.fileSize)"></span>
+                                                                <span class="file-extension"
+                                                                    v-text="getFileExtension(message.fileName || message.fileUrl)"></span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </template>
+                                                <!-- 普通文件 -->
+                                                <template v-else>
+                                                    <div class="file-icon"
+                                                        :class="getFileIconClass(message.fileExtension || message.fileName || message.fileUrl)">
+                                                        <i
+                                                            :class="getFileIcon(message.fileExtension || message.fileName || message.fileUrl)"></i>
+                                                    </div>
+                                                    <div class="file-info">
+                                                        <div class="file-name" v-text="message.fileName || '未知文件'">
+                                                        </div>
+                                                        <div class="file-meta">
+                                                            <span class="file-size" v-if="message.fileSize"
+                                                                v-text="formatFileSize(message.fileSize)"></span>
+                                                            <span class="file-extension"
+                                                                v-text="getFileExtension(message.fileName || message.fileUrl)"></span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="file-download">
+                                                        <i class="fas fa-download"></i>
+                                                    </div>
+                                                </template>
+                                                <!-- 上传进度遮罩 -->
+                                                <div v-if="messageSendStatus && messageSendStatus[message.id] === 'sending'"
+                                                    class="file-upload-overlay">
+                                                    <div class="progress-content">
+                                                        <div class="progress-ring">
+                                                            <svg viewBox="0 0 36 36">
+                                                                <path class="progress-ring-bg"
+                                                                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                                                <path class="progress-ring-fill"
+                                                                    :stroke-dasharray="(uploadProgress[message.id] || 0) + ', 100'"
+                                                                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                                            </svg>
+                                                            <span class="progress-text"
+                                                                v-text="(uploadProgress[message.id] || 0) + '%'"></span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <!-- 文本消息 -->
+                                            <div v-else class="text-wrapper">
+                                                <!-- 普通文本内容 -->
+                                                <div v-if="message.displayText" class="text-content"
+                                                    v-text="message.displayText"></div>
+                                                <!-- 链接 -->
+                                                <div v-if="message.urlCards && message.urlCards.length > 0"
+                                                    class="url-cards-container">
+                                                    <a v-for="(urlCard, urlIndex) in message.urlCards" :key="urlIndex"
+                                                        class="url-card" :href="urlCard.url" target="_blank"
+                                                        rel="noopener noreferrer" @click.stop>
+                                                        <i class="fas fa-link url-card-icon"></i>
+                                                        <span class="url-card-url"
+                                                            v-text="formatUrl(urlCard.url)"></span>
+                                                    </a>
+                                                </div>
+                                                <!-- 没有链接也没有displayText的纯文本 -->
+                                                <div v-if="!message.displayText && !message.urlCards && message.text"
+                                                    class="text-content" v-text="message.text"></div>
+                                                <!-- 引用显示（放在文本内容下方） -->
+                                                <div v-if="message.reply_to" class="reply-quote reply-quote-own"
+                                                    @click.stop="scrollToReplyMessage(message.reply_to.message_id)">
+                                                    <div class="reply-quote-line"></div>
+                                                    <div class="reply-quote-content">
+                                                        <span class="reply-quote-nickname">{{ message.reply_to.nickname
+                                                            || '用户' }}:</span>
+                                                        <span class="reply-quote-text">{{
+                                                            getReplyQuoteText(message.reply_to) }}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- 已读回执和时间单独一行 -->
+                                    <div class="msg-meta-own">
+                                        <span class="msg-read-status" :class="{ 'read': message.isRead }"
+                                            :title="message.readUsers && message.readUsers.length > 0 ? message.readUsers.map(u => u.nickname).join(', ') + ' 已读' : ''">
+                                            <span v-if="message.readCount > 0"
+                                                v-text="message.readCount + '人已读'"></span>
+                                            <span v-else>未读</span>
+                                        </span>
+                                        <span v-text="formatTime(message.time)"></span>
+                                        <!-- 发送状态图标 -->
+                                        <span v-if="messageSendStatus && messageSendStatus[message.id]"
+                                            class="msg-status-icon">
+                                            <i v-if="messageSendStatus[message.id] === 'sending'"
+                                                class="fas fa-spinner fa-spin" title="发送中"></i>
+                                            <i v-else-if="messageSendStatus[message.id] === 'success'"
+                                                class="fas fa-check-circle" title="发送成功"></i>
+                                            <i v-else-if="messageSendStatus[message.id] === 'failed'"
+                                                class="fas fa-exclamation-circle" title="发送失败，点击重试"></i>
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- 右键菜单 -->
-            <transition name="menu-fade">
-                <div v-if="contextMenu.show" class="context-menu"
-                    :style="{ top: contextMenu.y + 'px', left: contextMenu.x + 'px' }" @click.stop>
-                    <div class="context-menu-item" @click="replyToMessageFn">
-                        <i class="fas fa-reply"></i>
-                        <span>回复</span>
-                    </div>
-                    <div class="context-menu-item" @click="copyMessage" v-if="contextMenu.message && (contextMenu.message.type === 'text' || contextMenu.message.text)">
-                        <i class="fas fa-copy"></i>
-                        <span>复制消息</span>
-                    </div>
-                    <div class="context-menu-item" @click="copyMessageLink" v-if="contextMenu.message && contextMenu.message.urlCards && contextMenu.message.urlCards.length > 0">
-                        <i class="fas fa-link"></i>
-                        <span>仅复制链接</span>
-                    </div>
-                    <div class="context-menu-item danger"
-                        :class="{ 'disabled': !contextMenu.message || !contextMenu.message.isOwn }"
-                        @click="burnMessage">
-                        <i class="fas fa-fire"></i>
-                        <span v-text="contextMenu.message && contextMenu.message.isOwn ? '焚毁消息' : '只能焚毁自己的消息'"></span>
-                    </div>
-                </div>
-            </transition>
-
-            <!-- 新消息提示 -->
-            <transition name="slide-up">
-                <div v-if="showNewMessageTip" class="new-message-tip" @click="scrollToBottomAndHideTip">
-                    <i class="fas fa-arrow-down"></i>
-                    <span>有新消息</span>
-                </div>
-            </transition>
-            
-            <!-- 回到底部按钮 -->
-            <transition name="slide-up-right">
-                <div v-if="showScrollToBottom && !showNewMessageTip" class="scroll-to-bottom-btn" @click="handleScrollToBottom">
-                    <i class="fas fa-chevron-down"></i>
-                    <span>回到底部</span>
-                </div>
-            </transition>
-
-            <!-- 输入区域 -->
-            <div class="input-section">
-                <!-- 图片预览 -->
-                <div v-if="imagePreview && !isSending" class="upload-preview">
-                    <div class="preview-card">
-                        <img :src="imagePreview" alt="Preview">
-                        <div class="file-info">
-                            <span class="fname" v-text="selectedImageFile ? selectedImageFile.name : ''"></span>
-                            <span class="fsize"
-                                v-text="selectedImageFile ? formatFileSize(selectedImageFile.size) : ''"></span>
+                <!-- 右键菜单 -->
+                <transition name="menu-fade">
+                    <div v-if="contextMenu.show" class="context-menu"
+                        :style="{ top: contextMenu.y + 'px', left: contextMenu.x + 'px' }" @click.stop>
+                        <div class="context-menu-item" @click="replyToMessageFn">
+                            <i class="fas fa-reply"></i>
+                            <span>回复</span>
                         </div>
-                        <button class="remove-btn" @click="clearImagePreview">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- 引用预览条 -->
-                <div v-if="replyToMessage" class="reply-preview-bar">
-                    <div class="reply-preview-content">
-                        <i class="fas fa-reply reply-icon"></i>
-                        <div class="reply-preview-info">
-                            <span class="reply-preview-nickname">
-                                {{ replyToMessage.sender?.nickname || '用户' }}
-                            </span>
-                            <span class="reply-preview-text">
-                                {{ getReplyPreviewText(replyToMessage) }}
-                            </span>
+                        <div class="context-menu-item" @click="copyMessage"
+                            v-if="contextMenu.message && (contextMenu.message.type === 'text' || contextMenu.message.text)">
+                            <i class="fas fa-copy"></i>
+                            <span>复制消息</span>
                         </div>
-                    </div>
-                    <button class="reply-cancel-btn" @click="cancelReply" type="button">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-
-                <div class="input-bar">
-                    <button class="attach-btn" @click.stop="toggleAttachPanel" :disabled="currentRoomLocked && !canClearRoom">
-                        <i class="fas" :class="showAttachPanel ? 'fa-times' : 'fa-plus-circle'"></i>
-                    </button>
-                    <button class="voice-btn" :class="{ 'recording': isRecording }" @mousedown="startVoiceRecord"
-                        @mouseup="stopVoiceRecord" @mouseleave="cancelVoiceRecord"
-                        @touchstart.prevent="startVoiceRecord" @touchend.prevent="stopVoiceRecord"
-                        @touchcancel.prevent="cancelVoiceRecord" :title="isRecording ? '松开发送' : '按住说话'"
-                        :disabled="currentRoomLocked && !canClearRoom">
-                        <i class="fas" :class="isRecording ? 'fa-stop' : 'fa-microphone'"></i>
-                        <span v-if="isRecording" class="recording-time" v-text="recordingTimeText"></span>
-                    </button>
-                    <div class="text-input-wrapper">
-                        <input v-model="newMessage" type="text" :placeholder="currentRoomLocked && !canClearRoom ? '房间已锁定' : '说点什么...'" @keyup.enter="sendMessage"
-                            @focus="onInputFocus" @blur="onInputBlur" @input="onInputChange" class="text-input"
-                            :disabled="currentRoomLocked && !canClearRoom">
-                        <button class="emoji-btn" @click.stop="toggleEmojiPicker" :disabled="currentRoomLocked && !canClearRoom">
-                            <i class="far fa-smile"></i>
-                        </button>
-                    </div>
-                    <button class="send-btn" @click="sendMessage"
-                        :disabled="(!newMessage.trim() && !selectedImageFile) || isSending || (currentRoomLocked && !canClearRoom)"
-                        :class="{ 'btn-loading': isSending }">
-                        <i v-if="!isSending" class="fas fa-paper-plane"></i>
-                        <i v-else class="fas fa-spinner fa-spin"></i>
-                    </button>
-                </div>
-                <input type="file" ref="imageInput" @change="handleImageSelect" accept="image/*" hidden>
-                <input type="file" ref="fileInput" @change="handleFileSelect" accept="*/*" hidden>
-
-                <!-- 附件功能面板 -->
-                <transition name="attach-panel-slide">
-                    <div v-if="showAttachPanel" class="attach-panel" @click.stop>
-                        <div class="attach-panel-grid">
-                            <div class="attach-item" @click="selectImage">
-                                <div class="attach-icon" style="background: linear-gradient(135deg, #10b981, #059669);">
-                                    <i class="fas fa-image"></i>
-                                </div>
-                                <span>图片</span>
-                            </div>
-                            <div class="attach-item" @click="selectVideo">
-                                <div class="attach-icon" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
-                                    <i class="fas fa-video"></i>
-                                </div>
-                                <span>视频</span>
-                            </div>
-                            <div class="attach-item" @click="selectFile">
-                                <div class="attach-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
-                                    <i class="fas fa-file-alt"></i>
-                                </div>
-                                <span>文件</span>
-                            </div>
-                            <div class="attach-item" v-if="canClearRoom" @click="clearRoomMessagesFromPanel">
-                                <div class="attach-icon" style="background: linear-gradient(135deg, #ef4444, #dc2626);">
-                                    <i class="fas fa-trash-alt"></i>
-                                </div>
-                                <span>清理房间</span>
-                            </div>
-                            <div class="attach-item" v-if="canClearRoom" @click="toggleRoomLock">
-                                <div class="attach-icon" :style="currentRoomLocked ? 'background: linear-gradient(135deg, #22c55e, #16a34a);' : 'background: linear-gradient(135deg, #6b7280, #4b5563);'">
-                                    <i class="fas" :class="currentRoomLocked ? 'fa-lock-open' : 'fa-lock'"></i>
-                                </div>
-                                <span>{{ currentRoomLocked ? '解锁房间' : '锁定房间' }}</span>
-                            </div>
-                            <div class="attach-item" v-if="canRestoreMessages" @click="restoreRoomMessages">
-                                <div class="attach-icon" style="background: linear-gradient(135deg, #22c55e, #16a34a);">
-                                    <i class="fas fa-undo-alt"></i>
-                                </div>
-                                <span>恢复消息({{ deletedMessagesCount }})</span>
-                            </div>
+                        <div class="context-menu-item" @click="copyMessageLink"
+                            v-if="contextMenu.message && contextMenu.message.urlCards && contextMenu.message.urlCards.length > 0">
+                            <i class="fas fa-link"></i>
+                            <span>仅复制链接</span>
+                        </div>
+                        <div class="context-menu-item danger"
+                            :class="{ 'disabled': !contextMenu.message || !contextMenu.message.isOwn }"
+                            @click="burnMessage">
+                            <i class="fas fa-fire"></i>
+                            <span
+                                v-text="contextMenu.message && contextMenu.message.isOwn ? '焚毁消息' : '只能焚毁自己的消息'"></span>
                         </div>
                     </div>
                 </transition>
 
-                <!-- 表情选择面板 -->
-                <transition name="emoji-panel-slide">
-                    <div v-if="showEmojiPicker" class="emoji-panel" ref="emojiPanel" @click.stop>
-                        <div class="emoji-panel-header">
-                            <div class="emoji-categories">
-                                <button v-for="(category, index) in emojiCategories" :key="index"
-                                    class="emoji-category-btn" :class="{ 'active': activeEmojiCategory === index }"
-                                    @click="activeEmojiCategory = index">
-                                    <span v-text="category.icon"></span>
-                                </button>
+                <!-- 新消息提示 -->
+                <transition name="slide-up">
+                    <div v-if="showNewMessageTip" class="new-message-tip" @click="scrollToBottomAndHideTip">
+                        <i class="fas fa-arrow-down"></i>
+                        <span>有新消息</span>
+                    </div>
+                </transition>
+
+                <!-- 回到底部按钮 -->
+                <transition name="slide-up-right">
+                    <div v-if="showScrollToBottom && !showNewMessageTip" class="scroll-to-bottom-btn"
+                        @click="handleScrollToBottom">
+                        <i class="fas fa-chevron-down"></i>
+                        <span>回到底部</span>
+                    </div>
+                </transition>
+
+                <!-- 输入区域 -->
+                <div class="input-section">
+                    <!-- 图片预览 -->
+                    <div v-if="imagePreview && !isSending" class="upload-preview">
+                        <div class="preview-card">
+                            <img :src="imagePreview" alt="Preview">
+                            <div class="file-info">
+                                <span class="fname" v-text="selectedImageFile ? selectedImageFile.name : ''"></span>
+                                <span class="fsize"
+                                    v-text="selectedImageFile ? formatFileSize(selectedImageFile.size) : ''"></span>
                             </div>
-                            <button class="emoji-panel-close" @click="hideEmojiPicker">
+                            <button class="remove-btn" @click="clearImagePreview">
                                 <i class="fas fa-times"></i>
                             </button>
                         </div>
-                        <div class="emoji-content">
-                            <div class="emoji-list" ref="emojiList">
-                                <button v-for="emoji in emojiCategories[activeEmojiCategory].emojis" :key="emoji.char"
-                                    class="emoji-item" @click="insertEmoji(emoji)"
-                                    @touchstart="handleEmojiTouchStart($event, emoji)"
-                                    @touchend="handleEmojiTouchEnd($event, emoji)"
-                                    @touchmove="handleEmojiTouchMove($event)">
-                                    <span v-text="emoji.char"></span>
-                                </button>
+                    </div>
+
+                    <!-- 引用预览条 -->
+                    <div v-if="replyToMessage" class="reply-preview-bar">
+                        <div class="reply-preview-content">
+                            <i class="fas fa-reply reply-icon"></i>
+                            <div class="reply-preview-info">
+                                <span class="reply-preview-nickname">
+                                    {{ replyToMessage.sender?.nickname || '用户' }}
+                                </span>
+                                <span class="reply-preview-text">
+                                    {{ getReplyPreviewText(replyToMessage) }}
+                                </span>
                             </div>
                         </div>
+                        <button class="reply-cancel-btn" @click="cancelReply" type="button">
+                            <i class="fas fa-times"></i>
+                        </button>
                     </div>
-                </transition>
 
-            </div>
-        </main>
-    </div>
+                    <div class="input-bar">
+                        <button class="attach-btn" @click.stop="toggleAttachPanel"
+                            :disabled="currentRoomLocked && !canClearRoom">
+                            <i class="fas" :class="showAttachPanel ? 'fa-times' : 'fa-plus-circle'"></i>
+                        </button>
+                        <button class="voice-btn" :class="{ 'recording': isRecording }" @mousedown="startVoiceRecord"
+                            @mouseup="stopVoiceRecord" @mouseleave="cancelVoiceRecord"
+                            @touchstart.prevent="startVoiceRecord" @touchend.prevent="stopVoiceRecord"
+                            @touchcancel.prevent="cancelVoiceRecord" :title="isRecording ? '松开发送' : '按住说话'"
+                            :disabled="currentRoomLocked && !canClearRoom">
+                            <i class="fas" :class="isRecording ? 'fa-stop' : 'fa-microphone'"></i>
+                            <span v-if="isRecording" class="recording-time" v-text="recordingTimeText"></span>
+                        </button>
+                        <div class="text-input-wrapper">
+                            <input v-model="newMessage" type="text"
+                                :placeholder="currentRoomLocked && !canClearRoom ? '房间已锁定' : '说点什么...'"
+                                @keyup.enter="sendMessage" @focus="onInputFocus" @blur="onInputBlur"
+                                @input="onInputChange" class="text-input"
+                                :disabled="currentRoomLocked && !canClearRoom">
+                            <button class="emoji-btn" @click.stop="toggleEmojiPicker"
+                                :disabled="currentRoomLocked && !canClearRoom">
+                                <i class="far fa-smile"></i>
+                            </button>
+                        </div>
+                        <button class="send-btn" @click="sendMessage"
+                            :disabled="(!newMessage.trim() && !selectedImageFile) || isSending || (currentRoomLocked && !canClearRoom)"
+                            :class="{ 'btn-loading': isSending }">
+                            <i v-if="!isSending" class="fas fa-paper-plane"></i>
+                            <i v-else class="fas fa-spinner fa-spin"></i>
+                        </button>
+                    </div>
+                    <input type="file" ref="imageInput" @change="handleImageSelect" accept="image/*" hidden>
+                    <input type="file" ref="fileInput" @change="handleFileSelect" accept="*/*" hidden>
 
-    <!-- 图片查看器 -->
-    <transition name="fade">
-        <div v-if="isImageModalOpen" class="image-viewer" @click="handleModalClick">
-            <button class="close-viewer" @click="closeImageModal">
-                <i class="fas fa-times"></i>
-            </button>
-            <div class="image-container" @touchstart="handleTouchStart" @touchmove="handleTouchMove"
-                @touchend="handleTouchEnd" @mousedown="handleMouseDown" @mousemove="handleMouseMove"
-                @mouseup="handleMouseUp" @mouseleave="handleMouseUp" @wheel="handleWheel" :style="imageContainerStyle">
-                <img :src="currentImageUrl" :style="imageStyle" @click.stop @dragstart.prevent alt="Full View">
-            </div>
-        </div>
-    </transition>
+                    <!-- 附件功能面板 -->
+                    <transition name="attach-panel-slide">
+                        <div v-if="showAttachPanel" class="attach-panel" @click.stop>
+                            <div class="attach-panel-grid">
+                                <div class="attach-item" @click="selectImage">
+                                    <div class="attach-icon"
+                                        style="background: linear-gradient(135deg, #10b981, #059669);">
+                                        <i class="fas fa-image"></i>
+                                    </div>
+                                    <span>图片</span>
+                                </div>
+                                <div class="attach-item" @click="selectVideo">
+                                    <div class="attach-icon"
+                                        style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
+                                        <i class="fas fa-video"></i>
+                                    </div>
+                                    <span>视频</span>
+                                </div>
+                                <div class="attach-item" @click="selectFile">
+                                    <div class="attach-icon"
+                                        style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+                                        <i class="fas fa-file-alt"></i>
+                                    </div>
+                                    <span>文件</span>
+                                </div>
+                                <div class="attach-item" v-if="canClearRoom" @click="clearRoomMessagesFromPanel">
+                                    <div class="attach-icon"
+                                        style="background: linear-gradient(135deg, #ef4444, #dc2626);">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </div>
+                                    <span>清理房间</span>
+                                </div>
+                                <div class="attach-item" v-if="canClearRoom" @click="toggleRoomLock">
+                                    <div class="attach-icon"
+                                        :style="currentRoomLocked ? 'background: linear-gradient(135deg, #22c55e, #16a34a);' : 'background: linear-gradient(135deg, #6b7280, #4b5563);'">
+                                        <i class="fas" :class="currentRoomLocked ? 'fa-lock-open' : 'fa-lock'"></i>
+                                    </div>
+                                    <span>{{ currentRoomLocked ? '解锁房间' : '锁定房间' }}</span>
+                                </div>
+                                <div class="attach-item" v-if="canRestoreMessages" @click="restoreRoomMessages">
+                                    <div class="attach-icon"
+                                        style="background: linear-gradient(135deg, #22c55e, #16a34a);">
+                                        <i class="fas fa-undo-alt"></i>
+                                    </div>
+                                    <span>恢复消息({{ deletedMessagesCount }})</span>
+                                </div>
+                            </div>
+                        </div>
+                    </transition>
 
-    <!-- 全局Loading -->
-    <transition name="fade">
-        <div v-if="globalLoading" class="global-loading">
-            <div class="loading-spinner">
-                <div class="spinner"></div>
-                <p class="loading-text" v-text="loadingText"></p>
-            </div>
+                    <!-- 表情选择面板 -->
+                    <transition name="emoji-panel-slide">
+                        <div v-if="showEmojiPicker" class="emoji-panel" ref="emojiPanel" @click.stop>
+                            <div class="emoji-panel-header">
+                                <div class="emoji-categories">
+                                    <button v-for="(category, index) in emojiCategories" :key="index"
+                                        class="emoji-category-btn" :class="{ 'active': activeEmojiCategory === index }"
+                                        @click="activeEmojiCategory = index">
+                                        <span v-text="category.icon"></span>
+                                    </button>
+                                </div>
+                                <button class="emoji-panel-close" @click="hideEmojiPicker">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <div class="emoji-content">
+                                <div class="emoji-list" ref="emojiList">
+                                    <button v-for="emoji in emojiCategories[activeEmojiCategory].emojis"
+                                        :key="emoji.char" class="emoji-item" @click="insertEmoji(emoji)"
+                                        @touchstart="handleEmojiTouchStart($event, emoji)"
+                                        @touchend="handleEmojiTouchEnd($event, emoji)"
+                                        @touchmove="handleEmojiTouchMove($event)">
+                                        <span v-text="emoji.char"></span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </transition>
+
+                </div>
+            </main>
         </div>
-    </transition>
-    
-    <!-- 清理房间确认对话框 -->
-    <transition name="fade">
-        <div v-if="showClearRoomDialog" class="modal-overlay" @click="cancelClearRoom">
-            <div class="modal-dialog" @click.stop>
-                <div class="modal-header">
-                    <h3><i class="fas fa-exclamation-triangle" style="color: #ef4444;"></i> 清理房间消息</h3>
-                </div>
-                <div class="modal-body">
-                    <p style="margin-bottom: 16px; color: var(--text-secondary);">
-                        确定要清理该房间的所有消息吗？
-                    </p>
-                    <label class="checkbox-label">
-                        <input type="checkbox" v-model="clearRoomHardDelete">
-                        <span class="checkbox-text">
-                            <strong>物理删除</strong>
-                            <small>（同时删除文件和已读记录，不可恢复）</small>
-                        </span>
-                    </label>
-                    <p v-if="!clearRoomHardDelete" class="hint-text">
-                        <i class="fas fa-info-circle"></i>
-                        软删除模式：消息可以通过"恢复消息"功能恢复
-                    </p>
-                    <p v-else class="warning-text">
-                        <i class="fas fa-exclamation-circle"></i>
-                        物理删除模式：消息和文件将被永久删除，无法恢复！
-                    </p>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn-cancel" @click="cancelClearRoom">取消</button>
-                    <button class="btn-danger" @click="confirmClearRoom">
-                        <i class="fas fa-trash-alt"></i>
-                        确认清理
-                    </button>
+
+        <!-- 图片查看器 -->
+        <transition name="fade">
+            <div v-if="isImageModalOpen" class="image-viewer" @click="handleModalClick">
+                <button class="close-viewer" @click="closeImageModal">
+                    <i class="fas fa-times"></i>
+                </button>
+                <div class="image-container" @touchstart="handleTouchStart" @touchmove="handleTouchMove"
+                    @touchend="handleTouchEnd" @mousedown="handleMouseDown" @mousemove="handleMouseMove"
+                    @mouseup="handleMouseUp" @mouseleave="handleMouseUp" @wheel="handleWheel"
+                    :style="imageContainerStyle">
+                    <img :src="currentImageUrl" :style="imageStyle" @click.stop @dragstart.prevent alt="Full View">
                 </div>
             </div>
-        </div>
-    </transition>
+        </transition>
+
+        <!-- 全局Loading -->
+        <transition name="fade">
+            <div v-if="globalLoading" class="global-loading">
+                <div class="loading-spinner">
+                    <div class="spinner"></div>
+                    <p class="loading-text" v-text="loadingText"></p>
+                </div>
+            </div>
+        </transition>
+
+        <!-- 清理房间确认对话框 -->
+        <transition name="fade">
+            <div v-if="showClearRoomDialog" class="modal-overlay" @click="cancelClearRoom">
+                <div class="modal-dialog" @click.stop>
+                    <div class="modal-header">
+                        <h3><i class="fas fa-exclamation-triangle" style="color: #ef4444;"></i> 清理房间消息</h3>
+                    </div>
+                    <div class="modal-body">
+                        <p style="margin-bottom: 16px; color: var(--text-secondary);">
+                            确定要清理该房间的所有消息吗？
+                        </p>
+                        <label class="checkbox-label">
+                            <input type="checkbox" v-model="clearRoomHardDelete">
+                            <span class="checkbox-text">
+                                <strong>物理删除</strong>
+                                <small>（同时删除文件和已读记录，不可恢复）</small>
+                            </span>
+                        </label>
+                        <p v-if="!clearRoomHardDelete" class="hint-text">
+                            <i class="fas fa-info-circle"></i>
+                            软删除模式：消息可以通过"恢复消息"功能恢复
+                        </p>
+                        <p v-else class="warning-text">
+                            <i class="fas fa-exclamation-circle"></i>
+                            物理删除模式：消息和文件将被永久删除，无法恢复！
+                        </p>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn-cancel" @click="cancelClearRoom">取消</button>
+                        <button class="btn-danger" @click="confirmClearRoom">
+                            <i class="fas fa-trash-alt"></i>
+                            确认清理
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </transition>
     </div>
 
     <script src="/static/js/toast.js?v=2"></script>
