@@ -7,9 +7,77 @@ use think\Exception;
 
 /**
  * 文件上传服务层 - 静态方法
+ *
+ * 存储优先级由 ImgbedService::getPriority() 读取（.env 的 UPLOAD_PRIORITY / UPLOAD_PRIORITY_<TYPE>）：
+ *   imgbed 优先：只传图床，上传失败直接返回错误（不降级本地）；
+ *   local  优先：只存本地，保存失败直接返回错误（不降级图床）。
+ * 两侧二选一，不做自动降级；失败时把具体原因返回给调用方。
  */
 class UploadService
 {
+    /**
+     * 上传文件到图床（流式，不把内容读进内存）
+     *
+     * @return array{ok: bool, url: ?string, error: ?string}
+     */
+    private static function imgbedPut($file, $extension, $mimeType)
+    {
+        return ImgbedService::uploadFile($file->getPathname(), $extension, $mimeType);
+    }
+
+    /**
+     * 上传文件到本地 public 磁盘
+     *
+     * @param string $dir  一级子目录（images/videos/documents/files）
+     * @return array{ok: bool, path: ?string, url: ?string}
+     */
+    private static function localPut($file, $dir, $extension)
+    {
+        try {
+            $fileName = date('Y/m/d') . '/' . md5(uniqid(mt_rand(), true)) . '.' . $extension;
+            $disk = Filesystem::disk('public');
+            $path = $disk->putFileAs($dir, $file, $fileName);
+            if (!$path) {
+                return ['ok' => false, 'path' => null, 'url' => null];
+            }
+            return ['ok' => true, 'path' => $path, 'url' => '/storage/' . $path];
+        } catch (\Exception $e) {
+            return ['ok' => false, 'path' => null, 'url' => null];
+        }
+    }
+
+    /**
+     * 上传文件（按优先级在 图床 / 本地 之间二选一，不做跨侧降级）
+     *
+     * imgbed 优先：只传图床，失败即返回错误；
+     * local  优先：只存本地，失败即返回错误。
+     *
+     * @param string $type  ImgbedService::TYPE_* 之一，决定读取哪个优先级开关
+     * @param string $dir   本地一级子目录
+     * @return array{ok: bool, url: ?string, storage: ?string, disk_path: ?string, msg: ?string}
+     */
+    private static function store($file, $type, $dir, $extension, $mimeType)
+    {
+        // 图床优先：只试图床
+        if (ImgbedService::isImgbedFirst($type)) {
+            if (!ImgbedService::isEnabled()) {
+                return ['ok' => false, 'url' => null, 'storage' => null, 'disk_path' => null, 'msg' => '图床未启用，请开启后重试（或将上传优先级改为本地）'];
+            }
+            $imgbed = self::imgbedPut($file, $extension, $mimeType);
+            if ($imgbed['ok']) {
+                return ['ok' => true, 'url' => $imgbed['url'], 'storage' => 'imgbed', 'disk_path' => '', 'msg' => null];
+            }
+            return ['ok' => false, 'url' => null, 'storage' => null, 'disk_path' => null, 'msg' => '图床上传失败：' . ($imgbed['error'] ?: '未知错误')];
+        }
+
+        // 本地优先：只存本地
+        $local = self::localPut($file, $dir, $extension);
+        if ($local['ok']) {
+            return ['ok' => true, 'url' => $local['url'], 'storage' => 'local', 'disk_path' => $local['path'], 'msg' => null];
+        }
+        return ['ok' => false, 'url' => null, 'storage' => null, 'disk_path' => null, 'msg' => '文件保存失败'];
+    }
+
     /**
      * 上传图片文件
      * @param \think\file\UploadedFile $file 上传的文件
@@ -70,39 +138,11 @@ class UploadService
                 $extension = $mimeToExt[$mimeType] ?? 'jpg';
             }
 
-            // 图床 OSS 通道（ImgbedService）：启用后图片存图床外链，失败自动降级走下方本地存储
-            if (ImgbedService::isEnabled()) {
-                $content = file_get_contents($file->getPathname());
-                if ($content !== false) {
-                    $imgbed = ImgbedService::upload($content, $extension, $mimeType);
-                    if ($imgbed['ok']) {
-                        return ['code' => 0, 'msg' => '上传成功', 'data' => [
-                            'original_name' => $file->getOriginalName(),
-                            'file_size'     => $file->getSize(),
-                            'mime_type'     => $mimeType,
-                            'extension'     => $extension,
-                            'width'         => $imageInfo[0],
-                            'height'        => $imageInfo[1],
-                            'url'           => $imgbed['url'],
-                            'path'          => '',
-                            'storage'       => 'imgbed',
-                        ]];
-                    }
-                }
+            // 图床 / 本地 按 UPLOAD_PRIORITY_IMAGE 二选一，失败即报错
+            $stored = self::store($file, ImgbedService::TYPE_IMAGE, 'images', $extension, $mimeType);
+            if (!$stored['ok']) {
+                return ['code' => 1, 'msg' => $stored['msg']];
             }
-
-            $fileName = date('Y/m/d') . '/' . md5(uniqid(mt_rand(), true)) . '.' . $extension;
-
-            // 保存文件
-            $disk = Filesystem::disk('public');
-            $path = $disk->putFileAs('images', $file, $fileName);
-
-            if (!$path) {
-                return ['code' => 1, 'msg' => '文件保存失败'];
-            }
-
-            // 获取访问URL
-            $url = '/storage/' . $path;
 
             // 返回文件信息
             $fileInfo = [
@@ -112,8 +152,9 @@ class UploadService
                 'extension'     => $extension,
                 'width'         => $imageInfo[0],
                 'height'        => $imageInfo[1],
-                'url'           => $url,
-                'path'          => $path,
+                'url'           => $stored['url'],
+                'path'          => $stored['disk_path'],
+                'storage'       => $stored['storage'],
             ];
 
             return ['code' => 0, 'msg' => '上传成功', 'data' => $fileInfo];
@@ -172,18 +213,11 @@ class UploadService
                 return ['code' => 1, 'msg' => '无法获取文件扩展名'];
             }
 
-            $fileName = date('Y/m/d') . '/' . md5(uniqid(mt_rand(), true)) . '.' . $extension;
-
-            // 保存文件
-            $disk = Filesystem::disk('public');
-            $path = $disk->putFileAs('files', $file, $fileName);
-
-            if (!$path) {
-                return ['code' => 1, 'msg' => '文件保存失败'];
+            // 图床 / 本地 按 UPLOAD_PRIORITY_FILE 二选一，失败即报错
+            $stored = self::store($file, ImgbedService::TYPE_FILE, 'files', $extension, $file->getMime());
+            if (!$stored['ok']) {
+                return ['code' => 1, 'msg' => $stored['msg']];
             }
-
-            // 获取访问URL
-            $url = '/storage/' . $path;
 
             // 返回文件信息
             $fileInfo = [
@@ -191,8 +225,9 @@ class UploadService
                 'file_size'     => $file->getSize(),
                 'mime_type'     => $file->getMime(),
                 'extension'     => $extension,
-                'url'           => $url,
-                'path'          => $path,
+                'url'           => $stored['url'],
+                'path'          => $stored['disk_path'],
+                'storage'       => $stored['storage'],
             ];
 
             return ['code' => 0, 'msg' => '上传成功', 'data' => $fileInfo];
@@ -258,16 +293,11 @@ class UploadService
 
             $fileName = date('Y/m/d') . '/' . md5(uniqid(mt_rand(), true)) . '.' . $extension;
 
-            // 保存文件
-            $disk = Filesystem::disk('public');
-            $path = $disk->putFileAs('videos', $file, $fileName);
-
-            if (!$path) {
-                return ['code' => 1, 'msg' => '文件保存失败'];
+            // 图床 / 本地 按 UPLOAD_PRIORITY_VIDEO 二选一，失败即报错
+            $stored = self::store($file, ImgbedService::TYPE_VIDEO, 'videos', $extension, $mimeType);
+            if (!$stored['ok']) {
+                return ['code' => 1, 'msg' => $stored['msg']];
             }
-
-            // 获取访问URL
-            $url = '/storage/' . $path;
 
             // 获取视频信息（可选：使用ffmpeg获取时长、分辨率等）
             $videoInfo = self::getVideoInfo($file->getPathname());
@@ -278,8 +308,9 @@ class UploadService
                 'file_size' => $file->getSize(),
                 'mime_type' => $mimeType,
                 'extension' => $extension,
-                'url' => $url,
-                'path' => $path,
+                'url' => $stored['url'],
+                'path' => $stored['disk_path'],
+                'storage' => $stored['storage'],
                 'duration' => $videoInfo['duration'] ?? null,
                 'width' => $videoInfo['width'] ?? null,
                 'height' => $videoInfo['height'] ?? null,
@@ -360,18 +391,11 @@ class UploadService
                 return ['code' => 1, 'msg' => '无法获取文件扩展名'];
             }
 
-            $fileName = date('Y/m/d') . '/' . md5(uniqid(mt_rand(), true)) . '.' . $extension;
-
-            // 保存文件
-            $disk = Filesystem::disk('public');
-            $path = $disk->putFileAs('documents', $file, $fileName);
-
-            if (!$path) {
-                return ['code' => 1, 'msg' => '文件保存失败'];
+            // 图床 / 本地 按 UPLOAD_PRIORITY_DOCUMENT 二选一，失败即报错
+            $stored = self::store($file, ImgbedService::TYPE_DOCUMENT, 'documents', $extension, $file->getMime());
+            if (!$stored['ok']) {
+                return ['code' => 1, 'msg' => $stored['msg']];
             }
-
-            // 获取访问URL
-            $url = '/storage/' . $path;
 
             // 返回文件信息
             $fileInfo = [
@@ -379,8 +403,9 @@ class UploadService
                 'file_size' => $file->getSize(),
                 'mime_type' => $file->getMime(),
                 'extension' => $extension,
-                'url' => $url,
-                'path' => $path,
+                'url' => $stored['url'],
+                'path' => $stored['disk_path'],
+                'storage' => $stored['storage'],
             ];
 
             return ['code' => 0, 'msg' => '上传成功', 'data' => $fileInfo];

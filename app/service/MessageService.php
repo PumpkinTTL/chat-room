@@ -2,6 +2,8 @@
 
 namespace app\service;
 
+use think\facade\Log;
+
 use app\model\Message;
 use app\model\User;
 use app\model\Room;
@@ -128,7 +130,8 @@ class MessageService
 
         } catch (\Exception $e) {
             Db::rollback();
-            return ['code' => 1, 'msg' => '发送失败：' . $e->getMessage()];
+            Log::error('[MessageService] 发送失败: ' . $e->getMessage());
+            return ['code' => 1, 'msg' => '发送失败，请稍后重试'];
         }
     }
 
@@ -215,7 +218,8 @@ class MessageService
 
         } catch (\Exception $e) {
             Db::rollback();
-            return ['code' => 1, 'msg' => '发送失败：' . $e->getMessage()];
+            Log::error('[MessageService] 发送失败: ' . $e->getMessage());
+            return ['code' => 1, 'msg' => '发送失败，请稍后重试'];
         }
     }
 
@@ -278,7 +282,8 @@ class MessageService
 
         } catch (\Exception $e) {
             Db::rollback();
-            return ['code' => 1, 'msg' => '发送失败：' . $e->getMessage()];
+            Log::error('[MessageService] 发送失败: ' . $e->getMessage());
+            return ['code' => 1, 'msg' => '发送失败，请稍后重试'];
         }
     }
 
@@ -342,7 +347,8 @@ class MessageService
 
         } catch (\Exception $e) {
             Db::rollback();
-            return ['code' => 1, 'msg' => '发送失败：' . $e->getMessage()];
+            Log::error('[MessageService] 发送失败: ' . $e->getMessage());
+            return ['code' => 1, 'msg' => '发送失败，请稍后重试'];
         }
     }
 
@@ -371,7 +377,8 @@ class MessageService
             return ['code' => 0, 'msg' => '发送成功', 'data' => ['id' => $message->id]];
 
         } catch (\Exception $e) {
-            return ['code' => 1, 'msg' => '发送失败：' . $e->getMessage()];
+            Log::error('[MessageService] 发送失败: ' . $e->getMessage());
+            return ['code' => 1, 'msg' => '发送失败，请稍后重试'];
         }
     }
 
@@ -505,7 +512,8 @@ class MessageService
             ];
 
         } catch (\Exception $e) {
-            return ['code' => 1, 'msg' => '获取失败：' . $e->getMessage()];
+            Log::error('[MessageService] 获取失败: ' . $e->getMessage());
+            return ['code' => 1, 'msg' => '获取失败，请稍后重试'];
         }
     }
 
@@ -543,7 +551,8 @@ class MessageService
             return ['code' => 0, 'msg' => '撤回成功'];
 
         } catch (\Exception $e) {
-            return ['code' => 1, 'msg' => '撤回失败：' . $e->getMessage()];
+            Log::error('[MessageService] 撤回失败: ' . $e->getMessage());
+            return ['code' => 1, 'msg' => '撤回失败，请稍后重试'];
         }
     }
 
@@ -613,7 +622,8 @@ class MessageService
             ];
 
         } catch (\Exception $e) {
-            return ['code' => 1, 'msg' => '编辑失败：' . $e->getMessage()];
+            Log::error('[MessageService] 编辑失败: ' . $e->getMessage());
+            return ['code' => 1, 'msg' => '编辑失败，请稍后重试'];
         }
     }
 
@@ -656,7 +666,8 @@ class MessageService
             ];
 
         } catch (\Exception $e) {
-            return ['code' => 1, 'msg' => '焚毁失败：' . $e->getMessage()];
+            Log::error('[MessageService] 焚毁失败: ' . $e->getMessage());
+            return ['code' => 1, 'msg' => '焚毁失败，请稍后重试'];
         }
     }
 
@@ -937,7 +948,8 @@ class MessageService
 
         } catch (\Exception $e) {
             Db::rollback();
-            return ['code' => 1, 'msg' => '清理失败：' . $e->getMessage()];
+            Log::error('[MessageService] 清理失败: ' . $e->getMessage());
+            return ['code' => 1, 'msg' => '清理失败，请稍后重试'];
         }
     }
 
@@ -990,7 +1002,8 @@ class MessageService
             ];
 
         } catch (\Exception $e) {
-            return ['code' => 1, 'msg' => '恢复失败：' . $e->getMessage()];
+            Log::error('[MessageService] 恢复失败: ' . $e->getMessage());
+            return ['code' => 1, 'msg' => '恢复失败，请稍后重试'];
         }
     }
 

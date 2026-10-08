@@ -2,6 +2,8 @@
 
 namespace app\controller;
 
+use think\facade\Log;
+
 use app\BaseController;
 use app\service\IntimacyService;
 use app\service\RoomUserService;
@@ -85,7 +87,7 @@ class Intimacy extends BaseController
         } catch (\Exception $e) {
             return json([
                 'code' => 1, 
-                'msg' => '获取失败：' . $e->getMessage(),
+                'msg' => (function() use ($e) { \think\facade\Log::error('[Intimacy] 获取失败: ' . $e->getMessage()); return '获取失败，请稍后重试'; })(),
                 'trace' => $e->getTraceAsString()
             ], 500);
         }
@@ -175,7 +177,7 @@ class Intimacy extends BaseController
         } catch (\Exception $e) {
             return json([
                 'code' => 1,
-                'msg' => '领取失败：' . $e->getMessage(),
+                'msg' => (function() use ($e) { \think\facade\Log::error('[Intimacy] 领取失败: ' . $e->getMessage()); return '领取失败，请稍后重试'; })(),
                 'trace' => $e->getTraceAsString()
             ], 500);
         }

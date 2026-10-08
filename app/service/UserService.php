@@ -392,40 +392,28 @@ class UserService
                 }
             }
 
-            // 图床 OSS 通道（ImgbedService）：启用后头像存图床外链，失败自动降级走下方本地存储
-            if (ImgbedService::isEnabled()) {
-                $content = file_get_contents($file->getPathname());
-                if ($content !== false) {
-                    $imgbed = ImgbedService::upload($content, $extension, $mimeType);
-                    if ($imgbed['ok']) {
-                        $user->avatar = $imgbed['url'];
-                        $user->save();
-
-                        return [
-                            'code' => 0,
-                            'msg'  => '上传成功',
-                            'data' => [
-                                'url'    => $imgbed['url'],
-                                'avatar' => $imgbed['url'],
-                            ],
-                        ];
-                    }
+            // 图床 / 本地 按 UPLOAD_PRIORITY_AVATAR 二选一，不做跨侧降级
+            $url = null;
+            if (ImgbedService::isImgbedFirst(ImgbedService::TYPE_AVATAR)) {
+                // 图床优先：只传图床
+                if (!ImgbedService::isEnabled()) {
+                    return ['code' => 1, 'msg' => '图床未启用，请开启后重试（或将上传优先级改为本地）'];
                 }
+                $imgbed = ImgbedService::uploadFile($file->getPathname(), $extension, $mimeType);
+                if (!$imgbed['ok']) {
+                    return ['code' => 1, 'msg' => '图床上传失败：' . ($imgbed['error'] ?: '未知错误')];
+                }
+                $url = $imgbed['url'];
+            } else {
+                // 本地优先：只存本地
+                $randomName = 'avatars/' . uniqid() . '_' . time() . '.' . $extension;
+                $disk = \think\facade\Filesystem::disk('public');
+                $path = $disk->putFileAs('images', $file, $randomName);
+                if (!$path) {
+                    return ['code' => 1, 'msg' => '文件保存失败'];
+                }
+                $url = '/storage/' . $path;
             }
-
-            // 生成随机文件名：avatars/随机字符串.扩展名
-            $randomName = 'avatars/' . uniqid() . '_' . time() . '.' . $extension;
-
-            // 保存文件
-            $disk = \think\facade\Filesystem::disk('public');
-            $path = $disk->putFileAs('images', $file, $randomName);
-
-            if (!$path) {
-                return ['code' => 1, 'msg' => '文件保存失败'];
-            }
-
-            // 获取访问URL
-            $url = '/storage/' . $path;
 
             // 更新用户头像
             $user->avatar = $url;

@@ -2,6 +2,8 @@
 
 namespace app\controller;
 
+use think\facade\Log;
+
 use app\service\MessageService;
 use app\service\UploadService;
 use think\Request;
@@ -113,7 +115,7 @@ class Message
 
             return json($result, $code);
         } catch (\Exception $e) {
-            return json(['code' => 1, 'msg' => '上传失败：' . $e->getMessage()], 500);
+            return json(['code' => 1, 'msg' => (function() use ($e) { \think\facade\Log::error('[Message] 上传失败: ' . $e->getMessage()); return '上传失败，请稍后重试'; })()], 500);
         }
     }
 
@@ -156,7 +158,7 @@ class Message
 
             return json($result, $code);
         } catch (\Exception $e) {
-            return json(['code' => 1, 'msg' => '上传失败：' . $e->getMessage()], 500);
+            return json(['code' => 1, 'msg' => (function() use ($e) { \think\facade\Log::error('[Message] 上传失败: ' . $e->getMessage()); return '上传失败，请稍后重试'; })()], 500);
         }
     }
 
@@ -199,7 +201,7 @@ class Message
 
             return json($result, $code);
         } catch (\Exception $e) {
-            return json(['code' => 1, 'msg' => '上传失败：' . $e->getMessage()], 500);
+            return json(['code' => 1, 'msg' => (function() use ($e) { \think\facade\Log::error('[Message] 上传失败: ' . $e->getMessage()); return '上传失败，请稍后重试'; })()], 500);
         }
     }
 
@@ -312,7 +314,7 @@ class Message
                 ]
             ]);
         } catch (\Exception $e) {
-            return json(['code' => 1, 'msg' => '获取失败：' . $e->getMessage()], 500);
+            return json(['code' => 1, 'msg' => (function() use ($e) { \think\facade\Log::error('[Message] 获取失败: ' . $e->getMessage()); return '获取失败，请稍后重试'; })()], 500);
         }
     }
 

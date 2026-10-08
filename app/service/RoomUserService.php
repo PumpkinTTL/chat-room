@@ -2,6 +2,8 @@
 
 namespace app\service;
 
+use think\facade\Log;
+
 use app\model\RoomUser;
 use app\model\User;
 use think\facade\Db;
@@ -67,7 +69,8 @@ class RoomUserService
             return ['code' => 0, 'msg' => '加入成功'];
 
         } catch (\Exception $e) {
-            return ['code' => 1, 'msg' => '加入失败：' . $e->getMessage()];
+            Log::error('[RoomUserService] 加入失败: ' . $e->getMessage());
+            return ['code' => 1, 'msg' => '加入失败，请稍后重试'];
         }
     }
 
@@ -94,7 +97,8 @@ class RoomUserService
             return ['code' => 1, 'msg' => '您不在此房间内'];
 
         } catch (\Exception $e) {
-            return ['code' => 1, 'msg' => '离开失败：' . $e->getMessage()];
+            Log::error('[RoomUserService] 离开失败: ' . $e->getMessage());
+            return ['code' => 1, 'msg' => '离开失败，请稍后重试'];
         }
     }
 

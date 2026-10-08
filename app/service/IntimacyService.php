@@ -2,6 +2,8 @@
 
 namespace app\service;
 
+use think\facade\Log;
+
 use think\facade\Db;
 use app\model\IntimacyLevel;
 use app\model\IntimacyExp;
@@ -95,7 +97,8 @@ class IntimacyService
             
         } catch (\Exception $e) {
             Db::rollback();
-            return ['code' => 1, 'msg' => '经验增加失败：' . $e->getMessage()];
+            Log::error('[IntimacyService] 经验增加失败: ' . $e->getMessage());
+            return ['code' => 1, 'msg' => '经验增加失败，请稍后重试'];
         }
     }
     
@@ -344,7 +347,8 @@ class IntimacyService
 
         } catch (\Exception $e) {
             Db::rollback();
-            return ['code' => 1, 'msg' => '领取失败：' . $e->getMessage()];
+            Log::error('[IntimacyService] 领取失败: ' . $e->getMessage());
+            return ['code' => 1, 'msg' => '领取失败，请稍后重试'];
         }
     }
 }

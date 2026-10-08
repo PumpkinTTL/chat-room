@@ -54,14 +54,27 @@ class MessageReadService
         
         try {
             $now = date('Y-m-d H:i:s');
-            $values = [];
-            foreach ($messageIds as $msgId) {
-                $values[] = "({$msgId}, {$userId}, '{$now}')";
+
+            // 强制整数化，杜绝 SQL 注入（message_id/user_id 均为 int）
+            $msgIds = array_map('intval', $messageIds);
+            $msgIds = array_unique(array_filter($msgIds));
+            if (empty($msgIds)) {
+                return 0;
             }
-            
-            // 使用 INSERT IGNORE 批量插入，忽略已存在的记录
-            $sql = "INSERT IGNORE INTO ch_message_reads (message_id, user_id, read_at) VALUES " . implode(',', $values);
-            return Db::execute($sql);
+            $uid = (int) $userId;
+
+            $placeholders = [];
+            $bindings = [];
+            foreach ($msgIds as $msgId) {
+                $placeholders[] = '(?, ?, ?)';
+                $bindings[] = $msgId;
+                $bindings[] = $uid;
+                $bindings[] = $now;
+            }
+
+            // 使用 INSERT IGNORE 批量插入，忽略已存在的记录；值全部走参数绑定
+            $sql = "INSERT IGNORE INTO ch_message_reads (message_id, user_id, read_at) VALUES " . implode(',', $placeholders);
+            return Db::execute($sql, $bindings);
         } catch (\Exception $e) {
             return 0;
         }

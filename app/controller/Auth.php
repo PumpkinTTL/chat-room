@@ -34,12 +34,10 @@ class Auth extends BaseController
             return json(['code' => 1, 'msg' => '密码不能为空'], 400);
         }
 
-        // 根据ID和密码查询用户
-        $userInfo = User::where('id', $data['username'])
-            ->where('password', $data['password'])
-            ->find();
+        // 先按 ID 查用户，再用哈希校验（与 UserService::login 同一套兼容逻辑）
+        $userInfo = User::where('id', $data['username'])->find();
 
-        if (!$userInfo) {
+        if (!$userInfo || !\app\service\UserService::verifyPasswordPublic($data['password'], $userInfo['password'])) {
             // 记录访问
             $this->logAccess($request, '登录失败：用户名或密码错误');
             return json(['code' => 1, 'msg' => '用户名或密码错误'], 401);

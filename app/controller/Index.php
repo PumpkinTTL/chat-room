@@ -30,16 +30,10 @@ class Index extends BaseController
         $body = request()->getContent();
         $data = json_decode($body, true) ?? [];
 
-        $ip = $data['client_ip'] ?? '';
+        // 安全修复：IP 一律以服务端看到的地址为准，不信任客户端自报的 client_ip
+        // （客户端可任意伪造，历史日志因此全部不可信）
+        $ip = $this->getRealIp();
         $page = $data['page'] ?? '未知页面';
-
-        // 如果前端没传IP或传的是空字符串，从header获取真实IP
-        if (empty($ip)) {
-            $ip = $this->getRealIp();
-            trace("访问记录使用后端获取的IP: {$ip}", 'info');
-        } else {
-            trace("访问记录使用前端传递的IP: {$ip}", 'info');
-        }
 
         $userAgent = request()->header('user-agent', '');
 

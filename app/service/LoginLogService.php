@@ -2,6 +2,8 @@
 
 namespace app\service;
 
+use think\facade\Log;
+
 use app\model\LoginLog;
 
 /**
@@ -29,7 +31,8 @@ class LoginLogService
 
             return ['code' => 0, 'msg' => '记录成功'];
         } catch (\Exception $e) {
-            return ['code' => 1, 'msg' => '记录失败：' . $e->getMessage()];
+            Log::error('[LoginLogService] 记录失败: ' . $e->getMessage());
+            return ['code' => 1, 'msg' => '记录失败，请稍后重试'];
         }
     }
 

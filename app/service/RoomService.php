@@ -2,6 +2,8 @@
 
 namespace app\service;
 
+use think\facade\Log;
+
 use app\model\Room;
 use app\service\RoomUserService;
 use think\facade\Db;
@@ -97,7 +99,8 @@ class RoomService
                 ],
             ];
         } catch (\Exception $e) {
-            return ['code' => 1, 'msg' => '创建失败：' . $e->getMessage()];
+            Log::error('[RoomService] 创建失败: ' . $e->getMessage());
+            return ['code' => 1, 'msg' => '创建失败，请稍后重试'];
         }
     }
     
@@ -158,7 +161,8 @@ class RoomService
             }
             return ['code' => 1, 'msg' => '更新失败'];
         } catch (\Exception $e) {
-            return ['code' => 1, 'msg' => '更新失败：' . $e->getMessage()];
+            Log::error('[RoomService] 更新失败: ' . $e->getMessage());
+            return ['code' => 1, 'msg' => '更新失败，请稍后重试'];
         }
     }
 
@@ -182,7 +186,8 @@ class RoomService
             }
             return ['code' => 1, 'msg' => '删除失败'];
         } catch (\Exception $e) {
-            return ['code' => 1, 'msg' => '删除失败：' . $e->getMessage()];
+            Log::error('[RoomService] 删除失败: ' . $e->getMessage());
+            return ['code' => 1, 'msg' => '删除失败，请稍后重试'];
         }
     }
 
@@ -226,7 +231,8 @@ class RoomService
             $msg = $lockStatus == Room::LOCK_LOCKED ? '房间已锁定' : '房间已解锁';
             return ['code' => 0, 'msg' => $msg, 'data' => ['lock' => $lockStatus]];
         } catch (\Exception $e) {
-            return ['code' => 1, 'msg' => '操作失败：' . $e->getMessage()];
+            Log::error('[RoomService] 操作失败: ' . $e->getMessage());
+            return ['code' => 1, 'msg' => '操作失败，请稍后重试'];
         }
     }
 }
