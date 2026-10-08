@@ -2,6 +2,8 @@
 
 namespace app\service;
 
+use think\facade\Log;
+
 use app\model\User;
 
 /**
@@ -76,6 +78,9 @@ class UserService
             $data['status'] = User::STATUS_NORMAL;
         }
 
+        // 密码哈希：入库只存 password_hash（bcrypt），不再存明文
+        $data['password'] = password_hash($data['password'], PASSWORD_DEFAULT);
+
         try {
             $user = User::create($data);
             return [
@@ -84,7 +89,8 @@ class UserService
                 'data' => $user,
             ];
         } catch (\Exception $e) {
-            return ['code' => 1, 'msg' => '创建失败：' . $e->getMessage()];
+            Log::error('[UserService] 创建失败: ' . $e->getMessage());
+            return ['code' => 1, 'msg' => '创建失败，请稍后重试'];
         }
     }
 
@@ -121,7 +127,8 @@ class UserService
             }
             return ['code' => 1, 'msg' => '更新失败'];
         } catch (\Exception $e) {
-            return ['code' => 1, 'msg' => '更新失败：' . $e->getMessage()];
+            Log::error('[UserService] 更新失败: ' . $e->getMessage());
+            return ['code' => 1, 'msg' => '更新失败，请稍后重试'];
         }
     }
 
@@ -145,7 +152,8 @@ class UserService
             }
             return ['code' => 1, 'msg' => '删除失败'];
         } catch (\Exception $e) {
-            return ['code' => 1, 'msg' => '删除失败：' . $e->getMessage()];
+            Log::error('[UserService] 删除失败: ' . $e->getMessage());
+            return ['code' => 1, 'msg' => '删除失败，请稍后重试'];
         }
     }
 
@@ -164,6 +172,49 @@ class UserService
     }
 
     /**
+     * 公开给 Auth 控制器用的密码校验（v2 登录与 v1 登录共用同一套兼容策略）
+     */
+    public static function verifyPasswordPublic(string $input, string $stored): bool
+    {
+        return self::verifyPassword($input, $stored);
+    }
+
+    /**
+     * 校验密码：同时兼容 bcrypt 哈希与历史遗留的明文存储
+     *
+     * 安全策略：明文比对成功后立即升级为 password_hash 并回写，
+     * 让存量用户在下次登录时无痛完成哈希迁移（lazy migration）。
+     */
+    private static function verifyPassword(string $input, string $stored): bool
+    {
+        // 哈希格式：$2y$（bcrypt）/$argon/$pbkdf
+        $isHash = strlen($stored) >= 60 && str_starts_with($stored, '$');
+        if ($isHash) {
+            return password_verify($input, $stored);
+        }
+
+        // 历史明文比对（防时序攻击用 hash_equals）
+        if (!hash_equals($stored, $input)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * 登录成功后调用：若密码仍是历史明文，升级为 bcrypt 哈希并回写
+     */
+    private static function upgradePasswordHash(User $user, string $inputPassword): void
+    {
+        $stored = (string) $user->password;
+        $isHash = strlen($stored) >= 60 && str_starts_with($stored, '$');
+        if (!$isHash) {
+            $user->password = password_hash($inputPassword, PASSWORD_DEFAULT);
+            $user->save();
+        }
+    }
+
+    /**
      * 用户登录
      * @param array $data 登录数据
      * @return array
@@ -179,12 +230,10 @@ class UserService
             return ['code' => 1, 'msg' => '密码不能为空'];
         }
 
-        // 根据ID和密码查询用户
-        $userInfo = User::where('id', $data['username'])
-            ->where('password', $data['password'])
-            ->find();
+        // 先按 ID 查用户，再用 password_verify 校验（兼容历史明文密码：命中后自动升级为哈希）
+        $userInfo = User::where('id', $data['username'])->find();
 
-        if (!$userInfo) {
+        if (!$userInfo || !self::verifyPassword($data['password'], $userInfo['password'])) {
             return ['code' => 1, 'msg' => 'ID或密码错误'];
         }
 
@@ -197,6 +246,9 @@ class UserService
         if (isset($userInfo['is_ban']) && $userInfo['is_ban'] == 1) {
             return ['code' => 403, 'msg' => '账号无限期停用'];
         }
+
+        // 登录通过：历史明文密码在此刻升级为 bcrypt 哈希
+        self::upgradePasswordHash($userInfo, $data['password']);
 
         // 业务逻辑成功，生成token并记录登录IP
         $ip = isset($data['ip']) ? $data['ip'] : '';
@@ -262,7 +314,8 @@ class UserService
             ];
 
         } catch (\Exception $e) {
-            return ['code' => 1, 'msg' => '获取失败：' . $e->getMessage()];
+            Log::error('[UserService] 获取失败: ' . $e->getMessage());
+            return ['code' => 1, 'msg' => '获取失败，请稍后重试'];
         }
     }
 
@@ -326,7 +379,8 @@ class UserService
             ];
 
         } catch (\Exception $e) {
-            return ['code' => 1, 'msg' => '更新失败：' . $e->getMessage()];
+            Log::error('[UserService] 更新失败: ' . $e->getMessage());
+            return ['code' => 1, 'msg' => '更新失败，请稍后重试'];
         }
     }
 
@@ -430,7 +484,8 @@ class UserService
             ];
 
         } catch (\Exception $e) {
-            return ['code' => 1, 'msg' => '上传失败：' . $e->getMessage()];
+            Log::error('[UserService] 上传失败: ' . $e->getMessage());
+            return ['code' => 1, 'msg' => '上传失败，请稍后重试'];
         }
     }
 }

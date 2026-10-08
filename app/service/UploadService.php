@@ -79,6 +79,29 @@ class UploadService
     }
 
     /**
+     * 危险扩展名黑名单：可被服务器执行的脚本类型一律禁止上传
+     * （防 .php/.phtml 等落盘后通过 URL 直接执行变成 RCE）
+     */
+    private const DANGEROUS_EXTENSIONS = [
+        'php', 'php3', 'php4', 'php5', 'php7', 'phps', 'phtml', 'pht',
+        'asp', 'aspx', 'ascx', 'ashx', 'asax', 'cer',
+        'jsp', 'jspx', 'jsf', 'jspa',
+        'exe', 'dll', 'so', 'bat', 'cmd', 'com', 'scr',
+        'sh', 'cgi', 'pl', 'py', 'rb', 'war', 'htaccess',
+    ];
+
+    /**
+     * 上传扩展名安全校验：非空 + 黑名单拦截
+     */
+    private static function assertSafeExtension(string $extension): void
+    {
+        $extension = strtolower(trim($extension, '. '));
+        if ($extension === '' || in_array($extension, self::DANGEROUS_EXTENSIONS, true)) {
+            throw new \Exception('不允许上传此类型文件');
+        }
+    }
+
+    /**
      * 上传图片文件
      * @param \think\file\UploadedFile $file 上传的文件
      * @return array
@@ -127,6 +150,7 @@ class UploadService
 
             // 生成文件名
             $extension = strtolower($file->getOriginalExtension());
+            self::assertSafeExtension($extension);
             if (!$extension) {
                 // 根据MIME类型推断扩展名
                 $mimeToExt = [
@@ -160,7 +184,8 @@ class UploadService
             return ['code' => 0, 'msg' => '上传成功', 'data' => $fileInfo];
 
         } catch (\Exception $e) {
-            return ['code' => 1, 'msg' => '上传失败：' . $e->getMessage()];
+            Log::error('[UploadService] 上传失败: ' . $e->getMessage());
+            return ['code' => 1, 'msg' => '上传失败，请稍后重试'];
         }
     }
 
@@ -209,6 +234,7 @@ class UploadService
 
             // 生成文件名
             $extension = strtolower($file->getOriginalExtension());
+            self::assertSafeExtension($extension);
             if (!$extension) {
                 return ['code' => 1, 'msg' => '无法获取文件扩展名'];
             }
@@ -233,7 +259,8 @@ class UploadService
             return ['code' => 0, 'msg' => '上传成功', 'data' => $fileInfo];
 
         } catch (\Exception $e) {
-            return ['code' => 1, 'msg' => '上传失败：' . $e->getMessage()];
+            Log::error('[UploadService] 上传失败: ' . $e->getMessage());
+            return ['code' => 1, 'msg' => '上传失败，请稍后重试'];
         }
     }
 
@@ -280,6 +307,7 @@ class UploadService
 
             // 生成文件名
             $extension = strtolower($file->getOriginalExtension());
+            self::assertSafeExtension($extension);
             if (!$extension) {
                 // 根据MIME类型推断扩展名
                 $mimeToExt = [
@@ -319,7 +347,8 @@ class UploadService
             return ['code' => 0, 'msg' => '上传成功', 'data' => $fileInfo];
 
         } catch (\Exception $e) {
-            return ['code' => 1, 'msg' => '上传失败：' . $e->getMessage()];
+            Log::error('[UploadService] 上传失败: ' . $e->getMessage());
+            return ['code' => 1, 'msg' => '上传失败，请稍后重试'];
         }
     }
 
@@ -387,6 +416,7 @@ class UploadService
 
             // 生成文件名
             $extension = strtolower($file->getOriginalExtension());
+            self::assertSafeExtension($extension);
             if (!$extension) {
                 return ['code' => 1, 'msg' => '无法获取文件扩展名'];
             }
@@ -411,7 +441,8 @@ class UploadService
             return ['code' => 0, 'msg' => '上传成功', 'data' => $fileInfo];
 
         } catch (\Exception $e) {
-            return ['code' => 1, 'msg' => '上传失败：' . $e->getMessage()];
+            Log::error('[UploadService] 上传失败: ' . $e->getMessage());
+            return ['code' => 1, 'msg' => '上传失败，请稍后重试'];
         }
     }
 
@@ -453,7 +484,8 @@ class UploadService
             }
 
         } catch (\Exception $e) {
-            return ['code' => 1, 'msg' => '删除失败：' . $e->getMessage()];
+            Log::error('[UploadService] 删除失败: ' . $e->getMessage());
+            return ['code' => 1, 'msg' => '删除失败，请稍后重试'];
         }
     }
 
