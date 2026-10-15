@@ -31,6 +31,7 @@ class Message extends Model
     public const TYPE_FILE = 3;     // 文件消息
     public const TYPE_SYSTEM = 4;   // 系统消息
     public const TYPE_VIDEO = 5;    // 视频消息
+    public const TYPE_AUDIO = 6;    // 音频消息
 
     /**
      * 关联用户模型
@@ -60,6 +61,8 @@ class Message extends Model
             self::TYPE_IMAGE  => '图片',
             self::TYPE_FILE   => '文件',
             self::TYPE_SYSTEM => '系统',
+            self::TYPE_VIDEO  => '视频',
+            self::TYPE_AUDIO  => '音频',
         ];
         return $types[$data['message_type']] ?? '未知';
     }

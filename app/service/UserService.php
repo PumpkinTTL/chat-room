@@ -414,12 +414,6 @@ class UserService
                 return ['code' => 1, 'msg' => '只支持 JPG、PNG、GIF、WebP 格式的图片'];
             }
 
-            // 验证文件大小（5MB）
-            $maxSize = 5 * 1024 * 1024;
-            if ($file->getSize() > $maxSize) {
-                return ['code' => 1, 'msg' => '图片大小不能超过5MB'];
-            }
-
             // 验证图片内容
             $imageInfo = getimagesize($file->getPathname());
             if (!$imageInfo) {

@@ -76,6 +76,7 @@ Route::group('api', function () {
         Route::post('sendText', 'Message/sendText');
         Route::post('sendImage', 'Message/sendImage');
         Route::post('sendVideo', 'Message/sendVideo');
+        Route::post('sendAudio', 'Message/sendAudio');
         Route::post('sendFile', 'Message/sendFile');
         Route::post('sendSystem', 'Message/sendSystem');
         Route::put('edit', 'Message/edit');
@@ -87,6 +88,8 @@ Route::group('api', function () {
         Route::post('clearRoom', 'Message/clearRoom');
         Route::post('restoreRoom', 'Message/restoreRoom');
         Route::get('deletedCount', 'Message/deletedCount');
+        Route::get('search', 'Message/search');
+        Route::get('statistics', 'Message/statistics');
     });
     
     // 好感度系统模块

@@ -27,7 +27,7 @@ use think\facade\Log;
  * 上传优先级（.env，决定图床与本地谁先走）：
  *   UPLOAD_PRIORITY              = imgbed | local   全局优先级（缺省 imgbed=图床优先）
  *   UPLOAD_PRIORITY_<TYPE>       = imgbed | local   按类型覆盖，
- *                                TYPE ∈ IMAGE / VIDEO / DOCUMENT / FILE / AVATAR
+ *                                TYPE ∈ IMAGE / VIDEO / AUDIO / DOCUMENT / FILE / AVATAR
  *   含义：imgbed = 只传图床（失败即报错，不降级）；local = 只存本地（失败即报错，不降级）
  *
  * API 规格（站点接入文档 imgbed-api.md，2026-09-08 全链路实测）：
@@ -62,6 +62,7 @@ class ImgbedService
     /** 存储类型标识（用于按类型读取上传优先级） */
     public const TYPE_IMAGE    = 'image';
     public const TYPE_VIDEO    = 'video';
+    public const TYPE_AUDIO    = 'audio';
     public const TYPE_DOCUMENT = 'document';
     public const TYPE_FILE     = 'file';
     public const TYPE_AVATAR   = 'avatar';

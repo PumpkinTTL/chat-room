@@ -155,6 +155,7 @@ class MessageService
         $typeLabels = [
             Message::TYPE_IMAGE => '[图片]',
             Message::TYPE_VIDEO => '[视频]',
+            Message::TYPE_AUDIO => '[音频]',
             Message::TYPE_FILE => '[文件]',
         ];
 
@@ -288,6 +289,70 @@ class MessageService
     }
 
     /**
+     * 发送音频消息
+     * @param int $roomId 房间ID
+     * @param int $userId 用户ID
+     * @param array $fileInfo 文件信息
+     * @return array
+     */
+    public static function sendAudioMessage($roomId, $userId, $fileInfo)
+    {
+        if (empty($roomId) || empty($userId) || empty($fileInfo)) {
+            return ['code' => 1, 'msg' => '参数错误'];
+        }
+
+        // 检查房间是否被锁定
+        $room = Room::find($roomId);
+        if ($room && $room->lock == Room::LOCK_LOCKED) {
+            return ['code' => 1, 'msg' => '房间已锁定'];
+        }
+
+        // 验证用户是否在房间内
+        if (!RoomUserService::isUserInRoom($roomId, $userId)) {
+            return ['code' => 1, 'msg' => '您不在此房间内'];
+        }
+
+        try {
+            Db::startTrans();
+
+            $messageId = Message::insertGetId([
+                'room_id'      => $roomId,
+                'user_id'      => $userId,
+                'message_type' => Message::TYPE_AUDIO, // 使用TYPE_AUDIO类型
+                'content'      => $fileInfo['url'] ?? '',
+                'file_info'    => json_encode($fileInfo),
+                'create_time'  => date('Y-m-d H:i:s'),
+                'update_time'  => date('Y-m-d H:i:s'),
+            ]);
+
+            Db::commit();
+
+            // 私密房间：处理好感度系统
+            $intimacyResult = self::handleIntimacySystem($roomId, $userId, 'audio');
+
+            // 返回消息信息
+            return [
+                'code' => 0,
+                'msg' => '发送成功',
+                'data' => [
+                    'id' => $messageId,
+                    'type' => 'audio',
+                    'audioUrl' => $fileInfo['url'] ?? '',
+                    'audioDuration' => $fileInfo['duration'] ?? null,
+                    'audioName' => $fileInfo['original_name'] ?? '',
+                    'time' => date('Y-m-d H:i:s'),
+                ],
+                'intimacy' => $intimacyResult // 好感度信息
+            ];
+
+        } catch (\Exception $e) {
+            Db::rollback();
+            Log::error('[MessageService] 发送失败: ' . $e->getMessage());
+            return ['code' => 1, 'msg' => '发送失败，请稍后重试'];
+        }
+    }
+
+    /**
      * 发送文件消息
      * @param int $roomId 房间ID
      * @param int $userId 用户ID
@@ -363,6 +428,20 @@ class MessageService
     {
         if (empty($roomId) || empty($content)) {
             return ['code' => 1, 'msg' => '参数错误'];
+        }
+
+        // 去抖：相同房间+相同内容的系统消息在 10 秒内合并，避免网络抖动/重连导致的「离开/加入」刷屏
+        $dedupKey = 'sys_msg_dedup:' . $roomId . ':' . md5($content);
+        try {
+            $redis = \think\facade\Cache::store('redis')->handler();
+            if ($redis) {
+                if ($redis->exists($dedupKey)) {
+                    return ['code' => 0, 'msg' => '已合并重复系统消息', 'data' => ['id' => null, 'dedup' => true]];
+                }
+                $redis->setex($dedupKey, 10, 1);
+            }
+        } catch (\Exception $e) {
+            // Redis 不可用时降级为不过滤，不影响正常功能
         }
 
         try {
@@ -706,6 +785,8 @@ class MessageService
             $type = 'image';
         } elseif ($message['message_type'] == Message::TYPE_VIDEO) {
             $type = 'video';
+        } elseif ($message['message_type'] == Message::TYPE_AUDIO) {
+            $type = 'audio';
         } elseif ($message['message_type'] == Message::TYPE_FILE) {
             $type = 'file';
         }
@@ -739,6 +820,12 @@ class MessageService
             $result['videoUrl'] = $fileInfo['url'] ?? $message['content'];
             $result['videoThumbnail'] = $fileInfo['thumbnail'] ?? null;
             $result['videoDuration'] = $fileInfo['duration'] ?? null;
+        }
+        // 音频消息
+        elseif ($message['message_type'] == Message::TYPE_AUDIO && $fileInfo) {
+            $result['audioUrl'] = $fileInfo['url'] ?? $message['content'];
+            $result['audioDuration'] = $fileInfo['duration'] ?? null;
+            $result['audioName'] = $fileInfo['original_name'] ?? '';
         }
         // 文件消息
         elseif ($message['message_type'] == Message::TYPE_FILE && $fileInfo) {
@@ -847,10 +934,10 @@ class MessageService
             if ($hardDelete) {
                 // 物理删除模式：删除文件 + 已读记录 + 消息记录
                 
-                // 获取所有包含文件的消息（图片、视频、文件）
+                // 获取所有包含文件的消息（图片、视频、音频、文件）
                 $fileMessages = Db::table('ch_messages')
                     ->where('room_id', $roomId)
-                    ->where('message_type', 'in', [Message::TYPE_IMAGE, Message::TYPE_VIDEO, Message::TYPE_FILE])
+                    ->where('message_type', 'in', [Message::TYPE_IMAGE, Message::TYPE_VIDEO, Message::TYPE_AUDIO, Message::TYPE_FILE])
                     ->whereNotNull('file_info')
                     ->select()
                     ->toArray();
@@ -1063,5 +1150,251 @@ class MessageService
         
         // 调用好感度服务增加经验
         return IntimacyService::addExpForMessage($roomId, $userId, $partnerId, $messageType);
+    }
+
+    /**
+     * 搜索房间消息（只读）
+     * @param int $roomId 房间ID
+     * @param int $userId 当前用户ID
+     * @param string $keyword 关键字（匹配 content 或 file_info 原文）
+     * @param string $type 消息类型：text|image|video|audio|file，空=全部
+     * @param string $dateFrom 起始时间（YYYY-MM-DD 或 YYYY-MM-DD HH:MM:SS）
+     * @param string $dateTo 结束时间（YYYY-MM-DD 或 YYYY-MM-DD HH:MM:SS）
+     * @param int $page 页码
+     * @param int $limit 每页数量（最大100）
+     * @return array
+     */
+    public static function searchMessages($roomId, $userId, $keyword = '', $type = '', $dateFrom = '', $dateTo = '', $page = 1, $limit = 30)
+    {
+        if (empty($roomId) || empty($userId)) {
+            return ['code' => 1, 'msg' => '参数错误'];
+        }
+
+        // 验证用户是否在房间内
+        if (!RoomUserService::isUserInRoom($roomId, $userId)) {
+            return ['code' => 1, 'msg' => '您不在此房间内'];
+        }
+
+        // 类型名 -> message_type 映射
+        $typeMap = [
+            'text'  => Message::TYPE_TEXT,
+            'image' => Message::TYPE_IMAGE,
+            'video' => Message::TYPE_VIDEO,
+            'audio' => Message::TYPE_AUDIO,
+            'file'  => Message::TYPE_FILE,
+        ];
+
+        // 分页参数归一化
+        $page = max(1, (int)$page);
+        $limit = min(100, max(1, (int)$limit));
+
+        try {
+            // 关键字 / 类型 / 时间参数归一化
+            $keyword = trim((string)$keyword);
+            $type = trim((string)$type);
+            $dateFrom = trim((string)$dateFrom);
+            $dateTo = trim((string)$dateTo);
+
+            // 过滤条件（供计数与取数两处复用）
+            $applyFilters = function ($query) use ($roomId, $keyword, $type, $typeMap, $dateFrom, $dateTo) {
+                $query->where('room_id', $roomId)
+                    ->whereNull('delete_time')
+                    ->where('message_type', '<>', Message::TYPE_SYSTEM);
+
+                // 关键字：匹配消息内容或 file_info 原文（可命中文件名 original_name）
+                if ($keyword !== '') {
+                    $query->where(function ($q) use ($keyword) {
+                        $q->where('content', 'like', '%' . $keyword . '%')
+                            ->whereOr('file_info', 'like', '%' . $keyword . '%');
+                    });
+                }
+
+                // 消息类型过滤
+                if ($type !== '' && isset($typeMap[$type])) {
+                    $query->where('message_type', $typeMap[$type]);
+                }
+
+                // 时间范围过滤
+                if ($dateFrom !== '') {
+                    $query->where('create_time', '>=', self::normalizeStartTime($dateFrom));
+                }
+                if ($dateTo !== '') {
+                    $query->where('create_time', '<=', self::normalizeEndTime($dateTo));
+                }
+
+                return $query;
+            };
+
+            // 总数（用于分页与 has_more）
+            $total = $applyFilters(Message::with(['user']))->count();
+
+            // 按创建时间倒序分页
+            $messages = $applyFilters(Message::with(['user']))
+                ->order('create_time', 'desc')
+                ->page($page, $limit)
+                ->select()
+                ->toArray();
+
+            // 格式化消息
+            $formattedMessages = [];
+            foreach ($messages as $message) {
+                $formattedMessages[] = self::formatMessage($message, $userId);
+            }
+
+            return [
+                'code' => 0,
+                'msg'  => '获取成功',
+                'data' => [
+                    'messages' => $formattedMessages,
+                    'total'    => $total,
+                    'has_more' => ($page * $limit) < $total,
+                    'page'     => $page,
+                    'limit'    => $limit,
+                ],
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('[MessageService] 搜索消息失败: ' . $e->getMessage());
+            return ['code' => 1, 'msg' => '搜索失败，请稍后重试'];
+        }
+    }
+
+    /**
+     * 获取房间消息统计（只读）
+     * @param int $roomId 房间ID
+     * @param int $userId 当前用户ID
+     * @return array
+     */
+    public static function getRoomStatistics($roomId, $userId)
+    {
+        if (empty($roomId) || empty($userId)) {
+            return ['code' => 1, 'msg' => '参数错误'];
+        }
+
+        // 验证用户是否在房间内
+        if (!RoomUserService::isUserInRoom($roomId, $userId)) {
+            return ['code' => 1, 'msg' => '您不在此房间内'];
+        }
+
+        try {
+            // 统计基础查询：非删除、非系统消息
+            $baseQuery = function () use ($roomId) {
+                return Db::table('ch_messages')
+                    ->where('room_id', $roomId)
+                    ->whereNull('delete_time')
+                    ->where('message_type', '<>', Message::TYPE_SYSTEM);
+            };
+
+            // 总消息数
+            $total = $baseQuery()->count();
+
+            // 按类型分组统计
+            $typeMap = [
+                Message::TYPE_TEXT  => 'text',
+                Message::TYPE_IMAGE => 'image',
+                Message::TYPE_VIDEO => 'video',
+                Message::TYPE_AUDIO => 'audio',
+                Message::TYPE_FILE  => 'file',
+            ];
+            $byType = ['text' => 0, 'image' => 0, 'video' => 0, 'audio' => 0, 'file' => 0];
+
+            $typeRows = $baseQuery()
+                ->field('message_type, COUNT(*) as count')
+                ->group('message_type')
+                ->select()
+                ->toArray();
+
+            foreach ($typeRows as $row) {
+                $typeKey = $typeMap[(int)$row['message_type']] ?? null;
+                if ($typeKey !== null) {
+                    $byType[$typeKey] = (int)$row['count'];
+                }
+            }
+
+            // 最近30天（含今天）每日消息数，无消息的日期补0
+            $startDate = date('Y-m-d', strtotime('-29 days'));
+            $dayRows = $baseQuery()
+                ->field('DATE(create_time) as date, COUNT(*) as count')
+                ->where('create_time', '>=', $startDate . ' 00:00:00')
+                ->group('DATE(create_time)')
+                ->select()
+                ->toArray();
+
+            $dayMap = [];
+            foreach ($dayRows as $row) {
+                $dayMap[$row['date']] = (int)$row['count'];
+            }
+
+            $byDay = [];
+            for ($i = 29; $i >= 0; $i--) {
+                $date = date('Y-m-d', strtotime('-' . $i . ' days'));
+                $byDay[] = [
+                    'date'  => $date,
+                    'count' => $dayMap[$date] ?? 0,
+                ];
+            }
+
+            // 按发送者分组统计，取 Top 10
+            $senderRows = $baseQuery()
+                ->alias('m')
+                ->join('ch_users u', 'm.user_id = u.id')
+                ->field('m.user_id, u.nick_name, u.avatar, COUNT(*) as count')
+                ->group('m.user_id, u.nick_name, u.avatar')
+                ->order('count', 'desc')
+                ->limit(10)
+                ->select()
+                ->toArray();
+
+            $bySender = [];
+            foreach ($senderRows as $row) {
+                $bySender[] = [
+                    'user_id'  => (int)$row['user_id'],
+                    'nickname' => $row['nick_name'],
+                    'avatar'   => $row['avatar'],
+                    'count'    => (int)$row['count'],
+                ];
+            }
+
+            // 最早 / 最晚一条消息时间（force=false，保留日期时间字符串）
+            $firstTime = $baseQuery()->min('create_time', false);
+            $lastTime  = $baseQuery()->max('create_time', false);
+
+            return [
+                'code' => 0,
+                'msg'  => '获取成功',
+                'data' => [
+                    'total'      => $total,
+                    'by_type'    => $byType,
+                    'by_day'     => $byDay,
+                    'by_sender'  => $bySender,
+                    'first_time' => $firstTime ?: null,
+                    'last_time'  => $lastTime ?: null,
+                ],
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('[MessageService] 获取统计失败: ' . $e->getMessage());
+            return ['code' => 1, 'msg' => '获取失败，请稍后重试'];
+        }
+    }
+
+    /**
+     * 归一化查询起始时间（仅日期时补 00:00:00）
+     * @param string $date
+     * @return string
+     */
+    private static function normalizeStartTime($date)
+    {
+        return strlen($date) === 10 ? $date . ' 00:00:00' : $date;
+    }
+
+    /**
+     * 归一化查询结束时间（仅日期时补 23:59:59）
+     * @param string $date
+     * @return string
+     */
+    private static function normalizeEndTime($date)
+    {
+        return strlen($date) === 10 ? $date . ' 23:59:59' : $date;
     }
 }

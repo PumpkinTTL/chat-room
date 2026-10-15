@@ -163,6 +163,49 @@ class Message
     }
 
     /**
+     * 发送音频消息
+     * @param Request $request
+     * @return Response
+     */
+    public function sendAudio(Request $request)
+    {
+        $roomId = $request->param('room_id');
+        $file = $request->file('audio');
+
+        $userId = $request->userId; // 从中间件获取
+
+        // 验证参数
+        $validate = Validate::rule([
+            'room_id' => 'require|integer|min:1',
+        ]);
+
+        if (!$validate->check(['room_id' => $roomId])) {
+            return json(['code' => 1, 'msg' => $validate->getError()], 400);
+        }
+
+        // 检查文件
+        if (!$file) {
+            return json(['code' => 1, 'msg' => '请选择音频文件'], 400);
+        }
+
+        try {
+            // 上传音频
+            $uploadResult = UploadService::uploadAudio($file);
+            if ($uploadResult['code'] !== 0) {
+                return json($uploadResult, 400);
+            }
+
+            // 发送消息
+            $result = MessageService::sendAudioMessage($roomId, $userId, $uploadResult['data']);
+            $code = $result['code'] === 0 ? 200 : 400;
+
+            return json($result, $code);
+        } catch (\Exception $e) {
+            return json(['code' => 1, 'msg' => (function() use ($e) { \think\facade\Log::error('[Message] 上传失败: ' . $e->getMessage()); return '上传失败，请稍后重试'; })()], 500);
+        }
+    }
+
+    /**
      * 发送文件消息
      * @param Request $request
      * @return Response
@@ -486,6 +529,67 @@ class Message
         }
 
         $result = MessageService::sendSystemMessage($roomId, $content);
+        $code = $result['code'] === 0 ? 200 : 400;
+
+        return json($result, $code);
+    }
+
+    /**
+     * 搜索房间消息
+     * @param Request $request
+     * @return Response
+     */
+    public function search(Request $request)
+    {
+        $roomId = $request->param('room_id');
+        $keyword = $request->param('keyword', '');
+        $type = $request->param('type', '');
+        $dateFrom = $request->param('date_from', '');
+        $dateTo = $request->param('date_to', '');
+        $page = $request->param('page', 1, 'intval');
+        $limit = $request->param('limit', 30, 'intval');
+
+        $userId = $request->userId; // 从中间件获取
+
+        // 验证参数
+        $validate = Validate::rule([
+            'room_id' => 'require|integer|min:1',
+            'type'    => 'in:text,image,video,audio,file',
+            'page'    => 'integer|min:1',
+            'limit'   => 'integer|between:1,100',
+        ]);
+
+        if (!$validate->check(['room_id' => $roomId, 'type' => $type, 'page' => $page, 'limit' => $limit])) {
+            return json(['code' => 1, 'msg' => $validate->getError()], 400);
+        }
+
+        $result = MessageService::searchMessages($roomId, $userId, $keyword, $type, $dateFrom, $dateTo, $page, $limit);
+        $code = $result['code'] === 0 ? 200 : 400;
+
+        return json($result, $code);
+    }
+
+    /**
+     * 获取房间消息统计
+     * @param Request $request
+     * @return Response
+     */
+    public function statistics(Request $request)
+    {
+        $roomId = $request->param('room_id');
+
+        $userId = $request->userId; // 从中间件获取
+
+        // 验证参数
+        $validate = Validate::rule([
+            'room_id' => 'require|integer|min:1',
+        ]);
+
+        if (!$validate->check(['room_id' => $roomId])) {
+            return json(['code' => 1, 'msg' => $validate->getError()], 400);
+        }
+
+        $result = MessageService::getRoomStatistics($roomId, $userId);
         $code = $result['code'] === 0 ? 200 : 400;
 
         return json($result, $code);

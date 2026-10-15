@@ -292,10 +292,14 @@ class UploadService
                 return ['code' => 1, 'msg' => $errorMsg];
             }
             
-            // 验证文件类型
-            $allowedTypes = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime'];
+            // 验证文件类型：MIME 或扩展名任一命中即通过。
+            // 说明：getMime() 依赖 finfo（本环境 MIME 表来自 Redis），Redis 抖动时会返回空，
+            // 导致真实 MP4 被误判拒绝；用扩展名兜底可消除这种间歇性失败。
+            $extension = strtolower($file->getOriginalExtension());
+            $allowedMimes = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime', 'video/x-m4v'];
+            $allowedExts  = ['mp4', 'webm', 'ogv', 'ogg', 'mov', 'm4v'];
             $mimeType = $file->getMime();
-            if (!in_array($mimeType, $allowedTypes)) {
+            if (!in_array($mimeType, $allowedMimes, true) && !in_array($extension, $allowedExts, true)) {
                 return ['code' => 1, 'msg' => '只支持 MP4、WebM、OGG、MOV 格式的视频'];
             }
 
@@ -305,9 +309,7 @@ class UploadService
                 return ['code' => 1, 'msg' => '视频大小不能超过200MB'];
             }
 
-            // 生成文件名
-            $extension = strtolower($file->getOriginalExtension());
-            self::assertSafeExtension($extension);
+            // 生成文件名：扩展名缺失时按 MIME 推断，再做安全校验
             if (!$extension) {
                 // 根据MIME类型推断扩展名
                 $mimeToExt = [
@@ -318,6 +320,7 @@ class UploadService
                 ];
                 $extension = $mimeToExt[$mimeType] ?? 'mp4';
             }
+            self::assertSafeExtension($extension);
 
             $fileName = date('Y/m/d') . '/' . md5(uniqid(mt_rand(), true)) . '.' . $extension;
 
@@ -353,12 +356,133 @@ class UploadService
     }
 
     /**
+     * 上传音频文件
+     * @param \think\file\UploadedFile $file 上传的文件
+     * @return array
+     */
+    public static function uploadAudio($file)
+    {
+        if (!$file) {
+            return ['code' => 1, 'msg' => '请选择文件'];
+        }
+
+        try {
+            // 检查文件是否有效（是否上传成功）
+            if (!$file->isValid()) {
+                $error = $file->getError();
+                $errorMessages = [
+                    UPLOAD_ERR_INI_SIZE => '上传文件大小超过了 PHP 配置的最大值',
+                    UPLOAD_ERR_FORM_SIZE => '上传文件大小超过了表单指定的最大值',
+                    UPLOAD_ERR_PARTIAL => '文件只有部分被上传',
+                    UPLOAD_ERR_NO_FILE => '没有文件被上传',
+                    UPLOAD_ERR_NO_TMP_DIR => '找不到临时文件夹',
+                    UPLOAD_ERR_CANT_WRITE => '文件写入失败',
+                    UPLOAD_ERR_EXTENSION => 'PHP 扩展阻止了文件上传',
+                ];
+                $errorMsg = $errorMessages[$error] ?? '文件上传失败';
+                return ['code' => 1, 'msg' => $errorMsg];
+            }
+
+            // 验证文件类型：MIME 或扩展名任一命中即通过（同视频：getMime 依赖 finfo/Redis，抖动时会误拒）
+            $extension = strtolower($file->getOriginalExtension());
+            $allowedMimes = [
+                'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/x-wav',
+                'audio/ogg', 'audio/aac', 'audio/mp4', 'audio/webm',
+                'audio/flac', 'audio/x-flac', 'audio/mp4a-latm',
+            ];
+            $allowedExts = ['mp3', 'wav', 'ogg', 'oga', 'aac', 'm4a', 'mp4', 'webm', 'flac', 'opus', 'amr', 'wma'];
+            $mimeType = $file->getMime();
+            if (!in_array($mimeType, $allowedMimes, true) && !in_array($extension, $allowedExts, true)) {
+                return ['code' => 1, 'msg' => '只支持 MP3、WAV、OGG、AAC、M4A、WebM 格式的音频'];
+            }
+
+            // 验证文件大小（50MB）
+            $maxSize = 50 * 1024 * 1024;
+            if ($file->getSize() > $maxSize) {
+                return ['code' => 1, 'msg' => '音频大小不能超过50MB'];
+            }
+
+            // 生成文件名：扩展名缺失时按 MIME 推断，再做安全校验
+            if (!$extension) {
+                // 根据MIME类型推断扩展名
+                $mimeToExt = [
+                    'audio/mpeg' => 'mp3',
+                    'audio/mp3'  => 'mp3',
+                    'audio/wav'  => 'wav',
+                    'audio/x-wav' => 'wav',
+                    'audio/ogg'  => 'ogg',
+                    'audio/aac'  => 'aac',
+                    'audio/mp4'  => 'm4a',
+                    'audio/webm' => 'webm',
+                ];
+                $extension = $mimeToExt[$mimeType] ?? 'mp3';
+            }
+            self::assertSafeExtension($extension);
+
+            // 图床 / 本地 按 UPLOAD_PRIORITY_AUDIO 二选一，失败即报错
+            $stored = self::store($file, ImgbedService::TYPE_AUDIO, 'audios', $extension, $mimeType);
+            if (!$stored['ok']) {
+                return ['code' => 1, 'msg' => $stored['msg']];
+            }
+
+            // 获取音频时长（可选：使用ffprobe）
+            $audioInfo = self::getAudioInfo($file->getPathname());
+
+            // 返回文件信息
+            $fileInfo = [
+                'original_name' => $file->getOriginalName(),
+                'file_size'     => $file->getSize(),
+                'mime_type'     => $mimeType,
+                'extension'     => $extension,
+                'url'           => $stored['url'],
+                'path'          => $stored['disk_path'],
+                'storage'       => $stored['storage'],
+                'duration'      => $audioInfo['duration'] ?? null,
+            ];
+
+            return ['code' => 0, 'msg' => '上传成功', 'data' => $fileInfo];
+
+        } catch (\Exception $e) {
+            Log::error('[UploadService] 上传失败: ' . $e->getMessage());
+            return ['code' => 1, 'msg' => '上传失败，请稍后重试'];
+        }
+    }
+
+    /**
+     * 获取音频时长（需要ffprobe，缺失时静默返回 null）
+     * @param string $filePath 文件路径
+     * @return array
+     */
+    private static function getAudioInfo($filePath)
+    {
+        $info = ['duration' => null];
+
+        try {
+            if (function_exists('exec')) {
+                $cmd = 'ffprobe -v quiet -print_format json -show_format ' . escapeshellarg($filePath) . ' 2>&1';
+                $output = [];
+                exec($cmd, $output, $returnCode);
+
+                if ($returnCode === 0 && !empty($output)) {
+                    $data = json_decode(implode('', $output), true);
+                    if (isset($data['format']['duration'])) {
+                        $info['duration'] = (int) round((float) $data['format']['duration']);
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            // 静默失败，返回默认值
+        }
+
+        return $info;
+    }
+
+    /**
      * 获取视频信息（需要ffmpeg扩展）
      * @param string $filePath 文件路径
      * @return array
      */
-    private static function getVideoInfo($filePath)
-    {
+    private static function getVideoInfo($filePath)    {
         $info = [
             'duration' => null,
             'width' => null,

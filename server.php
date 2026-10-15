@@ -63,6 +63,10 @@ function getRedis()
 // 本地连接映射
 $localConnections = [];
 
+// 待离开宽限表：短暂断线（切网/刷新/自动重连）不立刻广播离开，避免「离开/加入」刷屏
+// 结构： "{$roomId}:{$userId}" => ['timer' => 定时器ID, ...]
+$pendingLeaves = [];
+
 // 亲密互动房间状态（内存维护）
 $roomIntimacyStates = [];
 
@@ -88,6 +92,30 @@ $wsWorker->onWorkerStart = function ($worker) use (&$roomIntimacyStates) {
     } catch (\Exception $e) {
         echo "[" . date('H:i:s') . "] 清理旧数据失败: " . $e->getMessage() . "\n";
     }
+
+    // 僵尸连接清理：客户端在后台/挂起/断电时不会发 close，导致服务端连接池残留“幽灵在线”。
+    // 超过 75s 无任何消息（含 25s 心跳）的连接视为失效，主动关闭，以触发正常的 onClose 清理与 user_left 广播。
+    \Workerman\Lib\Timer::add(30, function() use (&$localConnections) {
+        $now = time();
+        foreach ($localConnections as $connId => $conn) {
+            $last = $conn['last_active'] ?? $now;
+            if ($now - $last > 75) {
+                $connObj = null;
+                global $wsWorker;
+                foreach ($wsWorker->connections as $c) {
+                    if ($c->id == $connId) { $connObj = $c; break; }
+                }
+                if ($connObj) {
+                    $idle = $now - $last;
+                    echo "[" . date('H:i:s') . "] 清理僵尸连接 #{$connId}（{$idle}s 无活动）\n";
+                    $connObj->close();
+                } else {
+                    // 连接对象已不存在，直接清理映射
+                    unset($localConnections[$connId]);
+                }
+            }
+        }
+    });
 
     // 亲密互动定时器：检查是否完成，完成后直接增加经验并广播
     \Workerman\Lib\Timer::add(1, function() use (&$roomIntimacyStates, &$localConnections) {
@@ -159,9 +187,9 @@ $wsWorker->onConnect = function ($connection) use (&$localConnections) {
         'user_id' => null,
         'room_id' => null,
         'nickname' => null,
-        'authed' => false
-    ];
-    $connection->send(json_encode([
+        'authed' => false,
+        'last_active' => time()
+    ];    $connection->send(json_encode([
         'type' => 'connected',
         'conn_id' => $connection->id,
         'msg' => '连接成功，请先认证'
@@ -174,6 +202,11 @@ $wsWorker->onMessage = function ($connection, $data) use (&$localConnections) {
     if (!$msg || !isset($msg['type'])) {
         $connection->send(json_encode(['type' => 'error', 'msg' => '消息格式错误']));
         return;
+    }
+
+    // 刷新活跃时间（用于僵尸连接清理）
+    if (isset($localConnections[$connection->id])) {
+        $localConnections[$connection->id]['last_active'] = time();
     }
 
     echo "[" . date('H:i:s') . "] #{$connection->id} -> {$msg['type']}\n";
@@ -207,6 +240,9 @@ $wsWorker->onMessage = function ($connection, $data) use (&$localConnections) {
             case 'room_lock_changed':
                 handleRoomLockChanged($connection, $msg, $localConnections);
                 break;
+            case 'profile_updated':
+                handleProfileUpdated($connection, $msg, $localConnections);
+                break;
             case 'intimacy_restart':
                 handleIntimacyRestart($connection, $msg, $localConnections);
                 break;
@@ -221,7 +257,7 @@ $wsWorker->onMessage = function ($connection, $data) use (&$localConnections) {
 };
 
 // 连接关闭
-$wsWorker->onClose = function ($connection) use (&$localConnections) {
+$wsWorker->onClose = function ($connection) use (&$localConnections, &$pendingLeaves, &$wsWorker) {
     global $roomIntimacyStates;
     if (!isset($localConnections[$connection->id])) {
         echo "[" . date('H:i:s') . "] 断开 #{$connection->id} (未绑定用户)\n";
@@ -233,7 +269,6 @@ $wsWorker->onClose = function ($connection) use (&$localConnections) {
     $roomId = $connData['room_id'];
     $nickname = $connData['nickname'];
 
-    // 输出详细的断开日志
     if ($userId && $nickname) {
         echo "[" . date('H:i:s') . "] 断开 #{$connection->id} 用户:{$nickname}(ID:{$userId}) 房间:{$roomId}\n";
     } elseif ($userId) {
@@ -242,59 +277,79 @@ $wsWorker->onClose = function ($connection) use (&$localConnections) {
         echo "[" . date('H:i:s') . "] 断开 #{$connection->id} (已认证但未绑定用户)\n";
     }
 
-    $connData = $localConnections[$connection->id];
-    $userId = $connData['user_id'];
-    $roomId = $connData['room_id'];
-    $nickname = $connData['nickname'];
-
     unset($localConnections[$connection->id]);
 
-    if ($userId && $roomId) {
-        // 检查该用户是否还有其他连接在同一房间
-        $userStillInRoom = false;
-        foreach ($localConnections as $conn) {
-            if ($conn['user_id'] == $userId && $conn['room_id'] == $roomId) {
-                $userStillInRoom = true;
-                break;
-            }
-        }
+    if (!$userId || !$roomId) {
+        return;
+    }
 
-        // 只有当用户没有其他连接在房间时，才清理Redis和广播离开
-        if (!$userStillInRoom) {
-            // 清理 Redis
-            try {
-                $redis = getRedis();
-                if ($redis) {
-                    $redis->sRem("ws:room:{$roomId}:users", $userId);
-                    $redis->del("ws:room:{$roomId}:user:{$userId}");
-                    $redis->del("ws:user:{$userId}:room");
-                }
-            } catch (\Exception $e) {
-                echo "[" . date('H:i:s') . "] 断开连接时 Redis 清理失败: " . $e->getMessage() . "\n";
-            }
-
-            // 计算在线人数（按用户ID去重）
-            $onlineUserIds = [];
-            foreach ($localConnections as $conn) {
-                if ($conn['room_id'] == $roomId && $conn['user_id']) {
-                    $onlineUserIds[$conn['user_id']] = true;
-                }
-            }
-            $onlineCount = count($onlineUserIds);
-
-            // 广播用户离开
-            broadcastToRoom($roomId, [
-                'type' => 'user_left',
-                'room_id' => $roomId,
-                'user_id' => $userId,
-                'nickname' => $nickname,
-                'online_count' => $onlineCount
-            ], $localConnections);
-
-            // 检查房间互动状态（有人离开需要重置）
-            checkRoomIntimacy($roomId, $localConnections);
+    // 该用户是否还有其它连接在同一房间
+    $userStillInRoom = false;
+    foreach ($localConnections as $conn) {
+        if ($conn['user_id'] == $userId && $conn['room_id'] == $roomId) {
+            $userStillInRoom = true;
+            break;
         }
     }
+    if ($userStillInRoom) {
+        return;
+    }
+
+    // 宽限期内不立即广播「离开」：短暂断线（切换网络/刷新/自动重连）会很快重新 join，
+    // 若立刻广播 user_left，对方会看到「离开→加入」来回刷屏。
+    $leaveKey = $roomId . ':' . $userId;
+
+    // 已有待处理离开 → 直接返回（同一次断开的重复触发）
+    if (isset($pendingLeaves[$leaveKey])) {
+        return;
+    }
+
+    $pendingLeaves[$leaveKey] = true;
+
+    \Workerman\Lib\Timer::add(6, function () use (&$localConnections, &$pendingLeaves, &$wsWorker, $roomId, $userId, $nickname, $leaveKey) {
+        unset($pendingLeaves[$leaveKey]);
+
+        // 宽限期内用户重新加入 → 视为未离开，什么都不做
+        foreach ($localConnections as $conn) {
+            if ($conn['user_id'] == $userId && $conn['room_id'] == $roomId) {
+                echo "[" . date('H:i:s') . "] 用户 {$userId} 在宽限期内重连，跳过离开广播\n";
+                return;
+            }
+        }
+
+        // 确认离开：清理 Redis
+        try {
+            $redis = getRedis();
+            if ($redis) {
+                $redis->sRem("ws:room:{$roomId}:users", $userId);
+                $redis->del("ws:room:{$roomId}:user:{$userId}");
+                $redis->del("ws:user:{$userId}:room");
+            }
+        } catch (\Exception $e) {
+            echo "[" . date('H:i:s') . "] 断开连接时 Redis 清理失败: " . $e->getMessage() . "\n";
+        }
+
+        // 计算在线人数（按用户ID去重）
+        $onlineUserIds = [];
+        foreach ($localConnections as $conn) {
+            if ($conn['room_id'] == $roomId && $conn['user_id']) {
+                $onlineUserIds[$conn['user_id']] = true;
+            }
+        }
+
+        broadcastToRoom($roomId, [
+            'type' => 'user_left',
+            'room_id' => $roomId,
+            'user_id' => $userId,
+            'nickname' => $nickname,
+            'online_count' => count($onlineUserIds)
+        ], $localConnections);
+
+        echo "[" . date('H:i:s') . "] {$nickname} 离开房间 {$roomId}（宽限期结束）\n";
+
+        // 检查房间互动状态（有人离开需要重置）
+        checkRoomIntimacy($roomId, $localConnections);
+    }, [], false);
 };
 
 // 认证
@@ -339,7 +394,7 @@ function handleAuth($connection, $msg, &$localConnections)
 // 加入房间
 function handleJoinRoom($connection, $msg, &$localConnections)
 {
-    global $roomIntimacyStates;
+    global $roomIntimacyStates, $pendingLeaves;
     $connData = &$localConnections[$connection->id];
 
     if (!$connData['authed']) {
@@ -423,6 +478,15 @@ function handleJoinRoom($connection, $msg, &$localConnections)
     // 更新房间
     $connData['room_id'] = $roomId;
 
+    // 用户重新加入 → 取消待处理的离开（宽限期内重连，视为未离开，不广播 user_left / user_joined）
+    $leaveKey = $roomId . ':' . $userId;
+    $reconnectSameRoom = false;
+    if (isset($pendingLeaves[$leaveKey])) {
+        unset($pendingLeaves[$leaveKey]);
+        $reconnectSameRoom = true;
+        echo "[" . date('H:i:s') . "] 用户 {$userId} 重连取消待处理离开\n";
+    }
+
     // 写入 Redis
     try {
         $redis = getRedis();
@@ -456,7 +520,10 @@ function handleJoinRoom($connection, $msg, &$localConnections)
     ]));
 
     // 只有当用户之前不在房间时才广播加入消息
-    if (!$userAlreadyInNewRoom) {
+    // 注意：同一连接重复 join 同一房间（如重连/重试）时不应重复广播 user_joined，否则会出现重复的“X 加入了房间”
+    // $reconnectSameRoom：宽限期内重连（刚取消过待处理离开）同样不广播，避免“离开/加入”刷屏
+    $wasAlreadyInThisRoom = ((int)$oldRoomId === (int)$roomId);
+    if (!$userAlreadyInNewRoom && !$wasAlreadyInThisRoom && !$reconnectSameRoom) {
         broadcastToRoom($roomId, [
             'type' => 'user_joined',
             'room_id' => $roomId,
@@ -517,6 +584,13 @@ function handleMessage($connection, $msg, &$localConnections)
         $broadcastData['video_url'] = $msg['video_url'] ?? $content;
         $broadcastData['video_thumbnail'] = $msg['video_thumbnail'] ?? null;
         $broadcastData['video_duration'] = $msg['video_duration'] ?? null;
+    }
+
+    // 音频消息：附加音频元数据
+    if ($messageType === 'audio') {
+        $broadcastData['audio_url'] = $msg['audio_url'] ?? $content;
+        $broadcastData['audio_duration'] = $msg['audio_duration'] ?? null;
+        $broadcastData['audio_name'] = $msg['audio_name'] ?? '';
     }
 
     // 文件消息：附加文件元数据
@@ -734,6 +808,34 @@ function handleRoomCleared($connection, $msg, &$localConnections)
             'is_restore' => false
         ], $localConnections, $userId);
     }
+}
+
+// 处理用户资料变更广播（昵称/头像），让同房间其他人刷新显示
+function handleProfileUpdated($connection, $msg, &$localConnections)
+{
+    $connData = $localConnections[$connection->id] ?? null;
+    if (!$connData || !$connData['authed'] || !$connData['room_id']) {
+        return;
+    }
+
+    $userId = $connData['user_id'];
+    $nickname = $msg['nickname'] ?? null;
+    $avatar = $msg['avatar'] ?? null;
+    $roomId = $connData['room_id'];
+
+    // 同步更新本连接缓存的资料（供后续广播/在线列表使用）
+    if ($nickname !== null) { $localConnections[$connection->id]['nickname'] = $nickname; }
+    if ($avatar !== null) { $localConnections[$connection->id]['avatar'] = $avatar; }
+
+    echo "[" . date('H:i:s') . "] 用户{$userId} 更新资料: nick=" . ($nickname ?? '-') . "\n";
+
+    // 广播给房间内其他用户（不含自己）
+    broadcastToRoomExcludeUser($roomId, [
+        'type' => 'profile_updated',
+        'user_id' => $userId,
+        'nickname' => $nickname,
+        'avatar' => $avatar
+    ], $localConnections, $userId);
 }
 
 // 处理房间锁定状态变化广播

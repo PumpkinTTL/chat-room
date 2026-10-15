@@ -144,8 +144,8 @@ class User extends BaseController
                 'samesite' => 'Lax', // 防止CSRF攻击
             ]);
 
-            // 记录日志
-            trace('登录成功，设置cookie: ' . $result['token'], 'info');
+            // 记录日志（不记录 token 本体，防日志泄露凭据）
+            trace('登录成功，已设置认证 cookie', 'info');
 
             return $response;
         }
@@ -186,11 +186,11 @@ class User extends BaseController
      */
     public function updateProfile(Request $request)
     {
-        $userId = $request->param('user_id');
-        $currentUserId = $request->userId; // 从中间件获取
+        $currentUserId = $request->userId; // 从中间件获取（当前登录用户）
+        // user_id 缺省时默认修改自己的资料
+        $userId = $request->param('user_id', $currentUserId);
         $data = $request->param();
 
-        // 验证参数
         if (empty($userId)) {
             return json(['code' => 1, 'msg' => '用户ID不能为空'], 400);
         }

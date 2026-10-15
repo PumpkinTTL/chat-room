@@ -1,0 +1,20 @@
+# 构建上下文忽略项（build context = 项目根）
+.git
+.gitignore
+.gitmodules
+.runtime
+runtime
+public/storage
+node_modules
+vue-webchat
+docs
+deploy/docker-compose.yml
+*.md
+.env
+.env.*
+!.env.example
+CARD_TEST.md
+DARK_MODE_MIGRATION.md
+QUOTE_MESSAGE_FIX.md
+INTIMACY_SETUP.md
+sweet-chat-final.html

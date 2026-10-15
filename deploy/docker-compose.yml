@@ -1,0 +1,24 @@
+services:
+  chat-room:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    image: chat-room:latest
+    container_name: chat-room
+    restart: unless-stopped
+    working_dir: /app
+    ports:
+      # 仅绑本机，由既有 OpenResty 反代对外
+      - "127.0.0.1:9017:9000"   # php-fpm
+      - "127.0.0.1:2346:2346"   # Workerman WebSocket
+    volumes:
+      # 生产 .env 挂载（含密钥，不打进镜像）；容器内路径 /app/.env
+      - /opt/chat-room/.env:/app/.env:ro
+    environment:
+      TZ: Asia/Shanghai
+    networks:
+      - 1panel-network          # 复用共享 MariaDB / Redis
+
+networks:
+  1panel-network:
+    external: true
