@@ -70,15 +70,26 @@ $pendingLeaves = [];
 // 亲密互动房间状态（内存维护）
 $roomIntimacyStates = [];
 
+// 一起听会话状态（内存维护，按 roomId 索引）
+// 结构：$listenSessions[$roomId] = [
+//   'initiator' => int, 'responder' => int|null, 'active' => bool,
+//   'audio_url' => string, 'audio_name' => string, 'audio_duration' => number|null,
+//   'position' => float, 'playing' => bool, 'timer' => mixed(待接受自动取消定时器)
+// ]
+$listenSessions = [];
+
 // 创建 Worker
 $wsWorker = new Worker('websocket://0.0.0.0:2346');
 $wsWorker->count = 1;
 $wsWorker->name = 'ChatWebSocket';
 
 // 启动时清理旧数据
-$wsWorker->onWorkerStart = function ($worker) use (&$roomIntimacyStates) {
+$wsWorker->onWorkerStart = function ($worker) use (&$roomIntimacyStates, &$listenSessions) {
     global $localConnections;
     echo "[" . date('H:i:s') . "] WebSocket 服务器启动\n";
+
+    // 重置一起听会话状态（进程重启后不保留旧会话）
+    $listenSessions = [];
 
     try {
         $redis = getRedis();
@@ -246,6 +257,21 @@ $wsWorker->onMessage = function ($connection, $data) use (&$localConnections) {
             case 'intimacy_restart':
                 handleIntimacyRestart($connection, $msg, $localConnections);
                 break;
+            case 'listen_invite':
+                handleListenInvite($connection, $msg, $localConnections);
+                break;
+            case 'listen_accept':
+                handleListenAccept($connection, $msg, $localConnections);
+                break;
+            case 'listen_decline':
+                handleListenDecline($connection, $msg, $localConnections);
+                break;
+            case 'listen_sync':
+                handleListenSync($connection, $msg, $localConnections);
+                break;
+            case 'listen_end':
+                handleListenEnd($connection, $msg, $localConnections);
+                break;
             case 'ping':
                 handlePing($connection, $localConnections);
                 break;
@@ -257,7 +283,7 @@ $wsWorker->onMessage = function ($connection, $data) use (&$localConnections) {
 };
 
 // 连接关闭
-$wsWorker->onClose = function ($connection) use (&$localConnections, &$pendingLeaves, &$wsWorker) {
+$wsWorker->onClose = function ($connection) use (&$localConnections, &$pendingLeaves, &$wsWorker, &$listenSessions) {
     global $roomIntimacyStates;
     if (!isset($localConnections[$connection->id])) {
         echo "[" . date('H:i:s') . "] 断开 #{$connection->id} (未绑定用户)\n";
@@ -293,6 +319,12 @@ $wsWorker->onClose = function ($connection) use (&$localConnections, &$pendingLe
     }
     if ($userStillInRoom) {
         return;
+    }
+
+    // 一起听：断开用户在所属房间的会话中是参与者 → 立即结束（reason=disconnect）
+    // 简单起见不参与 6 秒离开宽限期，避免会话占位
+    if (isListenParticipant($roomId, $userId)) {
+        endListenSession($roomId, 'disconnect', $userId, $nickname, $localConnections);
     }
 
     // 宽限期内不立即广播「离开」：短暂断线（切换网络/刷新/自动重连）会很快重新 join，
@@ -394,7 +426,7 @@ function handleAuth($connection, $msg, &$localConnections)
 // 加入房间
 function handleJoinRoom($connection, $msg, &$localConnections)
 {
-    global $roomIntimacyStates, $pendingLeaves;
+    global $roomIntimacyStates, $pendingLeaves, $listenSessions;
     $connData = &$localConnections[$connection->id];
 
     if (!$connData['authed']) {
@@ -463,6 +495,11 @@ function handleJoinRoom($connection, $msg, &$localConnections)
                 'nickname' => $nickname,
                 'online_count' => count($oldRoomUserIds)
             ], $localConnections, $connection->id);
+
+            // 一起听：用户离开旧房间 → 若其是旧房间会话参与者，结束该会话（reason=left）
+            if (isListenParticipant($oldRoomId, $userId)) {
+                endListenSession($oldRoomId, 'left', $userId, $nickname, $localConnections);
+            }
         }
     }
 
@@ -518,6 +555,25 @@ function handleJoinRoom($connection, $msg, &$localConnections)
         'users' => $onlineUsers,
         'online_count' => count($onlineUsers)
     ]));
+
+    // 一起听：重连恢复 —— 若本房间存在会话，单发 listen_state 给加入者本人
+    if (isset($listenSessions[$roomId])) {
+        if (isListenParticipant($roomId, $userId)) {
+            // 参与者：下发完整会话状态（active + 字段）
+            $listenState = buildListenState($roomId, $localConnections);
+            $connection->send(json_encode($listenState));
+            echo "[" . date('H:i:s') . "] 向 {$nickname} 下发一起听状态 (room={$roomId}, active=" . ($listenState['active'] ? '1' : '0') . ")\n";
+        } elseif (!$listenSessions[$roomId]['active']) {
+            // 非参与者但会话处于 pending：仅告知存在待处理邀请，不泄露音频细节
+            $connection->send(json_encode([
+                'type' => 'listen_state',
+                'room_id' => $roomId,
+                'active' => false,
+                'initiator_id' => $listenSessions[$roomId]['initiator']
+            ]));
+            echo "[" . date('H:i:s') . "] 向 {$nickname} 下发一起听 pending 状态 (room={$roomId})\n";
+        }
+    }
 
     // 只有当用户之前不在房间时才广播加入消息
     // 注意：同一连接重复 join 同一房间（如重连/重试）时不应重复广播 user_joined，否则会出现重复的“X 加入了房间”
@@ -785,6 +841,11 @@ function handleRoomCleared($connection, $msg, &$localConnections)
     $hardDelete = $msg['hard_delete'] ?? false;
     $isRestore = $msg['is_restore'] ?? false; // 是否是恢复操作
 
+    // 一起听：清空房间（非恢复操作）→ 结束该房间会话（reason=cleared）
+    if (!$isRestore) {
+        endListenSession($roomId, 'cleared', $userId, $nickname, $localConnections);
+    }
+
     if ($isRestore) {
         echo "[" . date('H:i:s') . "] 用户{$userId} {$nickname} 恢复房间 {$roomId} 的消息\n";
         
@@ -1015,6 +1076,412 @@ function handleIntimacyRestart($connection, $msg, &$localConnections)
     } else {
         echo "[" . date('H:i:s') . "] 房间 {$roomId} 人数不足，无法重新开始\n";
     }
+}
+
+// ==================== 一起听相关函数 ====================
+
+/**
+ * 精确单发：给指定房间内的指定用户（其所有连接）发送消息
+ * @return int 实际发送的连接数
+ */
+function sendToUser($roomId, $userId, $data, &$localConnections)
+{
+    global $wsWorker;
+    $message = json_encode($data);
+    $sent = 0;
+
+    foreach ($localConnections as $connId => $conn) {
+        if ($conn['room_id'] != $roomId) continue;
+        if ($conn['user_id'] != $userId) continue;
+
+        // 连接对象从 worker 连接池里按 id 找
+        $connObj = null;
+        foreach ($wsWorker->connections as $c) {
+            if ($c->id == $connId) { $connObj = $c; break; }
+        }
+        if ($connObj) {
+            try {
+                $connObj->send($message);
+                $sent++;
+            } catch (\Exception $e) {}
+        }
+    }
+
+    return $sent;
+}
+
+/**
+ * 获取房间内某用户的昵称（先从本地连接取，取不到再查库）
+ */
+function getListenUserNickname($roomId, $userId, &$localConnections)
+{
+    foreach ($localConnections as $conn) {
+        if ($conn['room_id'] == $roomId && $conn['user_id'] == $userId) {
+            return $conn['nickname'];
+        }
+    }
+
+    try {
+        $user = \app\model\User::find($userId);
+        if ($user) {
+            return $user->nick_name;
+        }
+    } catch (\Exception $e) {}
+
+    return '';
+}
+
+/**
+ * 判断用户是否为该房间一起听会话的参与者
+ */
+function isListenParticipant($roomId, $userId)
+{
+    global $listenSessions;
+    if (!isset($listenSessions[$roomId])) {
+        return false;
+    }
+    $s = $listenSessions[$roomId];
+    return ($s['initiator'] == $userId) || ($s['responder'] !== null && $s['responder'] == $userId);
+}
+
+/**
+ * 结束一起听会话（统一释放入口：清 timer + unset 会话 + 可选广播）
+ * @param string $reason ended / cancelled / disconnect / left / cleared
+ * @param bool   $notify 是否广播 listen_ended
+ * @return bool  是否确有会话被结束
+ */
+function endListenSession($roomId, $reason, $byUserId, $byNickname, &$localConnections, $notify = true)
+{
+    global $listenSessions;
+
+    if (!isset($listenSessions[$roomId])) {
+        return false;
+    }
+
+    $session = $listenSessions[$roomId];
+
+    // 释放待接受的自动取消定时器
+    if (!empty($session['timer'])) {
+        \Workerman\Lib\Timer::del($session['timer']);
+    }
+
+    unset($listenSessions[$roomId]);
+
+    if ($notify) {
+        $endedData = [
+            'type' => 'listen_ended',
+            'room_id' => $roomId,
+            'reason' => $reason,
+            'by_user_id' => $byUserId,
+            'by_nickname' => $byNickname
+        ];
+
+        // 只发双方参与者（房间可能 ≥3 人，按 user_id 精确发送）
+        sendToUser($roomId, $session['initiator'], $endedData, $localConnections);
+        if ($session['responder'] !== null && $session['responder'] != $session['initiator']) {
+            sendToUser($roomId, $session['responder'], $endedData, $localConnections);
+        }
+    }
+
+    echo "[" . date('H:i:s') . "] 房间 {$roomId} 一起听会话结束 (reason={$reason}, by={$byUserId})\n";
+    return true;
+}
+
+/**
+ * 构建一起听会话状态（用于重连恢复）
+ */
+function buildListenState($roomId, &$localConnections)
+{
+    global $listenSessions;
+
+    if (!isset($listenSessions[$roomId])) {
+        return ['type' => 'listen_state', 'room_id' => $roomId, 'active' => false];
+    }
+
+    $s = $listenSessions[$roomId];
+    return [
+        'type' => 'listen_state',
+        'room_id' => $roomId,
+        'active' => $s['active'],
+        'initiator_id' => $s['initiator'],
+        'responder_id' => $s['responder'],
+        'initiator_name' => getListenUserNickname($roomId, $s['initiator'], $localConnections),
+        'responder_name' => ($s['responder'] !== null) ? getListenUserNickname($roomId, $s['responder'], $localConnections) : '',
+        'audio_url' => $s['audio_url'],
+        'audio_name' => $s['audio_name'],
+        'audio_duration' => $s['audio_duration'],
+        'position' => $s['position'],
+        'playing' => $s['playing'],
+        'server_at' => round(microtime(true) * 1000)
+    ];
+}
+
+/**
+ * 一起听：发起邀请
+ */
+function handleListenInvite($connection, $msg, &$localConnections)
+{
+    global $listenSessions;
+
+    $connData = $localConnections[$connection->id] ?? null;
+    if (!$connData || !$connData['authed']) {
+        $connection->send(json_encode(['type' => 'error', 'msg' => '请先认证']));
+        return;
+    }
+    if (!$connData['room_id']) {
+        $connection->send(json_encode(['type' => 'error', 'msg' => '请先加入房间']));
+        return;
+    }
+
+    $roomId = $connData['room_id'];
+    $userId = $connData['user_id'];
+    $nickname = $connData['nickname'];
+
+    $audioUrl = trim((string)($msg['audio_url'] ?? ''));
+    if ($audioUrl === '') {
+        $connection->send(json_encode(['type' => 'error', 'msg' => '音频地址不能为空']));
+        return;
+    }
+
+    // 该房间已有会话（active 或 pending）→ 拒绝
+    if (isset($listenSessions[$roomId])) {
+        echo "[" . date('H:i:s') . "] 房间 {$roomId} 已有一起听会话，拒绝 {$nickname} 的邀请\n";
+        $connection->send(json_encode(['type' => 'error', 'msg' => '当前已有一起听会话']));
+        return;
+    }
+
+    $audioName = (string)($msg['audio_name'] ?? '');
+    $audioDuration = $msg['audio_duration'] ?? null;
+    $position = (float)($msg['position'] ?? 0);
+    $playing = (bool)($msg['playing'] ?? false);
+
+    $listenSessions[$roomId] = [
+        'initiator' => $userId,
+        'responder' => null,
+        'active' => false,
+        'audio_url' => $audioUrl,
+        'audio_name' => $audioName,
+        'audio_duration' => $audioDuration,
+        'position' => $position,
+        'playing' => $playing,
+        'timer' => null
+    ];
+
+    // 60 秒内未接受 → 自动取消
+    $listenSessions[$roomId]['timer'] = \Workerman\Lib\Timer::add(60, function () use (&$localConnections, $roomId, $userId, $nickname) {
+        global $listenSessions;
+
+        // 会话已不存在或已进入双人模式 → 什么都不做
+        if (!isset($listenSessions[$roomId]) || $listenSessions[$roomId]['active']) {
+            return;
+        }
+
+        echo "[" . date('H:i:s') . "] 房间 {$roomId} 一起听邀请超时未接受，自动取消\n";
+        endListenSession($roomId, 'cancelled', $userId, $nickname, $localConnections);
+    }, [], false);
+
+    echo "[" . date('H:i:s') . "] {$nickname} 在房间 {$roomId} 发起一起听: {$audioName}\n";
+
+    // 广播给房间内除发起者外的其他人
+    broadcastToRoomExcludeUser($roomId, [
+        'type' => 'listen_invited',
+        'from_user_id' => $userId,
+        'from_nickname' => $nickname,
+        'audio_url' => $audioUrl,
+        'audio_name' => $audioName,
+        'audio_duration' => $audioDuration,
+        'position' => $position,
+        'playing' => $playing
+    ], $localConnections, $userId);
+}
+
+/**
+ * 一起听：接受邀请
+ */
+function handleListenAccept($connection, $msg, &$localConnections)
+{
+    global $listenSessions;
+
+    $connData = $localConnections[$connection->id] ?? null;
+    if (!$connData || !$connData['authed'] || !$connData['room_id']) {
+        $connection->send(json_encode(['type' => 'error', 'msg' => '请先加入房间']));
+        return;
+    }
+
+    $roomId = $connData['room_id'];
+    $userId = $connData['user_id'];
+    $nickname = $connData['nickname'];
+
+    if (!isset($listenSessions[$roomId])) {
+        $connection->send(json_encode(['type' => 'error', 'msg' => '会话不存在或已结束']));
+        return;
+    }
+
+    $session = $listenSessions[$roomId];
+
+    if ($session['active']) {
+        $connection->send(json_encode(['type' => 'error', 'msg' => '会话已开始']));
+        return;
+    }
+
+    if ($userId == $session['initiator']) {
+        $connection->send(json_encode(['type' => 'error', 'msg' => '不能接受自己的邀请']));
+        return;
+    }
+
+    // 清掉待接受自动取消定时器
+    if (!empty($session['timer'])) {
+        \Workerman\Lib\Timer::del($session['timer']);
+    }
+
+    $listenSessions[$roomId]['responder'] = $userId;
+    $listenSessions[$roomId]['active'] = true;
+    $listenSessions[$roomId]['timer'] = null;
+
+    $initiatorId = $session['initiator'];
+    $initiatorName = getListenUserNickname($roomId, $initiatorId, $localConnections);
+
+    echo "[" . date('H:i:s') . "] 房间 {$roomId} 一起听已开始: {$initiatorName}({$initiatorId}) + {$nickname}({$userId})\n";
+
+    // 只发双方（房间可能 ≥3 人，按 user_id 精确发送）
+    $started = [
+        'type' => 'listen_started',
+        'audio_url' => $session['audio_url'],
+        'audio_name' => $session['audio_name'],
+        'audio_duration' => $session['audio_duration'],
+        'position' => $session['position'],
+        'playing' => $session['playing'],
+        'server_at' => round(microtime(true) * 1000),
+        'initiator_id' => $initiatorId,
+        'initiator_name' => $initiatorName,
+        'responder_id' => $userId,
+        'responder_name' => $nickname
+    ];
+
+    sendToUser($roomId, $initiatorId, $started, $localConnections);
+    if ($userId != $initiatorId) {
+        sendToUser($roomId, $userId, $started, $localConnections);
+    }
+}
+
+/**
+ * 一起听：拒绝邀请
+ */
+function handleListenDecline($connection, $msg, &$localConnections)
+{
+    global $listenSessions;
+
+    $connData = $localConnections[$connection->id] ?? null;
+    if (!$connData || !$connData['authed'] || !$connData['room_id']) {
+        return;
+    }
+
+    $roomId = $connData['room_id'];
+    $userId = $connData['user_id'];
+    $nickname = $connData['nickname'];
+
+    if (!isset($listenSessions[$roomId]) || $listenSessions[$roomId]['active']) {
+        $connection->send(json_encode(['type' => 'error', 'msg' => '没有待接受的邀请']));
+        return;
+    }
+
+    $initiatorId = $listenSessions[$roomId]['initiator'];
+    if ($userId == $initiatorId) {
+        $connection->send(json_encode(['type' => 'error', 'msg' => '不能拒绝自己的邀请']));
+        return;
+    }
+
+    echo "[" . date('H:i:s') . "] {$nickname} 拒绝了房间 {$roomId} 的一起听邀请\n";
+
+    // 先清会话（不广播 listen_ended），再单发拒绝通知给发起者
+    endListenSession($roomId, 'declined', $userId, $nickname, $localConnections, false);
+
+    sendToUser($roomId, $initiatorId, [
+        'type' => 'listen_declined',
+        'by_user_id' => $userId,
+        'by_nickname' => $nickname
+    ], $localConnections);
+}
+
+/**
+ * 一起听：同步播放进度（转发给另一方）
+ */
+function handleListenSync($connection, $msg, &$localConnections)
+{
+    global $listenSessions;
+
+    $connData = $localConnections[$connection->id] ?? null;
+    if (!$connData || !$connData['authed'] || !$connData['room_id']) {
+        return;
+    }
+
+    $roomId = $connData['room_id'];
+    $userId = $connData['user_id'];
+
+    if (!isset($listenSessions[$roomId]) || !$listenSessions[$roomId]['active']) {
+        return;
+    }
+
+    $session = $listenSessions[$roomId];
+    if ($userId != $session['initiator'] && $userId != $session['responder']) {
+        return;
+    }
+
+    $position = (float)($msg['position'] ?? 0);
+    $playing = (bool)($msg['playing'] ?? false);
+
+    $listenSessions[$roomId]['position'] = $position;
+    $listenSessions[$roomId]['playing'] = $playing;
+
+    // 转发给另一方参与者（不回给发送者）
+    $other = ($userId == $session['initiator']) ? $session['responder'] : $session['initiator'];
+    if ($other !== null) {
+        sendToUser($roomId, $other, [
+            'type' => 'listen_sync',
+            'position' => $position,
+            'playing' => $playing,
+            'by_user_id' => $userId,
+            'server_at' => round(microtime(true) * 1000)
+        ], $localConnections);
+    }
+}
+
+/**
+ * 一起听：主动结束
+ */
+function handleListenEnd($connection, $msg, &$localConnections)
+{
+    global $listenSessions;
+
+    $connData = $localConnections[$connection->id] ?? null;
+    if (!$connData || !$connData['authed'] || !$connData['room_id']) {
+        return;
+    }
+
+    $roomId = $connData['room_id'];
+    $userId = $connData['user_id'];
+    $nickname = $connData['nickname'];
+
+    if (!isset($listenSessions[$roomId])) {
+        $connection->send(json_encode(['type' => 'error', 'msg' => '会话不存在或已结束']));
+        return;
+    }
+
+    $session = $listenSessions[$roomId];
+
+    // pending 阶段只能是发起者结束
+    if (!$session['active'] && $userId != $session['initiator']) {
+        $connection->send(json_encode(['type' => 'error', 'msg' => '无权结束该会话']));
+        return;
+    }
+    if ($session['active'] && $userId != $session['initiator'] && $userId != $session['responder']) {
+        $connection->send(json_encode(['type' => 'error', 'msg' => '无权结束该会话']));
+        return;
+    }
+
+    echo "[" . date('H:i:s') . "] {$nickname} 主动结束房间 {$roomId} 的一起听\n";
+
+    endListenSession($roomId, 'ended', $userId, $nickname, $localConnections);
 }
 
 Worker::runAll();
