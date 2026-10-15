@@ -93,9 +93,10 @@ class MessageReadService
         }
         
         try {
-            // 获取房间内所有未读消息ID（排除自己发的）
+            // 获取房间内所有未读消息ID（排除自己发的、排除系统消息，与 RoomUserService::unreadCountForRoom 保持同一口径）
             $messageIds = Message::where('room_id', $roomId)
                 ->where('user_id', '<>', $userId)
+                ->where('message_type', '<>', Message::TYPE_SYSTEM)
                 ->whereNotExists(function ($query) use ($userId) {
                     $query->table('ch_message_reads')
                         ->where('ch_message_reads.message_id', '=', Db::raw('ch_messages.id'))

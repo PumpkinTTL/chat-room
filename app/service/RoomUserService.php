@@ -179,20 +179,46 @@ class RoomUserService
                 $room['lastMessageType'] = null;
             }
 
-            // 获取未读消息数（需要通过 Message 表关联获取）
-            $unreadCount = \app\model\Message::where('room_id', $room['id'])
-                ->where('user_id', '<>', $userId)
-                ->whereNotExists(function ($query) use ($userId) {
-                    $query->table('ch_message_reads')
-                        ->where('ch_message_reads.message_id', '=', Db::raw('ch_messages.id'))
-                        ->where('ch_message_reads.user_id', '=', $userId);
-                })
-                ->count();
-            
-            $room['unreadCount'] = $unreadCount;
+            // 获取未读消息数（复用统一口径：排除自己、已删除、系统消息，以 ch_message_reads 判定已读）
+            $room['unreadCount'] = self::unreadCountForRoom($room['id'], $userId);
         }
 
         return $rooms;
+    }
+
+    /**
+     * 统计用户在某房间的未读消息数（唯一口径，供 getUserRooms 与 Message::unreadCount 复用）
+     *
+     * 未读口径（与侧边栏徽章保持一致）：
+     *   房间内 + 别人发的（room_id 匹配、user_id <> 当前用户，含 user_id 为 NULL 的系统消息一并排除）
+     *   + 未删除（delete_time 为空）
+     *   + 非系统消息（message_type <> 4）
+     *   + 在 ch_message_reads 中无当前用户的已读记录
+     *
+     * 说明：本方法需跨类复用（控制器 Message::unreadCount），故为 public static；
+     *       保留单一实现，避免两处口径漂移。
+     *
+     * @param int $roomId 房间ID
+     * @param int $userId 用户ID
+     * @return int 未读消息数
+     */
+    public static function unreadCountForRoom($roomId, $userId)
+    {
+        if (empty($roomId) || empty($userId)) {
+            return 0;
+        }
+
+        // 注意：用 Message 模型查询会自动带上软删除条件（delete_time is null），
+        // 未读消息主表因此在生成 SQL 时即为 ch_messages，可安全用于关联子查询。
+        return \app\model\Message::where('room_id', $roomId)
+            ->where('user_id', '<>', $userId)
+            ->where('message_type', '<>', \app\model\Message::TYPE_SYSTEM)
+            ->whereNotExists(function ($query) use ($userId) {
+                $query->table('ch_message_reads')
+                    ->where('ch_message_reads.message_id', '=', Db::raw('ch_messages.id'))
+                    ->where('ch_message_reads.user_id', '=', $userId);
+            })
+            ->count();
     }
 
     /**

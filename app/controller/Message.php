@@ -362,7 +362,8 @@ class Message
     }
 
     /**
-     * 获取未读消息数量（预留接口）
+     * 获取未读消息数量
+     * 口径与侧边栏徽章一致：房间内、别人发的、未删除、非系统消息、无当前用户已读记录
      * @param Request $request
      * @return Response
      */
@@ -380,14 +381,26 @@ class Message
             return json(['code' => 1, 'msg' => $validate->getError()], 400);
         }
 
-        // 目前返回0，后续可以根据业务需求实现
-        return json([
-            'code' => 0,
-            'msg'  => '获取成功',
-            'data' => [
-                'unread_count' => 0,
-            ]
-        ]);
+        // 校验当前用户是否在该房间内
+        if (!\app\service\RoomUserService::isUserInRoom($roomId, $userId)) {
+            return json(['code' => 1, 'msg' => '您不在此房间内'], 403);
+        }
+
+        try {
+            // 复用统一未读口径，避免与侧边栏徽章逻辑漂移
+            $unreadCount = \app\service\RoomUserService::unreadCountForRoom($roomId, $userId);
+
+            return json([
+                'code' => 0,
+                'msg'  => '获取成功',
+                'data' => [
+                    'unread_count' => $unreadCount,
+                ]
+            ]);
+        } catch (\Exception $e) {
+            Log::error('[Message] 获取未读数失败: ' . $e->getMessage());
+            return json(['code' => 1, 'msg' => '获取失败，请稍后重试'], 500);
+        }
     }
 
     /**

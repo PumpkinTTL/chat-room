@@ -16,6 +16,11 @@ use think\Exception;
  */
 class MessageService
 {
+    /** 音频扩展名（用于把「以文件方式发送的音频」识别为音频消息） */
+    private const AUDIO_EXTENSIONS = [
+        'mp3', 'wav', 'ogg', 'oga', 'aac', 'm4a', 'flac', 'opus', 'amr', 'wma', 'ape', 'aiff', 'aif', 'mka', 'weba',
+    ];
+
     /**
      * 发送文本消息
      * @param int $roomId 房间ID
@@ -828,11 +833,30 @@ class MessageService
             $result['audioName'] = $fileInfo['original_name'] ?? '';
         }
         // 文件消息
-        elseif ($message['message_type'] == Message::TYPE_FILE && $fileInfo) {
-            $result['fileName'] = $fileInfo['original_name'] ?? $message['content'];
-            $result['fileSize'] = $fileInfo['file_size'] ?? 0;
-            $result['fileExtension'] = $fileInfo['extension'] ?? '';
-            $result['fileUrl'] = $fileInfo['url'] ?? '';
+        elseif ($message['message_type'] == Message::TYPE_FILE) {
+            $originalName = $fileInfo['original_name'] ?? $message['content'];
+            $ext = strtolower($fileInfo['extension'] ?? '');
+            if ($ext === '' && $originalName) {
+                $ext = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+            }
+
+            // 以「文件」方式发送的音频（如 .mp3）也识别为音频消息：可内联播放 + 归入音频筛选/统计
+            if (in_array($ext, self::AUDIO_EXTENSIONS, true)) {
+                $url = $fileInfo['url'] ?? (preg_match('#^https?://#i', (string)$message['content']) ? $message['content'] : '');
+                $result['type']              = 'audio';
+                $result['audioUrl']          = $url;
+                $result['audioName']         = $originalName;
+                $result['audioDuration']     = $fileInfo['duration'] ?? null;
+                $result['fileName']          = $originalName;
+                $result['fileSize']          = $fileInfo['file_size'] ?? 0;
+                $result['fileExtension']     = $ext;
+                $result['fileUrl']           = $url;
+            } else {
+                $result['fileName'] = $originalName;
+                $result['fileSize'] = $fileInfo['file_size'] ?? 0;
+                $result['fileExtension'] = $ext;
+                $result['fileUrl'] = $fileInfo['url'] ?? '';
+            }
         }
 
         // 处理扩展数据（引用信息等）
@@ -1210,7 +1234,25 @@ class MessageService
                 }
 
                 // 消息类型过滤
-                if ($type !== '' && isset($typeMap[$type])) {
+                // 「音频」还需包含以文件方式发送的音频（.mp3 等）；「文件」则排除这些
+                if ($type === 'audio') {
+                    $query->where(function ($q) {
+                        $q->where('message_type', Message::TYPE_AUDIO)
+                            ->whereOr(function ($q2) {
+                                $q2->where('message_type', Message::TYPE_FILE)
+                                    ->whereRaw(
+                                        self::audioExtExpr() . ' IN (' . self::audioExtPlaceholders() . ')',
+                                        self::AUDIO_EXTENSIONS
+                                    );
+                            });
+                    });
+                } elseif ($type === 'file') {
+                    $query->where('message_type', Message::TYPE_FILE)
+                        ->whereRaw(
+                            self::audioExtExpr() . ' NOT IN (' . self::audioExtPlaceholders() . ')',
+                            self::AUDIO_EXTENSIONS
+                        );
+                } elseif ($type !== '' && isset($typeMap[$type])) {
                     $query->where('message_type', $typeMap[$type]);
                 }
 
@@ -1289,13 +1331,6 @@ class MessageService
             $total = $baseQuery()->count();
 
             // 按类型分组统计
-            $typeMap = [
-                Message::TYPE_TEXT  => 'text',
-                Message::TYPE_IMAGE => 'image',
-                Message::TYPE_VIDEO => 'video',
-                Message::TYPE_AUDIO => 'audio',
-                Message::TYPE_FILE  => 'file',
-            ];
             $byType = ['text' => 0, 'image' => 0, 'video' => 0, 'audio' => 0, 'file' => 0];
 
             $typeRows = $baseQuery()
@@ -1304,11 +1339,30 @@ class MessageService
                 ->select()
                 ->toArray();
 
+            $fileTypeTotal = 0;
             foreach ($typeRows as $row) {
-                $typeKey = $typeMap[(int)$row['message_type']] ?? null;
-                if ($typeKey !== null) {
-                    $byType[$typeKey] = (int)$row['count'];
+                $mt = (int)$row['message_type'];
+                $cnt = (int)$row['count'];
+                switch ($mt) {
+                    case Message::TYPE_TEXT:  $byType['text']  = $cnt; break;
+                    case Message::TYPE_IMAGE: $byType['image'] = $cnt; break;
+                    case Message::TYPE_VIDEO: $byType['video'] = $cnt; break;
+                    case Message::TYPE_AUDIO: $byType['audio'] = $cnt; break;
+                    case Message::TYPE_FILE:  $fileTypeTotal  = $cnt; break;
                 }
+            }
+
+            // TYPE_FILE 中以音频扩展名结尾的，归入「音频」而非「文件」
+            if ($fileTypeTotal > 0) {
+                $fileTypeAudio = (int)$baseQuery()
+                    ->where('message_type', Message::TYPE_FILE)
+                    ->whereRaw(
+                        self::audioExtExpr() . ' IN (' . self::audioExtPlaceholders() . ')',
+                        self::AUDIO_EXTENSIONS
+                    )
+                    ->count();
+                $byType['audio'] += $fileTypeAudio;
+                $byType['file']   = max(0, $fileTypeTotal - $fileTypeAudio);
             }
 
             // 最近30天（含今天）每日消息数，无消息的日期补0
@@ -1359,16 +1413,71 @@ class MessageService
             $firstTime = $baseQuery()->min('create_time', false);
             $lastTime  = $baseQuery()->max('create_time', false);
 
+            // 最活跃的一天
+            $busiestDayRow = $baseQuery()
+                ->field('DATE(create_time) as date, COUNT(*) as count')
+                ->group('DATE(create_time)')
+                ->order('count', 'desc')
+                ->limit(1)
+                ->find();
+            $busiestDay = ($busiestDayRow && !empty($busiestDayRow['date']))
+                ? ['date' => $busiestDayRow['date'], 'count' => (int)$busiestDayRow['count']]
+                : null;
+
+            // 最活跃的时段（0-23 点）
+            $hourRow = $baseQuery()
+                ->field('HOUR(create_time) as hour, COUNT(*) as count')
+                ->group('HOUR(create_time)')
+                ->order('count', 'desc')
+                ->limit(1)
+                ->find();
+            $busiestHour = ($hourRow && isset($hourRow['hour']))
+                ? ['hour' => (int)$hourRow['hour'], 'count' => (int)$hourRow['count']]
+                : null;
+
+            // 我在此房间的发言数 + 排名
+            $allSenderRows = $baseQuery()
+                ->field('user_id, COUNT(*) as count')
+                ->group('user_id')
+                ->select()
+                ->toArray();
+            $countsByUser = [];
+            foreach ($allSenderRows as $r) {
+                $countsByUser[(int)$r['user_id']] = (int)$r['count'];
+            }
+            arsort($countsByUser);
+            $myCount = $countsByUser[$userId] ?? 0;
+            $myRank = 0;
+            $idx = 0;
+            foreach ($countsByUser as $uid => $c) {
+                $idx++;
+                if ((int)$uid === (int)$userId) {
+                    $myRank = $idx;
+                    break;
+                }
+            }
+
+            // 媒体总量（图片 + 视频 + 音频）
+            $mediaTotal = $byType['image'] + $byType['video'] + $byType['audio'];
+
             return [
                 'code' => 0,
                 'msg'  => '获取成功',
                 'data' => [
-                    'total'      => $total,
-                    'by_type'    => $byType,
-                    'by_day'     => $byDay,
-                    'by_sender'  => $bySender,
-                    'first_time' => $firstTime ?: null,
-                    'last_time'  => $lastTime ?: null,
+                    'total'       => $total,
+                    'by_type'     => $byType,
+                    'by_day'      => $byDay,
+                    'by_sender'   => $bySender,
+                    'first_time'  => $firstTime ?: null,
+                    'last_time'   => $lastTime ?: null,
+                    'busiest_day' => $busiestDay,
+                    'busiest_hour' => $busiestHour,
+                    'media_total' => $mediaTotal,
+                    'rank'        => [
+                        'my_count'      => $myCount,
+                        'my_rank'       => $myRank,
+                        'senders_total' => count($countsByUser),
+                    ],
                 ],
             ];
 
@@ -1396,5 +1505,30 @@ class MessageService
     private static function normalizeEndTime($date)
     {
         return strlen($date) === 10 ? $date . ' 23:59:59' : $date;
+    }
+
+    /**
+     * 从 file_info(JSON) 取小写扩展名的 SQL 表达式
+     * 优先取 $.extension；缺失时从 raw JSON 里的 original_name 兜底解析（JSON 函数不可用时也可用）
+     * @return string
+     */
+    private static function audioExtExpr(): string
+    {
+        $parts = ["LOWER(JSON_UNQUOTE(JSON_EXTRACT(file_info, '$.extension')))"];
+        $name = "LOWER(SUBSTRING_INDEX(SUBSTRING_INDEX(file_info, '\"original_name\":\"', -1), '.', -1))";
+        foreach (self::AUDIO_EXTENSIONS as $ext) {
+            // $ext 仅含 [a-z0-9]，可安全内联
+            $parts[] = "IF({$name} = '{$ext}', '{$ext}', NULL)";
+        }
+        return 'COALESCE(' . implode(',', $parts) . ", '')";
+    }
+
+    /**
+     * 音频扩展名列表的 SQL 占位符
+     * @return string
+     */
+    private static function audioExtPlaceholders(): string
+    {
+        return implode(',', array_fill(0, count(self::AUDIO_EXTENSIONS), '?'));
     }
 }
