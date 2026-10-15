@@ -321,8 +321,9 @@ $wsWorker->onClose = function ($connection) use (&$localConnections, &$pendingLe
         return;
     }
 
-    // 一起听：断开用户在所属房间的会话中是参与者 → 立即结束（reason=disconnect）
-    // 简单起见不参与 6 秒离开宽限期，避免会话占位
+    // 一起听：断开用户在所属房间的会话中是参与者 → 结束（reason=disconnect）。
+    // 关键：仅当「该用户在本服务端已无任何活跃连接」时才结束（上面的 $userStillInRoom 已判定），
+    // 避免用户重连/多标签时误杀会话。
     if (isListenParticipant($roomId, $userId)) {
         endListenSession($roomId, 'disconnect', $userId, $nickname, $localConnections);
     }
@@ -556,23 +557,28 @@ function handleJoinRoom($connection, $msg, &$localConnections)
         'online_count' => count($onlineUsers)
     ]));
 
-    // 一起听：重连恢复 —— 若本房间存在会话，单发 listen_state 给加入者本人
-    if (isset($listenSessions[$roomId])) {
-        if (isListenParticipant($roomId, $userId)) {
-            // 参与者：下发完整会话状态（active + 字段）
-            $listenState = buildListenState($roomId, $localConnections);
-            $connection->send(json_encode($listenState));
-            echo "[" . date('H:i:s') . "] 向 {$nickname} 下发一起听状态 (room={$roomId}, active=" . ($listenState['active'] ? '1' : '0') . ")\n";
-        } elseif (!$listenSessions[$roomId]['active']) {
-            // 非参与者但会话处于 pending：仅告知存在待处理邀请，不泄露音频细节
-            $connection->send(json_encode([
-                'type' => 'listen_state',
-                'room_id' => $roomId,
-                'active' => false,
-                'initiator_id' => $listenSessions[$roomId]['initiator']
-            ]));
-            echo "[" . date('H:i:s') . "] 向 {$nickname} 下发一起听 pending 状态 (room={$roomId})\n";
-        }
+    // 一起听：join 后同步会话状态，确保客户端本地状态与服务端一致（避免任何残留/泄漏）
+    if (isset($listenSessions[$roomId]) && isListenParticipant($roomId, $userId)) {
+        // 参与者：下发完整会话状态
+        $listenState = buildListenState($roomId, $localConnections);
+        $connection->send(json_encode($listenState));
+        echo "[" . date('H:i:s') . "] 向 {$nickname} 下发一起听状态 (room={$roomId}, active=" . ($listenState['active'] ? '1' : '0') . ")\n";
+    } elseif (isset($listenSessions[$roomId]) && !$listenSessions[$roomId]['active']) {
+        // 非参与者但会话 pending：仅告知存在待处理邀请，不泄露音频细节
+        $connection->send(json_encode([
+            'type' => 'listen_state',
+            'room_id' => $roomId,
+            'active' => false,
+            'initiator_id' => $listenSessions[$roomId]['initiator']
+        ]));
+        echo "[" . date('H:i:s') . "] 向 {$nickname} 下发一起听 pending 状态 (room={$roomId})\n";
+    } else {
+        // 该房间无会话：明确告知非活跃，客户端据此清掉任何残留状态（防泄漏）
+        $connection->send(json_encode([
+            'type' => 'listen_state',
+            'room_id' => $roomId,
+            'active' => false
+        ]));
     }
 
     // 只有当用户之前不在房间时才广播加入消息
@@ -1164,6 +1170,10 @@ function endListenSession($roomId, $reason, $byUserId, $byNickname, &$localConne
     if (!empty($session['timer'])) {
         \Workerman\Lib\Timer::del($session['timer']);
     }
+    // 释放「掉线宽限」延迟结束定时器
+    if (!empty($session['endTimer'])) {
+        \Workerman\Lib\Timer::del($session['endTimer']);
+    }
 
     unset($listenSessions[$roomId]);
 
@@ -1176,10 +1186,18 @@ function endListenSession($roomId, $reason, $byUserId, $byNickname, &$localConne
             'by_nickname' => $byNickname
         ];
 
-        // 只发双方参与者（房间可能 ≥3 人，按 user_id 精确发送）
-        sendToUser($roomId, $session['initiator'], $endedData, $localConnections);
-        if ($session['responder'] !== null && $session['responder'] != $session['initiator']) {
-            sendToUser($roomId, $session['responder'], $endedData, $localConnections);
+        if (!empty($session['active'])) {
+            // 已进入双人模式：只发双方参与者（房间可能 ≥3 人，按 user_id 精确发送）
+            sendToUser($roomId, $session['initiator'], $endedData, $localConnections);
+            if ($session['responder'] !== null && $session['responder'] != $session['initiator']) {
+                sendToUser($roomId, $session['responder'], $endedData, $localConnections);
+            }
+        } else {
+            // 仍在「邀请中」阶段就结束（发起者取消 / 60s 超时）：此时 responder 还是 null，
+            // 被邀请方必须收到通知，否则其确认气泡会一直挂着（数据泄漏）。
+            // → 广播给房间内除发起者外的所有人（即所有看到邀请的人），并单独回执给发起者。
+            broadcastToRoomExcludeUser($roomId, $endedData, $localConnections, $session['initiator']);
+            sendToUser($roomId, $session['initiator'], $endedData, $localConnections);
         }
     }
 
@@ -1264,7 +1282,8 @@ function handleListenInvite($connection, $msg, &$localConnections)
         'audio_duration' => $audioDuration,
         'position' => $position,
         'playing' => $playing,
-        'timer' => null
+        'timer' => null,
+        'endTimer' => null
     ];
 
     // 60 秒内未接受 → 自动取消
@@ -1393,8 +1412,18 @@ function handleListenDecline($connection, $msg, &$localConnections)
 
     echo "[" . date('H:i:s') . "] {$nickname} 拒绝了房间 {$roomId} 的一起听邀请\n";
 
-    // 先清会话（不广播 listen_ended），再单发拒绝通知给发起者
+    // 先释放会话（不广播 listen_ended），再分别通知：
+    // - 发起者：收到 listen_declined（明确「被拒绝」）
+    // - 房间内其余看到过邀请的人（含拒绝者本人）：收到 listen_ended，消除残留气泡
     endListenSession($roomId, 'declined', $userId, $nickname, $localConnections, false);
+
+    broadcastToRoomExcludeUser($roomId, [
+        'type' => 'listen_ended',
+        'room_id' => $roomId,
+        'reason' => 'declined',
+        'by_user_id' => $userId,
+        'by_nickname' => $nickname
+    ], $localConnections, $initiatorId);
 
     sendToUser($roomId, $initiatorId, [
         'type' => 'listen_declined',
@@ -1481,7 +1510,9 @@ function handleListenEnd($connection, $msg, &$localConnections)
 
     echo "[" . date('H:i:s') . "] {$nickname} 主动结束房间 {$roomId} 的一起听\n";
 
-    endListenSession($roomId, 'ended', $userId, $nickname, $localConnections);
+    // 邀请中就取消 → cancelled（被邀请方据此消除气泡）；已是双人模式 → ended
+    $reason = $session['active'] ? 'ended' : 'cancelled';
+    endListenSession($roomId, $reason, $userId, $nickname, $localConnections);
 }
 
 Worker::runAll();
