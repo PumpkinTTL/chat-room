@@ -78,6 +78,15 @@ $roomIntimacyStates = [];
 // ]
 $listenSessions = [];
 
+// 语音通话会话（内存维护，按 roomId 索引）
+// 结构：$voiceCalls[$roomId] = [
+//   'caller' => int, 'callee' => int|null, 'state' => string,
+//   'started_at' => float, 'timer' => mixed(待接听超时定时器)
+// ]
+// state: inviting(呼叫中) | active(通话中)
+// 说明：本表只记录“谁和谁在通”，SDP / ICE candidate 对服务端是不透明数据，收即转发，不做解析
+$voiceCalls = [];
+
 // 创建 Worker
 $wsWorker = new Worker('websocket://0.0.0.0:2346');
 $wsWorker->count = 1;
@@ -272,6 +281,21 @@ $wsWorker->onMessage = function ($connection, $data) use (&$localConnections) {
             case 'listen_end':
                 handleListenEnd($connection, $msg, $localConnections);
                 break;
+            case 'voice_invite':
+                handleVoiceInvite($connection, $msg, $localConnections);
+                break;
+            case 'voice_accept':
+                handleVoiceAccept($connection, $msg, $localConnections);
+                break;
+            case 'voice_decline':
+                handleVoiceDecline($connection, $msg, $localConnections);
+                break;
+            case 'voice_signal':
+                handleVoiceSignal($connection, $msg, $localConnections);
+                break;
+            case 'voice_end':
+                handleVoiceEnd($connection, $msg, $localConnections);
+                break;
             case 'ping':
                 handlePing($connection, $localConnections);
                 break;
@@ -284,7 +308,7 @@ $wsWorker->onMessage = function ($connection, $data) use (&$localConnections) {
 
 // 连接关闭
 $wsWorker->onClose = function ($connection) use (&$localConnections, &$pendingLeaves, &$wsWorker, &$listenSessions) {
-    global $roomIntimacyStates;
+    global $roomIntimacyStates, $voiceCalls;
     if (!isset($localConnections[$connection->id])) {
         echo "[" . date('H:i:s') . "] 断开 #{$connection->id} (未绑定用户)\n";
         return;
@@ -307,6 +331,23 @@ $wsWorker->onClose = function ($connection) use (&$localConnections, &$pendingLe
 
     if (!$userId || !$roomId) {
         return;
+    }
+
+    // 语音通话中掉线：结束通话并通知对方
+    if (isset($voiceCalls[$roomId])) {
+        $vc = $voiceCalls[$roomId];
+        if (($vc['caller'] == $userId || $vc['callee'] == $userId) && $vc['state'] === 'active') {
+            if (!empty($vc['timer'])) {
+                \Workerman\Lib\Timer::del($vc['timer']);
+            }
+            unset($voiceCalls[$roomId]);
+            echo "[" . date('H:i:s') . "] 用户 {$nickname}(#{$userId}) 掉线，通话结束\n";
+            broadcastToRoom($roomId, [
+                'type' => 'voice_ended',
+                'by_user_id' => $userId,
+                'reason' => 'disconnected',
+            ], $localConnections);
+        }
     }
 
     // 该用户是否还有其它连接在同一房间
@@ -922,6 +963,237 @@ function handleRoomLockChanged($connection, $msg, &$localConnections)
     broadcastToRoom($roomId, [
         'type' => 'room_lock_changed',
         'lock' => $lockStatus
+    ], $localConnections);
+}
+
+// ==================== 语音通话信令 ====================
+// 说明：服务端只做“谁在呼叫谁”的记录与消息转发，
+// offer / answer / ice-candidate 一律原样透传，不解析内容。
+
+/**
+ * 语音通话：发起呼叫
+ */
+function handleVoiceInvite($connection, $msg, &$localConnections)
+{
+    global $voiceCalls;
+
+    $connData = $localConnections[$connection->id] ?? null;
+    if (!$connData || !$connData['authed'] || !$connData['room_id']) {
+        $connection->send(json_encode(['type' => 'error', 'msg' => '请先加入房间']));
+        return;
+    }
+
+    $roomId = $connData['room_id'];
+    $userId = $connData['user_id'];
+    $nickname = $connData['nickname'];
+
+    $targetId = (int)($msg['target_user_id'] ?? 0);
+    if (!$targetId) {
+        $connection->send(json_encode(['type' => 'error', 'msg' => '缺少通话对象']));
+        return;
+    }
+    if ($targetId === $userId) {
+        $connection->send(json_encode(['type' => 'error', 'msg' => '不能呼叫自己']));
+        return;
+    }
+
+    // 该房间已有通话 → 忙线
+    if (isset($voiceCalls[$roomId])) {
+        $connection->send(json_encode(['type' => 'voice_busy', 'msg' => '当前房间正在通话中']));
+        return;
+    }
+
+    $voiceCalls[$roomId] = [
+        'caller'     => $userId,
+        'callee'     => $targetId,
+        'state'      => 'inviting',
+        'started_at' => microtime(true),
+        'timer'      => null,
+    ];
+
+    // 30 秒未接听自动结束
+    $voiceCalls[$roomId]['timer'] = \Workerman\Lib\Timer::add(30, function () use (&$localConnections, $roomId, $userId, $nickname) {
+        global $voiceCalls;
+        if (!isset($voiceCalls[$roomId]) || $voiceCalls[$roomId]['state'] !== 'inviting') {
+            return;
+        }
+        echo "[" . date('H:i:s') . "] 房间 {$roomId} 语音呼叫超时未接听\n";
+        unset($voiceCalls[$roomId]);
+        broadcastToRoom($roomId, [
+            'type' => 'voice_timeout',
+            'caller_id' => $userId,
+            'caller_nickname' => $nickname,
+        ], $localConnections);
+    }, [], false);
+
+    echo "[" . date('H:i:s') . "] {$nickname}(#{$userId}) 在房间 {$roomId} 呼叫 #{$targetId}\n";
+
+    // 只发给被叫方
+    sendToUser($roomId, $targetId, [
+        'type' => 'voice_invited',
+        'from_user_id' => $userId,
+        'from_nickname' => $nickname,
+        'from_avatar' => $connData['avatar'] ?? '',
+    ], $localConnections);
+}
+
+/**
+ * 语音通话：接听
+ */
+function handleVoiceAccept($connection, $msg, &$localConnections)
+{
+    global $voiceCalls;
+
+    $connData = $localConnections[$connection->id] ?? null;
+    if (!$connData || !$connData['authed'] || !$connData['room_id']) {
+        return;
+    }
+
+    $roomId = $connData['room_id'];
+    $userId = $connData['user_id'];
+    $nickname = $connData['nickname'];
+
+    if (!isset($voiceCalls[$roomId])) {
+        $connection->send(json_encode(['type' => 'voice_ended', 'reason' => 'expired']));
+        return;
+    }
+    if ($voiceCalls[$roomId]['callee'] !== $userId) {
+        return;
+    }
+
+    // 取消超时定时器
+    if (!empty($voiceCalls[$roomId]['timer'])) {
+        \Workerman\Lib\Timer::del($voiceCalls[$roomId]['timer']);
+    }
+
+    $callerId = $voiceCalls[$roomId]['caller'];
+    $voiceCalls[$roomId]['state'] = 'active';
+    $voiceCalls[$roomId]['started_at'] = microtime(true);
+    $voiceCalls[$roomId]['timer'] = null;
+
+    echo "[" . date('H:i:s') . "] {$nickname}(#{$userId}) 接听，房间 {$roomId} 通话开始\n";
+
+    // 通知主叫：可以开始交换 SDP 了
+    sendToUser($roomId, $callerId, [
+        'type' => 'voice_accepted',
+        'by_user_id' => $userId,
+        'by_nickname' => $nickname,
+    ], $localConnections);
+}
+
+/**
+ * 语音通话：拒接
+ */
+function handleVoiceDecline($connection, $msg, &$localConnections)
+{
+    global $voiceCalls;
+
+    $connData = $localConnections[$connection->id] ?? null;
+    if (!$connData || !$connData['authed'] || !$connData['room_id']) {
+        return;
+    }
+
+    $roomId = $connData['room_id'];
+    $userId = $connData['user_id'];
+    $nickname = $connData['nickname'];
+
+    if (!isset($voiceCalls[$roomId]) || $voiceCalls[$roomId]['callee'] !== $userId) {
+        return;
+    }
+
+    if (!empty($voiceCalls[$roomId]['timer'])) {
+        \Workerman\Lib\Timer::del($voiceCalls[$roomId]['timer']);
+    }
+
+    $callerId = $voiceCalls[$roomId]['caller'];
+    unset($voiceCalls[$roomId]);
+
+    echo "[" . date('H:i:s') . "] {$nickname}(#{$userId}) 拒接，房间 {$roomId}\n";
+
+    sendToUser($roomId, $callerId, [
+        'type' => 'voice_declined',
+        'by_user_id' => $userId,
+        'by_nickname' => $nickname,
+    ], $localConnections);
+}
+
+/**
+ * 语音通话：转发 SDP / ICE（不解析，原样透传）
+ */
+function handleVoiceSignal($connection, $msg, &$localConnections)
+{
+    global $voiceCalls;
+
+    $connData = $localConnections[$connection->id] ?? null;
+    if (!$connData || !$connData['authed'] || !$connData['room_id']) {
+        return;
+    }
+
+    $roomId = $connData['room_id'];
+    $userId = $connData['user_id'];
+
+    if (!isset($voiceCalls[$roomId])) {
+        return;
+    }
+
+    $call = $voiceCalls[$roomId];
+    if ($call['caller'] !== $userId && $call['callee'] !== $userId) {
+        return;
+    }
+
+    // 对方 ID
+    $peerId = ($userId === $call['caller']) ? $call['callee'] : $call['caller'];
+
+    $payload = $msg['payload'] ?? null;
+    if ($payload === null) {
+        return;
+    }
+
+    sendToUser($roomId, $peerId, [
+        'type' => 'voice_signal',
+        'from_user_id' => $userId,
+        'payload' => $payload,
+    ], $localConnections);
+}
+
+/**
+ * 语音通话：挂断 / 结束
+ */
+function handleVoiceEnd($connection, $msg, &$localConnections)
+{
+    global $voiceCalls;
+
+    $connData = $localConnections[$connection->id] ?? null;
+    if (!$connData || !$connData['authed'] || !$connData['room_id']) {
+        return;
+    }
+
+    $roomId = $connData['room_id'];
+    $userId = $connData['user_id'];
+    $nickname = $connData['nickname'];
+
+    if (!isset($voiceCalls[$roomId])) {
+        return;
+    }
+
+    $call = $voiceCalls[$roomId];
+    if ($call['caller'] !== $userId && $call['callee'] !== $userId) {
+        return;
+    }
+
+    if (!empty($call['timer'])) {
+        \Workerman\Lib\Timer::del($call['timer']);
+    }
+
+    unset($voiceCalls[$roomId]);
+
+    echo "[" . date('H:i:s') . "] {$nickname}(#{$userId}) 结束通话，房间 {$roomId}\n";
+
+    // 通知房间内其他人（含对方）
+    broadcastToRoom($roomId, [
+        'type' => 'voice_ended',
+        'by_user_id' => $userId,
+        'by_nickname' => $nickname,
     ], $localConnections);
 }
 
