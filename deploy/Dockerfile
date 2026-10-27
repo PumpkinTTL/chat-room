@@ -1,4 +1,6 @@
-FROM php:8.2-fpm
+# 固定补丁版本：8.2.35 修复 PHP2Shell（CVE-2026-109618 / CVE-2026-109619）
+# 注意：8.2 分支 2026-12-31 EOL，之后需规划升级到 8.3+
+FROM php:8.2.35-fpm
 
 # 扩展：pdo_mysql / redis / gd / mbstring / zip / bcmath / pcntl / posix / sockets
 # pcntl+posix 为 Workerman 必需；redis 走 pecl
@@ -19,6 +21,7 @@ RUN { \
       echo 'post_max_size=210M'; \
       echo 'expose_php=Off'; \
       echo 'display_errors=Off'; \
+      echo 'session.upload_progress.enabled=Off'; \
     } > /usr/local/etc/php/conf.d/zz-app.ini
 
 WORKDIR /app
